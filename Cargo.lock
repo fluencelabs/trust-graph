@@ -1330,6 +1330,7 @@ dependencies = [
  "ref-cast",
  "serde",
  "serde_json",
+ "signature",
 ]
 
 [[package]]

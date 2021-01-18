@@ -1370,9 +1370,11 @@ dependencies = [
  "failure",
  "fluence-fork-libp2p-core",
  "log",
+ "rand 0.7.3",
  "ref-cast",
  "serde",
  "serde_json",
+ "signature",
 ]
 
 [[package]]

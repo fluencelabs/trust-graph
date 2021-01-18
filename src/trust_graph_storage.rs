@@ -2,7 +2,7 @@ use crate::public_key_hashable::PublicKeyHashable;
 use crate::revoke::Revoke;
 use crate::trust_graph::Weight;
 use crate::trust_node::{Auth, TrustNode};
-use libp2p_core::identity::ed25519::PublicKey;
+use ed25519_dalek::PublicKey;
 use std::collections::HashMap;
 use std::time::Duration;
 

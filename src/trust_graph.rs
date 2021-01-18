@@ -15,7 +15,7 @@
  */
 
 use crate::certificate::Certificate;
-use crate::ed25519::PublicKey;
+use ed25519_dalek::PublicKey;
 use crate::public_key_hashable::PublicKeyHashable;
 use crate::revoke::Revoke;
 use crate::trust::Trust;

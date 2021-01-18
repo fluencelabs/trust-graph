@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use crate::ed25519::PublicKey;
+use ed25519_dalek::PublicKey;
 use crate::key_pair::KeyPair;
 use crate::trust::{Trust, TRUST_LEN};
 use std::str::FromStr;
