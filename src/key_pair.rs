@@ -16,7 +16,7 @@
 
 use crate::ed25519::{Keypair as Libp2pKeyPair};
 use ed25519_dalek::SignatureError;
-use ed25519_dalek::{PublicKey, Signer};
+use ed25519_dalek::{PublicKey, Signer, SecretKey};
 
 use core::fmt::{Debug};
 use std::fmt;
@@ -132,5 +132,16 @@ impl<'de> serde::Deserialize<'de> for KeyPair {
         }
 
         deserializer.deserialize_str(KeyPairVisitor)
+    }
+}
+
+impl Clone for KeyPair {
+    fn clone(&self) -> KeyPair {
+        let mut sk_bytes = self.key_pair.secret.to_bytes();
+        let secret = SecretKey::from_bytes(&mut sk_bytes)
+            .expect("ed25519::SecretKey::from_bytes(to_bytes(k)) != k");
+        let public = PublicKey::from_bytes(&self.key_pair.public.to_bytes())
+            .expect("ed25519::PublicKey::from_bytes(to_bytes(k)) != k");
+        KeyPair { key_pair: ed25519_dalek::Keypair { secret, public } }
     }
 }

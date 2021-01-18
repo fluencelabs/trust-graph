@@ -371,7 +371,7 @@ mod tests {
 
         let st = Box::new(InMemoryStorage::new());
         let mut graph = TrustGraph::new(st);
-        graph.add_root_weight(root.key_pair.public().into(), 0);
+        graph.add_root_weight(root.key_pair.public.into(), 0);
 
         let addition = graph.add(cert, current_time());
         assert_eq!(addition.is_ok(), true);
