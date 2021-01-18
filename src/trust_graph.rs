@@ -212,7 +212,8 @@ impl TrustGraph {
             // - that trust must converge to one of the root weights
             // - there should be more than 1 trust in the chain
             let self_signed = last.issued_by == last.trust.issued_for;
-            let converges_to_root = roots.contains(last.issued_by.as_ref());
+            let issued_by: &PublicKeyHashable = last.issued_by.as_ref();
+            let converges_to_root = roots.contains(issued_by);
 
             if self_signed && converges_to_root && cur_chain.len() > 1 {
                 terminated_chains.push(cur_chain);

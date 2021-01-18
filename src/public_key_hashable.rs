@@ -90,7 +90,7 @@ impl <'de>serde::Deserialize<'de> for PublicKeyHashable {
         impl<'de> Visitor<'de> for PKVisitor {
             type Value = PublicKeyHashable;
 
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                 formatter.write_str("byte array or base58 string")
             }
 

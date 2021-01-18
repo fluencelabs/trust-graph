@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-extern crate rand;
-
 use crate::ed25519::{Keypair as Libp2pKeyPair};
 use ed25519_dalek::SignatureError;
 use ed25519_dalek::{PublicKey, Signer};
-use signature::{Signature as SigSignature};
+
 use core::fmt::{Debug};
 use std::fmt;
 use rand::rngs::OsRng;
@@ -77,10 +75,8 @@ impl KeyPair {
     pub fn verify(pk: &PublicKey, msg: &[u8], signature: Signature) -> Result<(), String> {
         // let signature = ed25519_dalek::Signature::from_bytes(signature)
         //     .map_err(|err| format!("Cannot convert bytes to a signature: {:?}", err))?;
-        let result = pk.verify_strict(msg, &signature)
-            .map_err(|err| format!("Signature verification failed: {:?}", err))?;
-
-        Err("Signature is not valid.".to_string())
+        pk.verify_strict(msg, &signature)
+            .map_err(|err| format!("Signature verification failed: {:?}", err))
     }
 }
 
