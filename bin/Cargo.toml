@@ -1,0 +1,15 @@
+[package]
+name = "trust-graph-wasm"
+version = "0.2.0"
+authors = ["Fluence Labs"]
+edition = "2018"
+description = "trust graph wasm"
+license = "Apache-2.0"
+
+[[bin]]
+name = "trust-graph"
+path = "src/main.rs"
+
+[dependencies]
+trust-graph = { path = "../" }
+fluence = { version = "0.2.18", features = ["logger"] }
