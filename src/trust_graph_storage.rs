@@ -6,10 +6,7 @@ use crate::revoke::Revoke;
 use std::time::Duration;
 use libp2p_core::identity::ed25519::PublicKey;
 
-
 pub trait Storage {
-    fn new() -> Self;
-
     fn get(&self, pk: &PublicKeyHashable) -> Option<&TrustNode>;
     fn insert(&mut self, pk: PublicKeyHashable, node: TrustNode);
 
@@ -27,24 +24,27 @@ pub struct InMemoryStorage {
 }
 
 impl InMemoryStorage {
-    pub fn new_in_memory(root_weights: HashMap<PublicKeyHashable, Weight>) -> Self {
+    #[allow(dead_code)]
+    pub fn new_in_memory(root_weights: Vec<(PublicKey, Weight)>) -> Self {
+        let root_weights = root_weights.into_iter()
+            .map(|(k, w)| (k.into(), w))
+            .collect();
         Self {
             nodes: HashMap::new(),
             root_weights: root_weights,
         }
     }
-}
 
-impl Storage for InMemoryStorage {
-    fn new() -> Self {
+    #[allow(dead_code)]
+    pub fn new() -> Self {
         InMemoryStorage {
             nodes: HashMap::new(),
             root_weights: HashMap::new()
         }
     }
+}
 
-
-
+impl Storage for InMemoryStorage {
     fn get(&self, pk: &PublicKeyHashable) -> Option<&TrustNode> {
         self.nodes.get(pk)
     }

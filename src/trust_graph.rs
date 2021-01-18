@@ -20,10 +20,9 @@ use crate::public_key_hashable::PublicKeyHashable;
 use crate::revoke::Revoke;
 use crate::trust::Trust;
 use crate::trust_node::{Auth, TrustNode};
-use crate::trust_graph_storage::{Storage, InMemoryStorage};
+use crate::trust_graph_storage::Storage;
 use std::borrow::Borrow;
 use std::collections::{HashSet, VecDeque};
-use std::fmt::Debug;
 use std::time::Duration;
 
 /// for simplicity, we store `n` where Weight = 1/n^2
@@ -33,19 +32,15 @@ pub type Weight = u32;
 /// TODO serialization/deserialization
 /// TODO export a certificate from graph
 #[allow(dead_code)]
-#[derive(Debug, Default)]
 pub struct TrustGraph {
-    storage: InMemoryStorage
+    storage: Box<dyn Storage>
 }
 
 #[allow(dead_code)]
 impl TrustGraph {
-    pub fn new(root_weights: Vec<(PublicKey, Weight)>) -> Self {
-        let root_weights = root_weights.into_iter()
-            .map(|(k, w)| (k.into(), w))
-            .collect();
+    pub fn new(storage: Box<dyn Storage>) -> Self {
         Self {
-            storage: InMemoryStorage::new_in_memory(root_weights)
+            storage: storage
         }
     }
 
@@ -282,6 +277,7 @@ mod tests {
     use crate::misc::current_time;
     use failure::_core::time::Duration;
     use std::collections::HashMap;
+    use crate::trust_graph_storage::InMemoryStorage;
 
     pub fn one_minute() -> Duration {
         Duration::new(60, 0)
@@ -357,7 +353,8 @@ mod tests {
 
         let cur_time = current_time();
 
-        let mut graph = TrustGraph::default();
+        let st = Box::new(InMemoryStorage::new());
+        let mut graph = TrustGraph::new(st);
         let addition = graph.add(cert, cur_time);
         assert_eq!(addition.is_ok(), false);
     }
@@ -366,7 +363,8 @@ mod tests {
     fn test_add_cert() {
         let (root, _, cert) = generate_root_cert();
 
-        let mut graph = TrustGraph::default();
+        let st = Box::new(InMemoryStorage::new());
+        let mut graph = TrustGraph::new(st);
         graph.add_root_weight(root.key_pair.public().into(), 0);
 
         let addition = graph.add(cert, current_time());
@@ -396,7 +394,8 @@ mod tests {
         let (key_pairs2, cert2) =
             generate_cert_with(10, chain_keys, far_far_future * 2, far_far_future);
 
-        let mut graph = TrustGraph::default();
+        let st = Box::new(InMemoryStorage::new());
+        let mut graph = TrustGraph::new(st);
         let root1_pk = key_pairs1[0].public_key();
         let root2_pk = key_pairs2[0].public_key();
         graph.add_root_weight(root1_pk.into(), 1);
@@ -427,7 +426,8 @@ mod tests {
         let (key_pairs, cert1) = generate_cert_with_len(10, HashMap::new());
         let last_trust = cert1.chain[9].clone();
 
-        let mut graph = TrustGraph::default();
+        let st = Box::new(InMemoryStorage::new());
+        let mut graph = TrustGraph::new(st);
 
         let root_pk = key_pairs[0].public_key();
         graph.add_root_weight(root_pk.into(), 1);
@@ -470,7 +470,8 @@ mod tests {
 
         let (key_pairs2, cert2) = generate_cert_with_len(10, chain_keys);
 
-        let mut graph = TrustGraph::default();
+        let st = Box::new(InMemoryStorage::new());
+        let mut graph = TrustGraph::new(st);
         let root1_pk = key_pairs1[0].public_key();
         let root2_pk = key_pairs2[0].public_key();
         graph.add_root_weight(root1_pk.into(), 1);
@@ -505,7 +506,8 @@ mod tests {
     fn test_get_one_cert() {
         let (key_pairs, cert) = generate_cert_with_len(5, HashMap::new());
 
-        let mut graph = TrustGraph::default();
+        let st = Box::new(InMemoryStorage::new());
+        let mut graph = TrustGraph::new(st);
         let root1_pk = key_pairs[0].public_key();
         graph.add_root_weight(root1_pk.clone().into(), 1);
 
@@ -521,7 +523,8 @@ mod tests {
     fn test_chain_from_root_to_another_root() {
         let (_, cert) = generate_cert_with_len(6, HashMap::new());
 
-        let mut graph = TrustGraph::default();
+        let st = Box::new(InMemoryStorage::new());
+        let mut graph = TrustGraph::new(st);
         // add first and last trusts as roots
         graph
             .add_root_weight(cert.chain[0].clone().issued_for.into(), 1);
@@ -565,7 +568,8 @@ mod tests {
 
         let (key_pairs3, cert3) = generate_cert_with_len(5, chain_keys);
 
-        let mut graph = TrustGraph::default();
+        let st = Box::new(InMemoryStorage::new());
+        let mut graph = TrustGraph::new(st);
         let root1_pk = key_pairs1[0].public_key();
         let root2_pk = key_pairs2[0].public_key();
         let root3_pk = key_pairs3[0].public_key();
