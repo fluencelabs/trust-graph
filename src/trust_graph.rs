@@ -19,8 +19,8 @@ use crate::ed25519::PublicKey;
 use crate::public_key_hashable::PublicKeyHashable;
 use crate::revoke::Revoke;
 use crate::trust::Trust;
-use crate::trust_node::{Auth, TrustNode};
 use crate::trust_graph_storage::Storage;
+use crate::trust_node::{Auth, TrustNode};
 use std::borrow::Borrow;
 use std::collections::{HashSet, VecDeque};
 use std::time::Duration;
@@ -33,15 +33,13 @@ pub type Weight = u32;
 /// TODO export a certificate from graph
 #[allow(dead_code)]
 pub struct TrustGraph {
-    storage: Box<dyn Storage>
+    storage: Box<dyn Storage>,
 }
 
 #[allow(dead_code)]
 impl TrustGraph {
     pub fn new(storage: Box<dyn Storage>) -> Self {
-        Self {
-            storage: storage
-        }
+        Self { storage: storage }
     }
 
     /// Insert new root weight
@@ -60,7 +58,13 @@ impl TrustGraph {
     where
         C: Borrow<Certificate>,
     {
-        let roots: Vec<PublicKey> = self.storage.root_keys().iter().cloned().map(Into::into).collect();
+        let roots: Vec<PublicKey> = self
+            .storage
+            .root_keys()
+            .iter()
+            .cloned()
+            .map(Into::into)
+            .collect();
         // Check that certificate is valid and converges to one of the known roots
         Certificate::verify(cert.borrow(), roots.as_slice(), cur_time)?;
 
@@ -89,7 +93,8 @@ impl TrustGraph {
                 issued_by: previous_trust.issued_for.clone(),
             };
 
-            self.storage.update_auth(&pk, auth, &root_trust.issued_for, cur_time);
+            self.storage
+                .update_auth(&pk, auth, &root_trust.issued_for, cur_time);
 
             previous_trust = trust;
         }
@@ -275,9 +280,9 @@ mod tests {
     use super::*;
     use crate::key_pair::KeyPair;
     use crate::misc::current_time;
+    use crate::trust_graph_storage::InMemoryStorage;
     use failure::_core::time::Duration;
     use std::collections::HashMap;
-    use crate::trust_graph_storage::InMemoryStorage;
 
     pub fn one_minute() -> Duration {
         Duration::new(60, 0)
@@ -526,12 +531,9 @@ mod tests {
         let st = Box::new(InMemoryStorage::new());
         let mut graph = TrustGraph::new(st);
         // add first and last trusts as roots
-        graph
-            .add_root_weight(cert.chain[0].clone().issued_for.into(), 1);
-        graph
-            .add_root_weight(cert.chain[3].clone().issued_for.into(), 1);
-        graph
-            .add_root_weight(cert.chain[5].clone().issued_for.into(), 1);
+        graph.add_root_weight(cert.chain[0].clone().issued_for.into(), 1);
+        graph.add_root_weight(cert.chain[3].clone().issued_for.into(), 1);
+        graph.add_root_weight(cert.chain[5].clone().issued_for.into(), 1);
 
         graph.add(cert.clone(), current_time()).unwrap();
 

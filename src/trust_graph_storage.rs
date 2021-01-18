@@ -1,10 +1,10 @@
-use crate::trust_node::{Auth, TrustNode};
 use crate::public_key_hashable::PublicKeyHashable;
-use crate::trust_graph::Weight;
-use std::collections::{HashMap};
 use crate::revoke::Revoke;
-use std::time::Duration;
+use crate::trust_graph::Weight;
+use crate::trust_node::{Auth, TrustNode};
 use libp2p_core::identity::ed25519::PublicKey;
+use std::collections::HashMap;
+use std::time::Duration;
 
 pub trait Storage {
     fn get(&self, pk: &PublicKeyHashable) -> Option<&TrustNode>;
@@ -14,7 +14,13 @@ pub trait Storage {
     fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight);
     fn root_keys(&self) -> Vec<PublicKeyHashable>;
     fn revoke(&mut self, pk: &PublicKeyHashable, revoke: Revoke) -> Result<(), String>;
-    fn update_auth(&mut self, pk: &PublicKeyHashable, auth: Auth, issued_for: &PublicKey, cur_time: Duration);
+    fn update_auth(
+        &mut self,
+        pk: &PublicKeyHashable,
+        auth: Auth,
+        issued_for: &PublicKey,
+        cur_time: Duration,
+    );
 }
 
 #[derive(Debug, Default)]
@@ -26,7 +32,8 @@ pub struct InMemoryStorage {
 impl InMemoryStorage {
     #[allow(dead_code)]
     pub fn new_in_memory(root_weights: Vec<(PublicKey, Weight)>) -> Self {
-        let root_weights = root_weights.into_iter()
+        let root_weights = root_weights
+            .into_iter()
             .map(|(k, w)| (k.into(), w))
             .collect();
         Self {
@@ -39,7 +46,7 @@ impl InMemoryStorage {
     pub fn new() -> Self {
         InMemoryStorage {
             nodes: HashMap::new(),
-            root_weights: HashMap::new()
+            root_weights: HashMap::new(),
         }
     }
 }
@@ -75,7 +82,13 @@ impl Storage for InMemoryStorage {
         }
     }
 
-    fn update_auth(&mut self, pk: &PublicKeyHashable, auth: Auth, issued_for: &PublicKey, cur_time: Duration) {
+    fn update_auth(
+        &mut self,
+        pk: &PublicKeyHashable,
+        auth: Auth,
+        issued_for: &PublicKey,
+        cur_time: Duration,
+    ) {
         match self.nodes.get_mut(&pk) {
             Some(trust_node) => {
                 trust_node.update_auth(auth);

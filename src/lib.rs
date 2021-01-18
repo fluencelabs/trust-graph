@@ -34,8 +34,8 @@ mod public_key_hashable;
 mod revoke;
 mod trust;
 mod trust_graph;
-mod trust_node;
 mod trust_graph_storage;
+mod trust_node;
 
 pub(crate) use libp2p_core::identity::ed25519;
 
