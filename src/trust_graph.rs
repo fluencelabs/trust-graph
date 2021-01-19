@@ -20,7 +20,7 @@ use crate::revoke::Revoke;
 use crate::trust::Trust;
 use crate::trust_graph_storage::Storage;
 use crate::trust_node::{Auth, TrustNode};
-use fluence_identity::key_pair::PublicKey;
+use fluence_identity::public_key::PublicKey;
 use std::borrow::Borrow;
 use std::collections::{HashSet, VecDeque};
 use std::time::Duration;

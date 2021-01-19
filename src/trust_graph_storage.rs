@@ -2,7 +2,7 @@ use crate::public_key_hashable::PublicKeyHashable;
 use crate::revoke::Revoke;
 use crate::trust_graph::Weight;
 use crate::trust_node::{Auth, TrustNode};
-use fluence_identity::key_pair::PublicKey;
+use fluence_identity::public_key::PublicKey;
 use std::collections::HashMap;
 use std::time::Duration;
 

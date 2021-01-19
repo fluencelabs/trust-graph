@@ -16,7 +16,7 @@
 
 use crate::trust::{EXPIRATION_LEN, PK_LEN};
 use fluence_identity::key_pair::KeyPair;
-use fluence_identity::key_pair::PublicKey;
+use fluence_identity::public_key::PublicKey;
 use fluence_identity::signature::Signature;
 use std::time::Duration;
 

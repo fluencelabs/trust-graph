@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use fluence_identity::key_pair::PublicKey;
+use fluence_identity::public_key::PublicKey;
 
 use core::fmt;
 use ref_cast::RefCast;

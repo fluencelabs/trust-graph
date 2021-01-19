@@ -15,11 +15,12 @@
  */
 
 use crate::ed25519::Keypair as Libp2pKeyPair;
+use crate::public_key::PublicKey;
+use crate::secret_key::SecretKey;
 use crate::signature::Signature;
 use ed25519_dalek::SignatureError;
 use ed25519_dalek::Signer;
 
-use core::fmt::Debug;
 use rand::rngs::OsRng;
 use std::fmt;
 
@@ -27,50 +28,6 @@ use std::fmt;
 #[derive(Debug)]
 pub struct KeyPair {
     key_pair: ed25519_dalek::Keypair,
-}
-#[derive(Copy, Clone, Default, Eq, PartialEq)]
-pub struct PublicKey(ed25519_dalek::PublicKey);
-
-pub struct SecretKey(ed25519_dalek::SecretKey);
-
-impl Debug for PublicKey {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(f, "{:?}", self.0)
-    }
-}
-
-impl PublicKey {
-    pub fn verify_strict(
-        &self,
-        message: &[u8],
-        signature: &Signature,
-    ) -> Result<(), SignatureError> {
-        self.0.verify_strict(message, &signature.0)
-    }
-
-    pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, SignatureError> {
-        let pk = ed25519_dalek::PublicKey::from_bytes(bytes)?;
-
-        Ok(PublicKey(pk))
-    }
-
-    pub fn to_bytes(&self) -> [u8; ed25519_dalek::PUBLIC_KEY_LENGTH] {
-        self.0.to_bytes()
-    }
-}
-
-impl SecretKey {
-    pub fn from_bytes(bytes: &[u8]) -> Result<SecretKey, SignatureError> {
-        let pk = ed25519_dalek::SecretKey::from_bytes(bytes)?;
-
-        Ok(SecretKey(pk))
-    }
-}
-
-impl AsRef<[u8]> for SecretKey {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_bytes()
-    }
 }
 
 impl KeyPair {

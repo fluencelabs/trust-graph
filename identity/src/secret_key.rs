@@ -14,26 +14,20 @@
  * limitations under the License.
  */
 
-#![recursion_limit = "512"]
-#![warn(rust_2018_idioms)]
-#![deny(
-    dead_code,
-    nonstandard_style,
-    unused_imports,
-    unused_mut,
-    unused_variables,
-    unused_unsafe,
-    unreachable_patterns
-)]
+use ed25519_dalek::SignatureError;
 
-pub mod key_pair;
-pub mod public_key;
-pub mod secret_key;
-pub mod signature;
+pub struct SecretKey(ed25519_dalek::SecretKey);
 
-pub use crate::key_pair::KeyPair;
-pub use crate::public_key::PublicKey;
-pub use crate::secret_key::SecretKey;
-pub use crate::signature::Signature;
+impl SecretKey {
+    pub fn from_bytes(bytes: &[u8]) -> Result<SecretKey, SignatureError> {
+        let pk = ed25519_dalek::SecretKey::from_bytes(bytes)?;
 
-pub(crate) use libp2p_core::identity::ed25519;
+        Ok(SecretKey(pk))
+    }
+}
+
+impl AsRef<[u8]> for SecretKey {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_bytes()
+    }
+}
