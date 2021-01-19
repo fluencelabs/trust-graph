@@ -26,18 +26,8 @@
     unreachable_patterns
 )]
 
-mod certificate;
-pub mod certificate_serde;
-mod misc;
-mod public_key_hashable;
-mod revoke;
-mod trust;
-mod trust_graph;
-mod trust_graph_storage;
-mod trust_node;
+pub mod key_pair;
 
-pub use crate::certificate::Certificate;
-pub use crate::misc::current_time;
-pub use crate::public_key_hashable::PublicKeyHashable;
-pub use crate::trust::Trust;
-pub use crate::trust_graph::TrustGraph;
+pub use key_pair::KeyPair;
+
+pub(crate) use libp2p_core::identity::ed25519;

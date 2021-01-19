@@ -150,7 +150,7 @@ impl TrustNode {
 mod tests {
     use std::time::Duration;
 
-    use crate::key_pair::KeyPair;
+    use fluence_identity::key_pair::KeyPair;
 
     use super::*;
 

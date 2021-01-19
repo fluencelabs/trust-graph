@@ -279,7 +279,7 @@ impl TrustGraph {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::key_pair::KeyPair;
+    use fluence_identity::key_pair::KeyPair;
     use crate::misc::current_time;
     use crate::trust_graph_storage::InMemoryStorage;
     use failure::_core::time::Duration;

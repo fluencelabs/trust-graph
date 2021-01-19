@@ -15,7 +15,7 @@
  */
 
 use ed25519_dalek::{PublicKey};
-use crate::key_pair::{KeyPair, Signature};
+use fluence_identity::key_pair::{KeyPair, Signature};
 use derivative::Derivative;
 use std::convert::TryInto;
 use std::time::Duration;

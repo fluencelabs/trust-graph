@@ -15,8 +15,8 @@
  */
 
 use ed25519_dalek::PublicKey;
-use crate::key_pair::KeyPair;
-use crate::key_pair::Signature;
+use fluence_identity::key_pair::KeyPair;
+use fluence_identity::key_pair::Signature;
 use crate::trust::{EXPIRATION_LEN, PK_LEN};
 use std::time::Duration;
 

@@ -15,7 +15,7 @@
  */
 
 use ed25519_dalek::PublicKey;
-use crate::key_pair::KeyPair;
+use fluence_identity::key_pair::KeyPair;
 use crate::trust::{Trust, TRUST_LEN};
 use std::str::FromStr;
 use std::time::Duration;
@@ -237,7 +237,7 @@ mod tests {
     use super::*;
     use crate::misc::current_time;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
-    use crate::key_pair::KeyPair;
+    use fluence_identity::key_pair::KeyPair;
 
     pub fn one_second() -> Duration {
         Duration::from_secs(1)
