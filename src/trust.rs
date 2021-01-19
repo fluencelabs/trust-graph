@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-use ed25519_dalek::{PublicKey};
-use fluence_identity::key_pair::{KeyPair, Signature};
 use derivative::Derivative;
+use ed25519_dalek::PublicKey;
+use fluence_identity::key_pair::{KeyPair, Signature};
+use signature::Signature as SigSignature;
 use std::convert::TryInto;
 use std::time::Duration;
-use signature::{Signature as SigSignature};
 
 pub const SIG_LEN: usize = 64;
 pub const PK_LEN: usize = 32;
@@ -50,7 +50,10 @@ fn show_pubkey(key: &PublicKey, f: &mut std::fmt::Formatter<'_>) -> Result<(), s
     write!(f, "{}", bs58::encode(&key.to_bytes()).into_string())
 }
 
-fn show_sig(sig: &ed25519_dalek::Signature, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+fn show_sig(
+    sig: &ed25519_dalek::Signature,
+    f: &mut std::fmt::Formatter<'_>,
+) -> Result<(), std::fmt::Error> {
     write!(f, "{}", bs58::encode(&sig.to_bytes()).into_string())
 }
 

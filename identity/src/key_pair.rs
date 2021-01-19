@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-use crate::ed25519::{Keypair as Libp2pKeyPair};
+use crate::ed25519::Keypair as Libp2pKeyPair;
 use ed25519_dalek::SignatureError;
-use ed25519_dalek::{PublicKey, Signer, SecretKey};
+use ed25519_dalek::{PublicKey, SecretKey, Signer};
 
-use core::fmt::{Debug};
-use std::fmt;
+use core::fmt::Debug;
 use rand::rngs::OsRng;
+use std::fmt;
 
 pub type Signature = ed25519_dalek::Signature;
 
@@ -34,14 +34,14 @@ impl KeyPair {
     /// Generate a new Ed25519 keypair.
     #[allow(dead_code)]
     pub fn generate() -> Self {
-        let mut csprng = OsRng { };
+        let mut csprng = OsRng {};
         let kp = ed25519_dalek::Keypair::generate(&mut csprng);
         kp.into()
     }
 
     pub fn from_bytes(sk_bytes: &[u8]) -> Result<Self, SignatureError> {
         let kp = ed25519_dalek::Keypair::from_bytes(sk_bytes)?;
-        Ok(KeyPair {key_pair: kp})
+        Ok(KeyPair { key_pair: kp })
     }
 
     /// Encode the keypair into a byte array by concatenating the bytes
@@ -55,9 +55,7 @@ impl KeyPair {
     #[allow(dead_code)]
     pub fn decode(kp: &[u8]) -> Result<KeyPair, SignatureError> {
         let kp = ed25519_dalek::Keypair::from_bytes(kp)?;
-        Ok(Self {
-            key_pair: kp,
-        })
+        Ok(Self { key_pair: kp })
     }
 
     /// Get the public key of this keypair.
@@ -142,6 +140,8 @@ impl Clone for KeyPair {
             .expect("ed25519::SecretKey::from_bytes(to_bytes(k)) != k");
         let public = PublicKey::from_bytes(&self.key_pair.public.to_bytes())
             .expect("ed25519::PublicKey::from_bytes(to_bytes(k)) != k");
-        KeyPair { key_pair: ed25519_dalek::Keypair { secret, public } }
+        KeyPair {
+            key_pair: ed25519_dalek::Keypair { secret, public },
+        }
     }
 }

@@ -16,12 +16,12 @@
 
 use ed25519_dalek::PublicKey;
 
+use core::fmt;
 use ref_cast::RefCast;
 use std::{
     fmt::{Display, Formatter},
     hash::{Hash, Hasher},
 };
-use core::fmt;
 
 /// Wrapper to use PublicKey in HashMap
 #[derive(PartialEq, Eq, Debug, Clone, RefCast)]
@@ -79,10 +79,11 @@ impl Display for PublicKeyHashable {
     }
 }
 
-impl <'de>serde::Deserialize<'de> for PublicKeyHashable {
+impl<'de> serde::Deserialize<'de> for PublicKeyHashable {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: serde::Deserializer<'de> {
+    where
+        D: serde::Deserializer<'de>,
+    {
         use serde::de::{Error, Visitor};
 
         struct PKVisitor;
@@ -95,19 +96,21 @@ impl <'de>serde::Deserialize<'de> for PublicKeyHashable {
             }
 
             fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
-                where
-                    E: Error,
+            where
+                E: Error,
             {
                 bs58::decode(s)
                     .into_vec()
                     .map_err(|err| Error::custom(format!("Invalid string '{}': {}", s, err)))
                     .and_then(|v| self.visit_bytes(v.as_slice()))
-                    .map_err(|err: E| Error::custom(format!("Parsed string '{}' as base58, but {}", s, err)))
+                    .map_err(|err: E| {
+                        Error::custom(format!("Parsed string '{}' as base58, but {}", s, err))
+                    })
             }
 
             fn visit_bytes<E>(self, b: &[u8]) -> Result<Self::Value, E>
-                where
-                    E: Error,
+            where
+                E: Error,
             {
                 let pk = PublicKey::from_bytes(b)
                     .map_err(|err| Error::custom(format!("Invalid bytes {:?}: {}", b, err)))?;

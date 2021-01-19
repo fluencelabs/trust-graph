@@ -15,12 +15,12 @@
  */
 
 use crate::certificate::Certificate;
-use ed25519_dalek::PublicKey;
 use crate::public_key_hashable::PublicKeyHashable;
 use crate::revoke::Revoke;
 use crate::trust::Trust;
 use crate::trust_graph_storage::Storage;
 use crate::trust_node::{Auth, TrustNode};
+use ed25519_dalek::PublicKey;
 use std::borrow::Borrow;
 use std::collections::{HashSet, VecDeque};
 use std::time::Duration;
@@ -279,10 +279,10 @@ impl TrustGraph {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fluence_identity::key_pair::KeyPair;
     use crate::misc::current_time;
     use crate::trust_graph_storage::InMemoryStorage;
     use failure::_core::time::Duration;
+    use fluence_identity::key_pair::KeyPair;
     use std::collections::HashMap;
 
     pub fn one_minute() -> Duration {

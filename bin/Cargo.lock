@@ -1400,6 +1400,7 @@ name = "trust-graph-wasm"
 version = "0.2.0"
 dependencies = [
  "fluence",
+ "log",
  "trust-graph",
 ]
 

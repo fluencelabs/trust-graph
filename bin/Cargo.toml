@@ -12,4 +12,5 @@ path = "src/main.rs"
 
 [dependencies]
 trust-graph = { path = "../" }
+log = "0.4.8"
 fluence = { version = "0.2.18", features = ["logger"] }

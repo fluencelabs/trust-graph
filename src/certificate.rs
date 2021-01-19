@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
+use crate::trust::{Trust, TRUST_LEN};
 use ed25519_dalek::PublicKey;
 use fluence_identity::key_pair::KeyPair;
-use crate::trust::{Trust, TRUST_LEN};
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -236,8 +236,8 @@ impl FromStr for Certificate {
 mod tests {
     use super::*;
     use crate::misc::current_time;
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
     use fluence_identity::key_pair::KeyPair;
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     pub fn one_second() -> Duration {
         Duration::from_secs(1)

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+use crate::trust::{EXPIRATION_LEN, PK_LEN};
 use ed25519_dalek::PublicKey;
 use fluence_identity::key_pair::KeyPair;
 use fluence_identity::key_pair::Signature;
-use crate::trust::{EXPIRATION_LEN, PK_LEN};
 use std::time::Duration;
 
 /// "A document" that cancels trust created before.
