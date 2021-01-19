@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-use crate::ed25519::PublicKey;
-use crate::key_pair::{KeyPair, Signature};
 use derivative::Derivative;
+use ed25519_dalek::PublicKey;
+use fluence_identity::key_pair::{KeyPair, Signature};
+use signature::Signature as SigSignature;
 use std::convert::TryInto;
 use std::time::Duration;
 
@@ -46,11 +47,14 @@ pub struct Trust {
 }
 
 fn show_pubkey(key: &PublicKey, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-    write!(f, "{}", bs58::encode(key.encode()).into_string())
+    write!(f, "{}", bs58::encode(&key.to_bytes()).into_string())
 }
 
-fn show_sig(sig: &[u8], f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-    write!(f, "{}", bs58::encode(sig).into_string())
+fn show_sig(
+    sig: &ed25519_dalek::Signature,
+    f: &mut std::fmt::Formatter<'_>,
+) -> Result<(), std::fmt::Error> {
+    write!(f, "{}", bs58::encode(&sig.to_bytes()).into_string())
 }
 
 impl Trust {
@@ -96,13 +100,13 @@ impl Trust {
         let msg: &[u8] =
             &Self::metadata_bytes(&trust.issued_for, trust.expires_at, trust.issued_at);
 
-        KeyPair::verify(issued_by, msg, trust.signature.as_slice())?;
+        KeyPair::verify(issued_by, msg, trust.signature)?;
 
         Ok(())
     }
 
     fn metadata_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> [u8; 48] {
-        let pk_encoded = pk.encode();
+        let pk_encoded = pk.to_bytes();
         let expires_at_encoded: [u8; EXPIRATION_LEN] = (expires_at.as_secs() as u64).to_le_bytes();
         let issued_at_encoded: [u8; ISSUED_LEN] = (issued_at.as_secs() as u64).to_le_bytes();
         let mut metadata = [0; METADATA_LEN];
@@ -120,8 +124,8 @@ impl Trust {
     #[allow(dead_code)]
     pub fn encode(&self) -> Vec<u8> {
         let mut vec = Vec::with_capacity(TRUST_LEN);
-        vec.extend_from_slice(&self.issued_for.encode());
-        vec.extend_from_slice(&self.signature.as_slice());
+        vec.extend_from_slice(&self.issued_for.to_bytes());
+        vec.extend_from_slice(&self.signature.to_bytes());
         vec.extend_from_slice(&(self.expires_at.as_secs() as u64).to_le_bytes());
         vec.extend_from_slice(&(self.issued_at.as_secs() as u64).to_le_bytes());
 
@@ -137,8 +141,10 @@ impl Trust {
             );
         }
 
-        let pk = PublicKey::decode(&arr[0..PK_LEN]).map_err(|err| err.to_string())?;
+        let pk = PublicKey::from_bytes(&arr[0..PK_LEN]).map_err(|err| err.to_string())?;
+
         let signature = &arr[PK_LEN..PK_LEN + SIG_LEN];
+        let signature = Signature::from_bytes(signature).map_err(|err| err.to_string())?;
 
         let expiration_bytes = &arr[PK_LEN + SIG_LEN..PK_LEN + SIG_LEN + EXPIRATION_LEN];
         let expiration_date = u64::from_le_bytes(expiration_bytes.try_into().unwrap());
@@ -150,7 +156,7 @@ impl Trust {
 
         Ok(Self {
             issued_for: pk,
-            signature: signature.to_vec(),
+            signature: signature,
             expires_at: expiration_date,
             issued_at: issued_date,
         })
@@ -183,7 +189,7 @@ impl Trust {
     ) -> Result<Self, String> {
         // PublicKey
         let issued_for_bytes = Self::bs58_str_to_vec(issued_for, "issued_for")?;
-        let issued_for = PublicKey::decode(issued_for_bytes.as_slice()).map_err(|e| {
+        let issued_for = PublicKey::from_bytes(issued_for_bytes.as_slice()).map_err(|e| {
             format!(
                 "Cannot decode the public key: {} in the trust '{}'",
                 issued_for, e
@@ -192,6 +198,7 @@ impl Trust {
 
         // 64 bytes signature
         let signature = Self::bs58_str_to_vec(signature, "signature")?;
+        let signature = Signature::from_bytes(&signature).map_err(|err| err.to_string())?;
 
         // Duration
         let expires_at = Self::str_to_duration(expires_at, "expires_at")?;
@@ -205,8 +212,8 @@ impl Trust {
 
 impl ToString for Trust {
     fn to_string(&self) -> String {
-        let issued_for = bs58::encode(self.issued_for.encode()).into_string();
-        let signature = bs58::encode(self.signature.as_slice()).into_string();
+        let issued_for = bs58::encode(self.issued_for.to_bytes()).into_string();
+        let signature = bs58::encode(self.signature.to_bytes()).into_string();
         let expires_at = (self.expires_at.as_secs() as u64).to_string();
         let issued_at = (self.issued_at.as_secs() as u64).to_string();
 

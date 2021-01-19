@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-use crate::ed25519::PublicKey;
 use crate::public_key_hashable::PublicKeyHashable;
 use crate::revoke::Revoke;
 use crate::trust::Trust;
+use ed25519_dalek::PublicKey;
 use failure::_core::time::Duration;
 use std::collections::HashMap;
 
@@ -150,7 +150,7 @@ impl TrustNode {
 mod tests {
     use std::time::Duration;
 
-    use crate::key_pair::KeyPair;
+    use fluence_identity::key_pair::KeyPair;
 
     use super::*;
 

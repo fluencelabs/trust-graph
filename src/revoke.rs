@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-use crate::ed25519::PublicKey;
-use crate::key_pair::KeyPair;
-use crate::key_pair::Signature;
 use crate::trust::{EXPIRATION_LEN, PK_LEN};
+use ed25519_dalek::PublicKey;
+use fluence_identity::key_pair::KeyPair;
+use fluence_identity::key_pair::Signature;
 use std::time::Duration;
 
 /// "A document" that cancels trust created before.
@@ -61,7 +61,7 @@ impl Revoke {
 
     fn signature_bytes(pk: &PublicKey, revoked_at: Duration) -> Vec<u8> {
         let mut msg = Vec::with_capacity(PK_LEN + EXPIRATION_LEN);
-        msg.extend_from_slice(&pk.encode());
+        msg.extend_from_slice(&pk.to_bytes());
         msg.extend_from_slice(&(revoked_at.as_secs() as u64).to_le_bytes());
 
         msg
@@ -71,14 +71,10 @@ impl Revoke {
     pub fn verify(revoke: &Revoke) -> Result<(), String> {
         let msg = Revoke::signature_bytes(&revoke.pk, revoke.revoked_at);
 
-        if !revoke
+        revoke
             .revoked_by
-            .verify(msg.as_slice(), revoke.signature.as_slice())
-        {
-            return Err("Revoke has incorrect signature.".to_string());
-        }
-
-        Ok(())
+            .verify_strict(msg.as_slice(), &revoke.signature)
+            .map_err(|err| format!("Revoke has incorrect signature: {:?}", err))
     }
 }
 
