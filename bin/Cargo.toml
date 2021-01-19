@@ -12,5 +12,11 @@ path = "src/main.rs"
 
 [dependencies]
 trust-graph = { path = "../" }
+fluence-identity = { path = "../identity" }
 log = "0.4.8"
 fluence = { version = "0.2.18", features = ["logger"] }
+anyhow = "1.0.31"
+boolinator = "2.4.0"
+once_cell = "1.4.1"
+parking_lot = "0.11.1"
+fce-sqlite-connector = "0.1.3"

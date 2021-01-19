@@ -40,4 +40,7 @@ pub use crate::certificate::Certificate;
 pub use crate::misc::current_time;
 pub use crate::public_key_hashable::PublicKeyHashable;
 pub use crate::trust::Trust;
-pub use crate::trust_graph::TrustGraph;
+pub use crate::revoke::Revoke;
+pub use crate::trust_node::{TrustNode, Auth};
+pub use crate::trust_graph::{TrustGraph, Weight};
+pub use crate::trust_graph_storage::Storage;

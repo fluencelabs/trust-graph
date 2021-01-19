@@ -33,12 +33,12 @@ pub type Weight = u32;
 /// TODO export a certificate from graph
 #[allow(dead_code)]
 pub struct TrustGraph {
-    storage: Box<dyn Storage>,
+    storage: Box<dyn Storage + Send + Sync>,
 }
 
 #[allow(dead_code)]
 impl TrustGraph {
-    pub fn new(storage: Box<dyn Storage>) -> Self {
+    pub fn new(storage: Box<dyn Storage + Send + Sync>) -> Self {
         Self { storage: storage }
     }
 
