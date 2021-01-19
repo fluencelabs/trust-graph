@@ -15,8 +15,8 @@
  */
 
 use crate::trust::{Trust, TRUST_LEN};
-use ed25519_dalek::PublicKey;
 use fluence_identity::key_pair::KeyPair;
+use fluence_identity::key_pair::PublicKey;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -261,7 +261,7 @@ mod tests {
 
         let new_cert = Certificate::issue(
             &second_kp,
-            third_kp.key_pair.public,
+            third_kp.public(),
             &cert,
             cur_time.checked_add(one_second()).unwrap(),
             cur_time,
@@ -288,7 +288,7 @@ mod tests {
 
         let new_cert = Certificate::issue(
             &second_kp,
-            third_kp.key_pair.public,
+            third_kp.public(),
             &cert,
             cur_time.checked_add(one_second()).unwrap(),
             cur_time,
@@ -348,7 +348,7 @@ mod tests {
 
         let new_cert = Certificate::issue(
             &second_kp,
-            third_kp.key_pair.public,
+            third_kp.public(),
             &cert,
             cur_time.checked_add(one_year()).unwrap(),
             cur_time,
@@ -359,18 +359,18 @@ mod tests {
 
         println!(
             "root_kp:\n\tprivate: {}\n\tpublic: {}",
-            bs58::encode(root_kp.clone().key_pair.secret).into_string(),
-            bs58::encode(&root_kp.key_pair.public.to_bytes().to_vec()).into_string()
+            bs58::encode(root_kp.clone().secret()).into_string(),
+            bs58::encode(&root_kp.public().to_bytes().to_vec()).into_string()
         );
         println!(
             "second_kp:\n\tprivate: {}\n\tpublic: {}",
-            bs58::encode(second_kp.clone().key_pair.secret).into_string(),
-            bs58::encode(&second_kp.key_pair.public.to_bytes().to_vec()).into_string()
+            bs58::encode(second_kp.clone().secret()).into_string(),
+            bs58::encode(&second_kp.public().to_bytes().to_vec()).into_string()
         );
         println!(
             "third_kp:\n\tprivate: {}\n\tpublic: {}",
-            bs58::encode(third_kp.clone().key_pair.secret).into_string(),
-            bs58::encode(&third_kp.key_pair.public.to_bytes().to_vec()).into_string()
+            bs58::encode(third_kp.clone().secret()).into_string(),
+            bs58::encode(&third_kp.public().to_bytes().to_vec()).into_string()
         );
         println!("cert is\n{}", new_cert.to_string());
 
@@ -391,7 +391,7 @@ mod tests {
 
         let new_cert = Certificate::issue(
             &second_kp,
-            third_kp.key_pair.public,
+            third_kp.public(),
             &cert,
             cur_time.checked_sub(one_second()).unwrap(),
             cur_time.checked_sub(one_minute()).unwrap(),
@@ -413,7 +413,7 @@ mod tests {
 
         let new_cert = Certificate::issue(
             &second_kp,
-            third_kp.key_pair.public,
+            third_kp.public(),
             &cert,
             cur_time.checked_add(one_second()).unwrap(),
             cur_time,
@@ -422,7 +422,7 @@ mod tests {
         .unwrap();
         let new_cert = Certificate::issue(
             &third_kp,
-            fourth_kp.key_pair.public,
+            fourth_kp.public(),
             &new_cert,
             cur_time.checked_add(one_second()).unwrap(),
             cur_time,
@@ -451,7 +451,7 @@ mod tests {
 
         let new_cert = Certificate::issue(
             &second_kp,
-            third_kp.key_pair.public,
+            third_kp.public(),
             &cert,
             cur_time.checked_add(one_second()).unwrap(),
             cur_time,
@@ -460,7 +460,7 @@ mod tests {
         .unwrap();
         let new_cert = Certificate::issue(
             &second_kp,
-            fourth_kp.key_pair.public,
+            fourth_kp.public(),
             &new_cert,
             cur_time.checked_add(one_second()).unwrap(),
             cur_time,
@@ -485,7 +485,7 @@ mod tests {
         let bad_kp = KeyPair::generate();
         let new_cert_bad = Certificate::issue(
             &bad_kp,
-            bad_kp.key_pair.public,
+            bad_kp.public(),
             &cert,
             cur_time.checked_add(one_second()).unwrap(),
             cur_time,

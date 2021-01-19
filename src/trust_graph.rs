@@ -20,7 +20,7 @@ use crate::revoke::Revoke;
 use crate::trust::Trust;
 use crate::trust_graph_storage::Storage;
 use crate::trust_node::{Auth, TrustNode};
-use ed25519_dalek::PublicKey;
+use fluence_identity::key_pair::PublicKey;
 use std::borrow::Borrow;
 use std::collections::{HashSet, VecDeque};
 use std::time::Duration;
@@ -371,7 +371,7 @@ mod tests {
 
         let st = Box::new(InMemoryStorage::new());
         let mut graph = TrustGraph::new(st);
-        graph.add_root_weight(root.key_pair.public.into(), 0);
+        graph.add_root_weight(root.public().into(), 0);
 
         let addition = graph.add(cert, current_time());
         assert_eq!(addition.is_ok(), true);

@@ -371,13 +371,10 @@ name = "fluence-identity"
 version = "0.2.0"
 dependencies = [
  "bs58 0.3.1",
- "derivative",
+ "ed25519",
  "ed25519-dalek",
- "failure",
  "fluence-fork-libp2p-core",
- "log",
  "rand 0.7.3",
- "ref-cast",
  "serde",
  "serde_json",
  "signature",

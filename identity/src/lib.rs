@@ -27,7 +27,9 @@
 )]
 
 pub mod key_pair;
+pub mod signature;
 
-pub use key_pair::KeyPair;
+pub use crate::key_pair::KeyPair;
+pub use crate::signature::Signature;
 
 pub(crate) use libp2p_core::identity::ed25519;

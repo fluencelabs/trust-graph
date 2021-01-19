@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use ed25519_dalek::PublicKey;
+use fluence_identity::key_pair::PublicKey;
 
 use core::fmt;
 use ref_cast::RefCast;

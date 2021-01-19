@@ -17,8 +17,8 @@
 use crate::public_key_hashable::PublicKeyHashable;
 use crate::revoke::Revoke;
 use crate::trust::Trust;
-use ed25519_dalek::PublicKey;
 use failure::_core::time::Duration;
+use fluence_identity::key_pair::PublicKey;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]

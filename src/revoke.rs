@@ -15,9 +15,9 @@
  */
 
 use crate::trust::{EXPIRATION_LEN, PK_LEN};
-use ed25519_dalek::PublicKey;
 use fluence_identity::key_pair::KeyPair;
-use fluence_identity::key_pair::Signature;
+use fluence_identity::key_pair::PublicKey;
+use fluence_identity::signature::Signature;
 use std::time::Duration;
 
 /// "A document" that cancels trust created before.

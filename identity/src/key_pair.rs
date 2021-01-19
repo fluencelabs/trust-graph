@@ -15,19 +15,62 @@
  */
 
 use crate::ed25519::Keypair as Libp2pKeyPair;
+use crate::signature::Signature;
 use ed25519_dalek::SignatureError;
-use ed25519_dalek::{PublicKey, SecretKey, Signer};
+use ed25519_dalek::Signer;
 
 use core::fmt::Debug;
 use rand::rngs::OsRng;
 use std::fmt;
 
-pub type Signature = ed25519_dalek::Signature;
-
 /// An Ed25519 keypair.
 #[derive(Debug)]
 pub struct KeyPair {
-    pub key_pair: ed25519_dalek::Keypair,
+    key_pair: ed25519_dalek::Keypair,
+}
+#[derive(Copy, Clone, Default, Eq, PartialEq)]
+pub struct PublicKey(ed25519_dalek::PublicKey);
+
+pub struct SecretKey(ed25519_dalek::SecretKey);
+
+impl Debug for PublicKey {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl PublicKey {
+    pub fn verify_strict(
+        &self,
+        message: &[u8],
+        signature: &Signature,
+    ) -> Result<(), SignatureError> {
+        self.0.verify_strict(message, &signature.0)
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, SignatureError> {
+        let pk = ed25519_dalek::PublicKey::from_bytes(bytes)?;
+
+        Ok(PublicKey(pk))
+    }
+
+    pub fn to_bytes(&self) -> [u8; ed25519_dalek::PUBLIC_KEY_LENGTH] {
+        self.0.to_bytes()
+    }
+}
+
+impl SecretKey {
+    pub fn from_bytes(bytes: &[u8]) -> Result<SecretKey, SignatureError> {
+        let pk = ed25519_dalek::SecretKey::from_bytes(bytes)?;
+
+        Ok(SecretKey(pk))
+    }
+}
+
+impl AsRef<[u8]> for SecretKey {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_bytes()
+    }
 }
 
 impl KeyPair {
@@ -37,6 +80,15 @@ impl KeyPair {
         let mut csprng = OsRng {};
         let kp = ed25519_dalek::Keypair::generate(&mut csprng);
         kp.into()
+    }
+
+    pub fn public(&self) -> PublicKey {
+        PublicKey(self.key_pair.public)
+    }
+
+    pub fn secret(&self) -> SecretKey {
+        let b = self.key_pair.secret.to_bytes();
+        SecretKey::from_bytes(&b).expect("SecretKey::from_bytes(to_bytes(k)) != k")
     }
 
     pub fn from_bytes(sk_bytes: &[u8]) -> Result<Self, SignatureError> {
@@ -61,19 +113,19 @@ impl KeyPair {
     /// Get the public key of this keypair.
     #[allow(dead_code)]
     pub fn public_key(&self) -> PublicKey {
-        self.key_pair.public
+        PublicKey(self.key_pair.public)
     }
 
     /// Sign a message using the private key of this keypair.
     pub fn sign(&self, msg: &[u8]) -> Signature {
-        self.key_pair.sign(msg)
+        Signature(self.key_pair.sign(msg))
     }
 
     /// Verify the Ed25519 signature on a message using the public key.
-    pub fn verify(pk: &PublicKey, msg: &[u8], signature: Signature) -> Result<(), String> {
+    pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> Result<(), String> {
         // let signature = ed25519_dalek::Signature::from_bytes(signature)
         //     .map_err(|err| format!("Cannot convert bytes to a signature: {:?}", err))?;
-        pk.verify_strict(msg, &signature)
+        pk.verify_strict(msg, signature)
             .map_err(|err| format!("Signature verification failed: {:?}", err))
     }
 }
@@ -136,9 +188,9 @@ impl<'de> serde::Deserialize<'de> for KeyPair {
 impl Clone for KeyPair {
     fn clone(&self) -> KeyPair {
         let mut sk_bytes = self.key_pair.secret.to_bytes();
-        let secret = SecretKey::from_bytes(&mut sk_bytes)
+        let secret = ed25519_dalek::SecretKey::from_bytes(&mut sk_bytes)
             .expect("ed25519::SecretKey::from_bytes(to_bytes(k)) != k");
-        let public = PublicKey::from_bytes(&self.key_pair.public.to_bytes())
+        let public = ed25519_dalek::PublicKey::from_bytes(&self.key_pair.public.to_bytes())
             .expect("ed25519::PublicKey::from_bytes(to_bytes(k)) != k");
         KeyPair {
             key_pair: ed25519_dalek::Keypair { secret, public },
