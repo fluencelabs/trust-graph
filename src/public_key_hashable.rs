@@ -18,11 +18,11 @@ use fluence_identity::public_key::PublicKey;
 
 use core::fmt;
 use ref_cast::RefCast;
+use serde::ser::Serializer;
 use std::{
     fmt::{Display, Formatter},
     hash::{Hash, Hasher},
 };
-use serde::ser::{Serializer};
 
 /// Wrapper to use PublicKey in HashMap
 #[derive(PartialEq, Eq, Debug, Clone, RefCast)]
@@ -82,8 +82,9 @@ impl Display for PublicKeyHashable {
 
 impl serde::Serialize for PublicKeyHashable {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer {
+    where
+        S: Serializer,
+    {
         serializer.serialize_bytes(&self.0.to_bytes())
     }
 }

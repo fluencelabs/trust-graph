@@ -18,9 +18,9 @@ use derivative::Derivative;
 use fluence_identity::key_pair::KeyPair;
 use fluence_identity::public_key::PublicKey;
 use fluence_identity::signature::Signature;
+use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use std::time::Duration;
-use serde::{Serialize, Deserialize};
 
 pub const SIG_LEN: usize = 64;
 pub const PK_LEN: usize = 32;

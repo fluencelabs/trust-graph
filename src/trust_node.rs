@@ -19,9 +19,9 @@ use crate::revoke::Revoke;
 use crate::trust::Trust;
 use failure::_core::time::Duration;
 use fluence_identity::public_key::PublicKey;
-use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 enum TrustRelation {
