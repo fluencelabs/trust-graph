@@ -59,7 +59,7 @@ pub struct Auth {
 /// An element of trust graph that store relations (trust or revoke)
 /// that given by some owners of public keys.
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TrustNode {
     /// identity key of this element
     pub pk: PublicKey,

@@ -13,11 +13,19 @@ use trust_graph::{Auth, PublicKeyHashable, Revoke, Storage, TrustGraph, TrustNod
 
 static INSTANCE: OnceCell<Mutex<TrustGraph>> = OnceCell::new();
 
-fn get_data() -> &'static Mutex<TrustGraph> {
+pub fn get_data() -> &'static Mutex<TrustGraph> {
     INSTANCE.get_or_init(|| {
-        let db_path = "/var/folders/ww/v__xg0cj17x7h7sf3bgwpx8h0000gn/T/4589ab6f-5440-4933-ace5-a62714784142/tmp/users.sqlite";
+        let db_path = "/tmp/users.sqlite";
         let connection = fce_sqlite_connector::open(db_path).unwrap();
-        Mutex::new(TrustGraph::new(Box::new(SqliteStorage {connection})))
+
+        let init_sql = "CREATE TABLE IF NOT EXISTS trustnodes(\
+        public_key TEXT PRIMARY KEY,\
+        trustnode TEXT NOT NULL,\
+        );";
+
+        connection.execute(init_sql).expect("cannot connect to db");
+
+        Mutex::new(TrustGraph::new(Box::new(SqliteStorage { connection })))
     })
 }
 
@@ -25,20 +33,32 @@ struct SqliteStorage {
     connection: Connection,
 }
 
-impl SqliteStorage {
-    pub fn init(&self) {
-        let init_sql = "CREATE TABLE IF NOT EXISTS trustnodes(\
-        public_key TEXT PRIMARY KEY,\
-        trustnode TEXT NOT NULL,\
-        );";
-
-        self.connection.execute(init_sql).unwrap();
-    }
-}
+impl SqliteStorage {}
 
 impl Storage for SqliteStorage {
-    fn get(&self, pk: &PublicKeyHashable) -> Option<&TrustNode> {
-        None
+    fn get(&self, pk: &PublicKeyHashable) -> Option<TrustNode> {
+        let mut cursor = self
+            .connection
+            .prepare("SELECT trustnode FROM trustnodes WHERE public_key = ?")
+            .expect("unexpected: 'get' request should be correct")
+            .cursor();
+
+        cursor
+            .bind(&[Value::String(format!("{}", pk))])
+            .expect("unexpected: 'public_key' field should be string");
+
+        match cursor.next().unwrap() {
+            Some(r) => {
+                let tn_str = r[0]
+                    .as_string()
+                    .expect("unexpected: 'trustnode' in a table should be as string");
+                let trust_node: TrustNode = serde_json::from_str(tn_str)
+                    .expect("unexpected: 'trustnode' should be as correct json");
+                Some(trust_node)
+            }
+
+            None => None,
+        }
     }
 
     fn insert(&mut self, pk: PublicKeyHashable, node: TrustNode) {

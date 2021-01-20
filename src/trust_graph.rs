@@ -48,7 +48,7 @@ impl TrustGraph {
     }
 
     /// Get trust by public key
-    pub fn get(&self, pk: PublicKey) -> Option<&TrustNode> {
+    pub fn get(&self, pk: PublicKey) -> Option<TrustNode> {
         self.storage.get(&pk.into())
     }
 

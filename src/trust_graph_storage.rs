@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 pub trait Storage {
-    fn get(&self, pk: &PublicKeyHashable) -> Option<&TrustNode>;
+    fn get(&self, pk: &PublicKeyHashable) -> Option<TrustNode>;
     fn insert(&mut self, pk: PublicKeyHashable, node: TrustNode);
 
     fn get_root_weight(&self, pk: &PublicKeyHashable) -> Option<&Weight>;
@@ -52,8 +52,8 @@ impl InMemoryStorage {
 }
 
 impl Storage for InMemoryStorage {
-    fn get(&self, pk: &PublicKeyHashable) -> Option<&TrustNode> {
-        self.nodes.get(pk)
+    fn get(&self, pk: &PublicKeyHashable) -> Option<TrustNode> {
+        self.nodes.get(pk).cloned()
     }
 
     fn insert(&mut self, pk: PublicKeyHashable, node: TrustNode) {
