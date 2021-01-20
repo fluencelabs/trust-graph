@@ -15,8 +15,9 @@
  */
 
 use signature::Signature as SigSignature;
+use serde::{Serialize, Deserialize};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Signature(pub ed25519_dalek::Signature);
 
 pub const SIGNATURE_LENGTH: usize = 64;

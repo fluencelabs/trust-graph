@@ -15,7 +15,9 @@
  */
 
 use ed25519_dalek::SignatureError;
+use serde::{Serialize, Deserialize};
 
+#[derive(Serialize, Deserialize)]
 pub struct SecretKey(ed25519_dalek::SecretKey);
 
 impl SecretKey {

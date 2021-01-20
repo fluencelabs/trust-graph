@@ -17,8 +17,9 @@
 use crate::signature::Signature;
 use core::fmt::Debug;
 use ed25519_dalek::SignatureError;
+use serde::{Serialize, Deserialize};
 
-#[derive(Copy, Clone, Default, Eq, PartialEq)]
+#[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PublicKey(pub(crate) ed25519_dalek::PublicKey);
 
 impl Debug for PublicKey {

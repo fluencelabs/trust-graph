@@ -19,10 +19,11 @@ use fluence_identity::key_pair::KeyPair;
 use fluence_identity::public_key::PublicKey;
 use fluence_identity::signature::Signature;
 use std::time::Duration;
+use serde::{Serialize, Deserialize};
 
 /// "A document" that cancels trust created before.
 /// TODO delete pk from Revoke (it is already in a trust node)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Revoke {
     /// who is revoked
     pub pk: PublicKey,

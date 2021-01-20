@@ -2,13 +2,14 @@
 // check if trust is already in list before adding
 // if there is an older trust - don't add received trust
 
-use trust_graph::{Storage, TrustGraph, PublicKeyHashable, TrustNode, Weight, Auth, Revoke};
+use fce_sqlite_connector;
+use fce_sqlite_connector::Value;
+use fce_sqlite_connector::{Connection, State};
 use fluence_identity::public_key::PublicKey;
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
 use std::time::Duration;
-use fce_sqlite_connector;
-use fce_sqlite_connector::{State, Connection};
+use trust_graph::{Auth, PublicKeyHashable, Revoke, Storage, TrustGraph, TrustNode, Weight};
 
 static INSTANCE: OnceCell<Mutex<TrustGraph>> = OnceCell::new();
 
@@ -26,12 +27,12 @@ struct SqliteStorage {
 
 impl SqliteStorage {
     pub fn init(&self) {
-        let init_sql = "CREATE TABLE IF NOT EXISTS trusts(\
-        peer_id TEXT PRIMARY KEY,\
-        relay TEXT NOT NULL,\
-        sig TEXT NOT NULL,\
-        name TEXT NOT NULL\
+        let init_sql = "CREATE TABLE IF NOT EXISTS trustnodes(\
+        public_key TEXT PRIMARY KEY,\
+        trustnode TEXT NOT NULL,\
         );";
+
+        self.connection.execute(init_sql).unwrap();
     }
 }
 
@@ -39,22 +40,38 @@ impl Storage for SqliteStorage {
     fn get(&self, pk: &PublicKeyHashable) -> Option<&TrustNode> {
         None
     }
-    fn insert(&mut self, pk: PublicKeyHashable, node: TrustNode) {
 
+    fn insert(&mut self, pk: PublicKeyHashable, node: TrustNode) {
+        let mut cursor = self
+            .connection
+            .prepare("INSERT INTO trustnodes VALUES (?, ?)")
+            .unwrap()
+            .cursor();
+
+        let tn_str = serde_json::to_string(&node).unwrap();
+
+        cursor.bind(&[Value::String(format!("{}", pk))]).unwrap();
+        cursor
+            .bind(&[Value::String(format!("{}", tn_str))])
+            .unwrap();
+
+        cursor.next().unwrap();
     }
 
     fn get_root_weight(&self, pk: &PublicKeyHashable) -> Option<&Weight> {
         None
     }
-    fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight) {
 
-    }
+    fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight) {}
+
     fn root_keys(&self) -> Vec<PublicKeyHashable> {
         vec![]
     }
+
     fn revoke(&mut self, pk: &PublicKeyHashable, revoke: Revoke) -> Result<(), String> {
         Err("not implemented".to_string())
     }
+
     fn update_auth(
         &mut self,
         pk: &PublicKeyHashable,
@@ -62,6 +79,5 @@ impl Storage for SqliteStorage {
         issued_for: &PublicKey,
         cur_time: Duration,
     ) {
-
     }
 }

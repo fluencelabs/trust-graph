@@ -20,8 +20,10 @@ use crate::trust::Trust;
 use failure::_core::time::Duration;
 use fluence_identity::public_key::PublicKey;
 use std::collections::HashMap;
+use serde::{Serialize, Deserialize};
+use serde_with::serde_as;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 enum TrustRelation {
     Auth(Auth),
     Revoke(Revoke),
@@ -46,7 +48,7 @@ impl TrustRelation {
 }
 
 /// Represents who give a certificate
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Auth {
     /// proof of this authorization
     pub trust: Trust,
@@ -56,12 +58,14 @@ pub struct Auth {
 
 /// An element of trust graph that store relations (trust or revoke)
 /// that given by some owners of public keys.
-#[derive(Debug)]
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TrustNode {
     /// identity key of this element
     pub pk: PublicKey,
 
     /// one public key could be authorized or revoked by multiple certificates
+    #[serde_as(as = "Vec<(_, _)>")]
     trust_relations: HashMap<PublicKeyHashable, TrustRelation>,
 
     /// for maintain

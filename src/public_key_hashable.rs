@@ -22,6 +22,7 @@ use std::{
     fmt::{Display, Formatter},
     hash::{Hash, Hasher},
 };
+use serde::ser::{Serializer};
 
 /// Wrapper to use PublicKey in HashMap
 #[derive(PartialEq, Eq, Debug, Clone, RefCast)]
@@ -76,6 +77,14 @@ impl AsRef<PublicKeyHashable> for PublicKey {
 impl Display for PublicKeyHashable {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", bs58::encode(self.0.to_bytes()).into_string())
+    }
+}
+
+impl serde::Serialize for PublicKeyHashable {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer {
+        serializer.serialize_bytes(&self.0.to_bytes())
     }
 }
 

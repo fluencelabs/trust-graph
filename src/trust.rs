@@ -20,6 +20,7 @@ use fluence_identity::public_key::PublicKey;
 use fluence_identity::signature::Signature;
 use std::convert::TryInto;
 use std::time::Duration;
+use serde::{Serialize, Deserialize};
 
 pub const SIG_LEN: usize = 64;
 pub const PK_LEN: usize = 32;
@@ -30,7 +31,7 @@ pub const TRUST_LEN: usize = SIG_LEN + PK_LEN + EXPIRATION_LEN + ISSUED_LEN;
 
 /// One element in chain of trust in a certificate.
 /// TODO delete pk from Trust (it is already in a trust node)
-#[derive(Clone, PartialEq, Derivative, Eq)]
+#[derive(Clone, PartialEq, Derivative, Eq, Serialize, Deserialize)]
 #[derivative(Debug)]
 pub struct Trust {
     /// For whom this certificate is issued
