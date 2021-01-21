@@ -16,7 +16,7 @@ fn test() -> String {
     let expires_at = Duration::new(15, 15);
     let issued_at = Duration::new(5, 5);
 
-    let mut cert = Certificate::issue_root(&root_kp, second_kp.public_key(), expires_at, issued_at);
+    let cert = Certificate::issue_root(&root_kp, second_kp.public_key(), expires_at, issued_at);
     tg.add_root_weight(root_kp.public().into(), 0);
     tg.add_root_weight(root_kp2.public().into(), 1);
     tg.add(cert, Duration::new(10, 10));

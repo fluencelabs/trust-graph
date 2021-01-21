@@ -108,7 +108,7 @@ impl TrustGraph {
         P: Borrow<PublicKey>,
     {
         if let Some(weight) = self.storage.get_root_weight(pk.borrow().as_ref()) {
-            return Some(*weight);
+            return Some(weight);
         }
 
         let roots: Vec<PublicKey> = self
@@ -142,7 +142,7 @@ impl TrustGraph {
         for cert in certs {
             let cert = cert.borrow();
 
-            let root_weight = *self
+            let root_weight = self
                 .storage
                 .get_root_weight(cert.chain.first()?.issued_for.as_ref())
                 // This panic shouldn't happen // TODO: why?

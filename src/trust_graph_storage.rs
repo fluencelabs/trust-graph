@@ -10,7 +10,7 @@ pub trait Storage {
     fn get(&self, pk: &PublicKeyHashable) -> Option<TrustNode>;
     fn insert(&mut self, pk: PublicKeyHashable, node: TrustNode);
 
-    fn get_root_weight(&self, pk: &PublicKeyHashable) -> Option<&Weight>;
+    fn get_root_weight(&self, pk: &PublicKeyHashable) -> Option<Weight>;
     fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight);
     fn root_keys(&self) -> Vec<PublicKeyHashable>;
     fn revoke(&mut self, pk: &PublicKeyHashable, revoke: Revoke) -> Result<(), String>;
@@ -60,8 +60,8 @@ impl Storage for InMemoryStorage {
         &self.nodes.insert(pk, node);
     }
 
-    fn get_root_weight(&self, pk: &PublicKeyHashable) -> Option<&Weight> {
-        self.root_weights.get(pk)
+    fn get_root_weight(&self, pk: &PublicKeyHashable) -> Option<Weight> {
+        self.root_weights.get(pk).cloned()
     }
 
     fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight) {

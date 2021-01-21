@@ -2,6 +2,7 @@
 // check if trust is already in list before adding
 // if there is an older trust - don't add received trust
 
+use core::convert::TryFrom;
 use fce_sqlite_connector;
 use fce_sqlite_connector::Value;
 use fce_sqlite_connector::{Connection, State};
@@ -86,8 +87,24 @@ impl Storage for SqliteStorage {
         cursor.next().unwrap();
     }
 
-    fn get_root_weight(&self, pk: &PublicKeyHashable) -> Option<&Weight> {
-        None
+    fn get_root_weight(&self, pk: &PublicKeyHashable) -> Option<Weight> {
+        let mut cursor = self
+            .connection
+            .prepare("SELECT public_key,weight FROM roots WHERE public_key = ?")
+            .unwrap()
+            .cursor();
+
+        cursor.bind(&[Value::String(format!("{}", pk))]).unwrap();
+
+        if let Some(row) = cursor.next().unwrap() {
+            log::info!("row: {:?}", row);
+
+            let w = u32::try_from(row[1].as_integer().unwrap()).unwrap();
+
+            Some(w)
+        } else {
+            None
+        }
     }
 
     fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight) {
