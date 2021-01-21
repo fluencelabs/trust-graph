@@ -8,6 +8,7 @@ use fce_sqlite_connector::{Connection, State};
 use fluence_identity::public_key::PublicKey;
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
+use std::str::FromStr;
 use std::time::Duration;
 use trust_graph::{Auth, PublicKeyHashable, Revoke, Storage, TrustGraph, TrustNode, Weight};
 
@@ -18,9 +19,13 @@ pub fn get_data() -> &'static Mutex<TrustGraph> {
         let db_path = "/tmp/users.sqlite";
         let connection = fce_sqlite_connector::open(db_path).unwrap();
 
-        let init_sql = "CREATE TABLE IF NOT EXISTS trustnodes(\
-        public_key TEXT PRIMARY KEY,\
-        trustnode TEXT NOT NULL,\
+        let init_sql = "CREATE TABLE IF NOT EXISTS trustnodes(
+        public_key TEXT PRIMARY KEY,
+        trustnode BLOB NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS roots(
+        public_key TEXT,
+        weight INTEGER
         );";
 
         connection.execute(init_sql).expect("cannot connect to db");
@@ -49,11 +54,15 @@ impl Storage for SqliteStorage {
 
         match cursor.next().unwrap() {
             Some(r) => {
-                let tn_str = r[0]
-                    .as_string()
+                let tn_bin = r[0]
+                    .as_binary()
                     .expect("unexpected: 'trustnode' in a table should be as string");
-                let trust_node: TrustNode = serde_json::from_str(tn_str)
+
+                let trust_node: TrustNode = bincode::deserialize(tn_bin)
                     .expect("unexpected: 'trustnode' should be as correct json");
+
+                log::info!("trustnode: {:?}", trust_node);
+
                 Some(trust_node)
             }
 
@@ -68,11 +77,10 @@ impl Storage for SqliteStorage {
             .unwrap()
             .cursor();
 
-        let tn_str = serde_json::to_string(&node).unwrap();
+        let tn_vec = bincode::serialize(&node).unwrap();
 
-        cursor.bind(&[Value::String(format!("{}", pk))]).unwrap();
         cursor
-            .bind(&[Value::String(format!("{}", tn_str))])
+            .bind(&[Value::String(format!("{}", pk)), Value::Binary(tn_vec)])
             .unwrap();
 
         cursor.next().unwrap();
@@ -82,10 +90,42 @@ impl Storage for SqliteStorage {
         None
     }
 
-    fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight) {}
+    fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight) {
+        log::info!("add root: {} weight: {}", pk, weight);
+        let mut cursor = self
+            .connection
+            .prepare("INSERT INTO roots VALUES (?, ?)")
+            .unwrap()
+            .cursor();
+
+        cursor
+            .bind(&[
+                Value::String(format!("{}", pk)),
+                Value::Integer(i64::from(weight)),
+            ])
+            .unwrap();
+
+        cursor.next().unwrap();
+    }
 
     fn root_keys(&self) -> Vec<PublicKeyHashable> {
-        vec![]
+        let mut cursor = self
+            .connection
+            .prepare("SELECT public_key,weight FROM roots")
+            .unwrap()
+            .cursor();
+
+        let mut roots = vec![];
+
+        while let Some(row) = cursor.next().unwrap() {
+            log::info!("row: {:?}", row);
+            let pk: PublicKeyHashable =
+                PublicKeyHashable::from_str(row[0].as_string().unwrap()).unwrap();
+
+            roots.push(pk)
+        }
+
+        roots
     }
 
     fn revoke(&mut self, pk: &PublicKeyHashable, revoke: Revoke) -> Result<(), String> {
@@ -99,5 +139,16 @@ impl Storage for SqliteStorage {
         issued_for: &PublicKey,
         cur_time: Duration,
     ) {
+        match self.get(&pk) {
+            Some(mut trust_node) => {
+                trust_node.update_auth(auth);
+                self.insert(pk.clone(), trust_node)
+            }
+            None => {
+                let mut trust_node = TrustNode::new(issued_for.clone(), cur_time);
+                trust_node.update_auth(auth);
+                self.insert(pk.clone(), trust_node);
+            }
+        }
     }
 }

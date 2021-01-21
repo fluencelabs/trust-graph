@@ -10,6 +10,7 @@ fn test() -> String {
     let mut tg = get_data().lock();
 
     let root_kp = KeyPair::generate();
+    let root_kp2 = KeyPair::generate();
     let second_kp = KeyPair::generate();
 
     let expires_at = Duration::new(15, 15);
@@ -17,6 +18,7 @@ fn test() -> String {
 
     let mut cert = Certificate::issue_root(&root_kp, second_kp.public_key(), expires_at, issued_at);
     tg.add_root_weight(root_kp.public().into(), 0);
+    tg.add_root_weight(root_kp2.public().into(), 1);
     tg.add(cert, Duration::new(10, 10));
 
     let a = tg.get(second_kp.public_key());

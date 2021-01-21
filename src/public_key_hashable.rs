@@ -19,6 +19,7 @@ use fluence_identity::public_key::PublicKey;
 use core::fmt;
 use ref_cast::RefCast;
 use serde::ser::Serializer;
+use std::str::FromStr;
 use std::{
     fmt::{Display, Formatter},
     hash::{Hash, Hasher},
@@ -77,6 +78,20 @@ impl AsRef<PublicKeyHashable> for PublicKey {
 impl Display for PublicKeyHashable {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", bs58::encode(self.0.to_bytes()).into_string())
+    }
+}
+
+impl FromStr for PublicKeyHashable {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let bytes = bs58::decode(s)
+            .into_vec()
+            .map_err(|err| format!("Invalid string '{}': {}", s, err))?;
+
+        let pk = PublicKey::from_bytes(&bytes)
+            .map_err(|err| format!("Invalid bytes {:?}: {}", bytes, err))?;
+        Ok(PublicKeyHashable::from(pk))
     }
 }
 
