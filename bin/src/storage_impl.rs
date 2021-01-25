@@ -3,12 +3,12 @@
 // if there is an older trust - don't add received trust
 
 use core::convert::TryFrom;
-use fce_sqlite_connector;
-use fce_sqlite_connector::Value;
-use fce_sqlite_connector::{Connection, State};
 use fluence_identity::public_key::PublicKey;
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
+use sqlite;
+use sqlite::Connection;
+use sqlite::Value;
 use std::str::FromStr;
 use std::time::Duration;
 use trust_graph::{Auth, PublicKeyHashable, Revoke, Storage, TrustGraph, TrustNode, Weight};
@@ -18,7 +18,7 @@ static INSTANCE: OnceCell<Mutex<TrustGraph>> = OnceCell::new();
 pub fn get_data() -> &'static Mutex<TrustGraph> {
     INSTANCE.get_or_init(|| {
         let db_path = "/tmp/users.sqlite";
-        let connection = fce_sqlite_connector::open(db_path).unwrap();
+        let connection = sqlite::open(db_path).unwrap();
 
         let init_sql = "CREATE TABLE IF NOT EXISTS trustnodes(
         public_key TEXT PRIMARY KEY,
@@ -31,15 +31,19 @@ pub fn get_data() -> &'static Mutex<TrustGraph> {
 
         connection.execute(init_sql).expect("cannot connect to db");
 
-        Mutex::new(TrustGraph::new(Box::new(SqliteStorage { connection })))
+        Mutex::new(TrustGraph::new(Box::new(SqliteStorage::new(connection))))
     })
 }
 
-struct SqliteStorage {
+pub struct SqliteStorage {
     connection: Connection,
 }
 
-impl SqliteStorage {}
+impl SqliteStorage {
+    pub fn new(connection: Connection) -> SqliteStorage {
+        SqliteStorage { connection }
+    }
+}
 
 impl Storage for SqliteStorage {
     fn get(&self, pk: &PublicKeyHashable) -> Option<TrustNode> {
@@ -57,10 +61,10 @@ impl Storage for SqliteStorage {
             Some(r) => {
                 let tn_bin = r[0]
                     .as_binary()
-                    .expect("unexpected: 'trustnode' in a table should be as string");
+                    .expect("unexpected: 'trustnode' in a table should be as binary");
 
-                let trust_node: TrustNode = bincode::deserialize(tn_bin)
-                    .expect("unexpected: 'trustnode' should be as correct json");
+                let trust_node: TrustNode = rmp_serde::from_read_ref(tn_bin)
+                    .expect("unexpected: 'trustnode' should be as correct binary");
 
                 log::info!("trustnode: {:?}", trust_node);
 
@@ -74,11 +78,13 @@ impl Storage for SqliteStorage {
     fn insert(&mut self, pk: PublicKeyHashable, node: TrustNode) {
         let mut cursor = self
             .connection
-            .prepare("INSERT INTO trustnodes VALUES (?, ?)")
+            .prepare("INSERT OR REPLACE INTO trustnodes VALUES (?, ?)")
             .unwrap()
             .cursor();
 
-        let tn_vec = bincode::serialize(&node).unwrap();
+        log::info!("insert trustnode: {:?}", node);
+
+        let tn_vec = rmp_serde::to_vec(&node).unwrap();
 
         cursor
             .bind(&[Value::String(format!("{}", pk)), Value::Binary(tn_vec)])
@@ -111,7 +117,7 @@ impl Storage for SqliteStorage {
         log::info!("add root: {} weight: {}", pk, weight);
         let mut cursor = self
             .connection
-            .prepare("INSERT INTO roots VALUES (?, ?)")
+            .prepare("INSERT OR REPLACE INTO roots VALUES (?, ?)")
             .unwrap()
             .cursor();
 
@@ -146,7 +152,14 @@ impl Storage for SqliteStorage {
     }
 
     fn revoke(&mut self, pk: &PublicKeyHashable, revoke: Revoke) -> Result<(), String> {
-        Err("not implemented".to_string())
+        match self.get(&pk) {
+            Some(mut trust_node) => {
+                trust_node.update_revoke(revoke);
+                self.insert(pk.clone(), trust_node);
+                Ok(())
+            }
+            None => Err("There is no trust with such PublicKey".to_string()),
+        }
     }
 
     fn update_auth(

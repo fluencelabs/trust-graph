@@ -9,3 +9,11 @@ pub fn main() {
         .build()
         .unwrap();
 }
+
+// only option for now is to copy tests from trust graph,
+// change connector to sqlite and fix compilation -_-
+// TODO: fix it
+/*#[cfg(test)]
+mod tests {
+
+}*/

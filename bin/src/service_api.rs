@@ -1,7 +1,6 @@
 use crate::storage_impl::get_data;
-use fluence::{fce, CallParameters};
+use fluence::fce;
 use fluence_identity::KeyPair;
-use std::ops::Deref;
 use std::time::Duration;
 use trust_graph::Certificate;
 
