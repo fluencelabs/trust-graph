@@ -6,9 +6,9 @@ use core::convert::TryFrom;
 use fluence_identity::public_key::PublicKey;
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
-use sqlite;
-use sqlite::Connection;
-use sqlite::Value;
+use fce_sqlite_connector;
+use fce_sqlite_connector::Connection;
+use fce_sqlite_connector::Value;
 use std::str::FromStr;
 use std::time::Duration;
 use trust_graph::{Auth, PublicKeyHashable, Revoke, Storage, TrustGraph, TrustNode, Weight};
@@ -18,7 +18,7 @@ static INSTANCE: OnceCell<Mutex<TrustGraph>> = OnceCell::new();
 pub fn get_data() -> &'static Mutex<TrustGraph> {
     INSTANCE.get_or_init(|| {
         let db_path = "/tmp/users.sqlite";
-        let connection = sqlite::open(db_path).unwrap();
+        let connection = fce_sqlite_connector::open(db_path).unwrap();
 
         let init_sql = "CREATE TABLE IF NOT EXISTS trustnodes(
         public_key TEXT PRIMARY KEY,
