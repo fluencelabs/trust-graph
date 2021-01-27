@@ -92,7 +92,7 @@ impl Storage for SqliteStorage {
         // let tn_vec = bincode::serialize(&node).unwrap();
         let tn_vec = serde_bencode::to_bytes(&node).unwrap();
 
-
+        log::info!("insert: {:?}", tn_vec);
 
         cursor
             .bind(&[Value::String(format!("{}", pk)), Value::Binary(tn_vec)])
