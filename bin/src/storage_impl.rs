@@ -12,12 +12,13 @@ use fce_sqlite_connector::Value;
 use std::str::FromStr;
 use std::time::Duration;
 use trust_graph::{Auth, PublicKeyHashable, Revoke, Storage, TrustGraph, TrustNode, Weight};
+use std::ops::Deref;
 
 static INSTANCE: OnceCell<Mutex<TrustGraph>> = OnceCell::new();
 
 pub fn get_data() -> &'static Mutex<TrustGraph> {
     INSTANCE.get_or_init(|| {
-        let db_path = "/tmp/users.sqlite";
+        let db_path = "/tmp/users123123.sqlite";
         let connection = fce_sqlite_connector::open(db_path).unwrap();
 
         let init_sql = "CREATE TABLE IF NOT EXISTS trustnodes(
@@ -59,11 +60,16 @@ impl Storage for SqliteStorage {
 
         match cursor.next().unwrap() {
             Some(r) => {
-                let tn_bin = r[0]
+                log::info!("row: {:?}", r);
+                let tn_bin: &[u8] = r[0]
                     .as_binary()
                     .expect("unexpected: 'trustnode' in a table should be as binary");
 
+                log::info!("binary: {:?}", tn_bin);
+
                 let trust_node: TrustNode = rmp_serde::from_read_ref(tn_bin)
+                // let trust_node: TrustNode = bincode::deserialize(tn_bin)
+                // let trust_node: TrustNode = serde_bencode::de::from_bytes(tn_bin)
                     .expect("unexpected: 'trustnode' should be as correct binary");
 
                 log::info!("trustnode: {:?}", trust_node);
@@ -82,9 +88,11 @@ impl Storage for SqliteStorage {
             .unwrap()
             .cursor();
 
-        log::info!("insert trustnode: {:?}", node);
-
         let tn_vec = rmp_serde::to_vec(&node).unwrap();
+        // let tn_vec = bincode::serialize(&node).unwrap();
+        let tn_vec = serde_bencode::to_bytes(&node).unwrap();
+
+
 
         cursor
             .bind(&[Value::String(format!("{}", pk)), Value::Binary(tn_vec)])

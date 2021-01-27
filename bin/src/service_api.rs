@@ -3,6 +3,36 @@ use fluence::fce;
 use fluence_identity::KeyPair;
 use std::time::Duration;
 use trust_graph::Certificate;
+use std::str::FromStr;
+
+struct InsertResult {
+    ret_code: u32,
+    error: String,
+}
+
+// TODO: some sort of auth?
+fn insert_cert(certificate: String, duration: u64) -> InsertResult {
+
+    let duration = Duration::from_millis(duration);
+    let certificate = Certificate::from_str(&certificate).unwrap();
+
+    let mut tg = get_data().lock();
+    tg.add(certificate, duration).unwrap();
+
+    return InsertResult {
+        ret_code: 0,
+        error: "".to_string()
+    }
+}
+
+#[fce]
+fn looper() {
+    let mut a = 0;
+    while true {
+        a = a + 1;
+        log::info!("{}", a)
+    }
+}
 
 #[fce]
 fn test() -> String {
