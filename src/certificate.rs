@@ -33,6 +33,17 @@ pub struct Certificate {
     pub chain: Vec<Trust>,
 }
 
+pub enum CerificateError {
+    DecodeError(String),
+    ExpirationError {
+        expires_at: String,
+        issued_at: String
+    },
+    KeyInCertificateError,
+    CertificateLengthError,
+
+}
+
 impl Certificate {
     pub fn new_unverified(chain: Vec<Trust>) -> Self {
         Self { chain }
@@ -65,7 +76,7 @@ impl Certificate {
         expires_at: Duration,
         issued_at: Duration,
         cur_time: Duration,
-    ) -> Result<Self, String> {
+    ) -> Result<Self, CerificateError> {
         if expires_at.lt(&issued_at) {
             return Err("Expiration time should be greater than issued time.".to_string());
         }
@@ -110,7 +121,7 @@ impl Certificate {
         cert: &Certificate,
         trusted_roots: &[PublicKey],
         cur_time: Duration,
-    ) -> Result<(), String> {
+    ) -> Result<(), CerificateError> {
         let chain = &cert.chain;
 
         if chain.is_empty() {
@@ -159,7 +170,7 @@ impl Certificate {
     }
 
     #[allow(dead_code)]
-    pub fn decode(arr: &[u8]) -> Result<Self, String> {
+    pub fn decode(arr: &[u8]) -> Result<Self, CerificateError> {
         let trusts_offset = arr.len() - 2 - 4;
         if trusts_offset % TRUST_LEN != 0 {
             return Err("Incorrect length of an array. Should be 2 bytes of a format, 4 bytes of a version and 104 bytes for each trust. ".to_string());

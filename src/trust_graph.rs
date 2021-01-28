@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-use crate::certificate::Certificate;
+use crate::certificate::{Certificate, CerificateError};
 use crate::public_key_hashable::PublicKeyHashable;
 use crate::revoke::Revoke;
 use crate::trust::Trust;
-use crate::trust_graph_storage::Storage;
+use crate::trust_graph_storage::{Storage, StorageError};
 use crate::trust_node::{Auth, TrustNode};
 use fluence_identity::public_key::PublicKey;
 use std::borrow::Borrow;
 use std::collections::{HashSet, VecDeque};
 use std::time::Duration;
+use crate::trust_graph::TrustGraphError::{InternalStorageError, CertificateCheckError};
 
 /// for simplicity, we store `n` where Weight = 1/n^2
 pub type Weight = u32;
@@ -32,48 +33,60 @@ pub type Weight = u32;
 /// TODO serialization/deserialization
 /// TODO export a certificate from graph
 #[allow(dead_code)]
-pub struct TrustGraph {
-    storage: Box<dyn Storage + Send + Sync>,
+pub struct TrustGraph<S> where S: Storage {
+    storage: Box<S>,
+}
+
+pub enum TrustGraphError {
+    InternalStorageError(String),
+    CertificateCheckError(CerificateError)
+}
+
+impl Into<TrustGraphError> for CerificateError {
+    fn into(self) -> TrustGraphError {
+        CertificateCheckError(self)
+    }
 }
 
 #[allow(dead_code)]
-impl TrustGraph {
-    pub fn new(storage: Box<dyn Storage + Send + Sync>) -> Self {
+impl<S> TrustGraph<S> where S: Storage {
+    pub fn new(storage: Box<S>) -> Self {
         Self { storage: storage }
     }
 
     /// Insert new root weight
-    pub fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight) {
-        self.storage.add_root_weight(pk, weight)
+    pub fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight) -> Result<(), TrustGraphError> {
+        self.storage.add_root_weight(pk, weight).map_err(|e| InternalStorageError(e.into()))
     }
 
     /// Get trust by public key
-    pub fn get(&self, pk: PublicKey) -> Option<TrustNode> {
-        self.storage.get(&pk.into())
+    pub fn get(&self, pk: PublicKey) -> Result<Option<TrustNode>, TrustGraphError> {
+        self.storage.get(&pk.into()).map_err(|e| InternalStorageError(e.into()))
     }
 
     // TODO: remove cur_time from api, leave it for tests only
     /// Certificate is a chain of trusts, add this chain to graph
-    pub fn add<C>(&mut self, cert: C, cur_time: Duration) -> Result<(), String>
+    pub fn add<C>(&mut self, cert: C, cur_time: Duration) -> Result<(), TrustGraphError>
     where
         C: Borrow<Certificate>,
     {
         let roots: Vec<PublicKey> = self
             .storage
             .root_keys()
+            .map_err(|e| InternalStorageError(e.into()))?
             .iter()
             .cloned()
             .map(Into::into)
             .collect();
         // Check that certificate is valid and converges to one of the known roots
-        Certificate::verify(cert.borrow(), roots.as_slice(), cur_time)?;
+        Certificate::verify(cert.borrow(), roots.as_slice(), cur_time).map_err(|e| e.into())?;
 
         let mut chain = cert.borrow().chain.iter();
-        let root_trust = chain.next().ok_or("empty chain")?;
+        let root_trust = chain.next().ok_or("empty chain").map_err(|e| InternalStorageError(e.into()))?;
         let root_pk: PublicKeyHashable = root_trust.issued_for.clone().into();
 
         // Insert new TrustNode for this root_pk if there wasn't one
-        if self.storage.get(&root_pk).is_none() {
+        if self.storage.get(&root_pk).map_err(|e| InternalStorageError(e.into()))?.is_none() {
             let mut trust_node = TrustNode::new(root_trust.issued_for.clone(), cur_time);
             let root_auth = Auth {
                 trust: root_trust.clone(),
@@ -103,31 +116,32 @@ impl TrustGraph {
     }
 
     /// Get the maximum weight of trust for one public key.
-    pub fn weight<P>(&self, pk: P) -> Option<Weight>
+    pub fn weight<P>(&self, pk: P) -> Result<Option<Weight>, TrustGraphError>
     where
         P: Borrow<PublicKey>,
     {
-        if let Some(weight) = self.storage.get_root_weight(pk.borrow().as_ref()) {
-            return Some(weight);
+        if let Some(weight) = self.storage.get_root_weight(pk.borrow().as_ref()).map_err(|e| InternalStorageError(e.into()))? {
+            return Ok(Some(weight));
         }
 
         let roots: Vec<PublicKey> = self
             .storage
             .root_keys()
+            .map_err(|e| InternalStorageError(e.into()))?
             .iter()
             .map(|pk| pk.clone().into())
             .collect();
 
         // get all possible certificates from the given public key to all roots in the graph
         let certs = self.get_all_certs(pk, roots.as_slice());
-        self.certificates_weight(certs)
+        Ok(self.certificates_weight(certs)?)
     }
 
     /// Calculate weight from given certificates
     /// Returns None if there is no such public key
     /// or some trust between this key and a root key is revoked.
     /// TODO handle non-direct revocations
-    pub fn certificates_weight<C, I>(&self, certs: I) -> Option<Weight>
+    pub fn certificates_weight<C, I>(&self, certs: I) -> Result<Option<Weight>, TrustGraphError>
     where
         C: Borrow<Certificate>,
         I: IntoIterator<Item = C>,
@@ -135,7 +149,9 @@ impl TrustGraph {
         let mut certs = certs.into_iter().peekable();
         // if there are no certificates for the given public key, there is no info about this public key
         // or some elements of possible certificate chains was revoked
-        certs.peek()?;
+        if certs.peek().is_none() {
+            return Ok(None)
+        }
 
         let mut weight = std::u32::MAX;
 
@@ -146,14 +162,14 @@ impl TrustGraph {
                 .storage
                 .get_root_weight(cert.chain.first()?.issued_for.as_ref())
                 // This panic shouldn't happen // TODO: why?
-                .expect("first trust in chain must be in root_weights");
+                .map_err(|e| InternalStorageError(e.into()))?;
 
             // certificate weight = root weight + 1 * every other element in the chain
             // (except root, so the formula is `root weight + chain length - 1`)
             weight = std::cmp::min(weight, root_weight + cert.chain.len() as u32 - 1)
         }
 
-        Some(weight)
+        Ok(Some(weight))
     }
 
     /// BF search for all converging paths (chains) in the graph
