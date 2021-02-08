@@ -24,7 +24,11 @@ use fluence_identity::public_key::PublicKey;
 use std::borrow::Borrow;
 use std::collections::{HashSet, VecDeque};
 use std::time::Duration;
-use crate::trust_graph::TrustGraphError::{InternalStorageError, CertificateCheckError};
+use crate::trust_graph::TrustGraphError::{InternalStorageError, CertificateCheckError, NoRoot, RevokeCheckError};
+use crate::certificate::CerificateError::{CertificateLengthError, Unexpected};
+use crate::revoke::RevokeError;
+use std::convert::{From, Into};
+use std::result::Result;
 
 /// for simplicity, we store `n` where Weight = 1/n^2
 pub type Weight = u32;
@@ -37,14 +41,23 @@ pub struct TrustGraph<S> where S: Storage {
     storage: Box<S>,
 }
 
+#[derive(Debug)]
 pub enum TrustGraphError {
     InternalStorageError(String),
-    CertificateCheckError(CerificateError)
+    NoRoot,
+    CertificateCheckError(CerificateError),
+    RevokeCheckError(RevokeError),
 }
 
-impl Into<TrustGraphError> for CerificateError {
-    fn into(self) -> TrustGraphError {
-        CertificateCheckError(self)
+impl From<CerificateError> for TrustGraphError {
+    fn from(err: CerificateError) -> Self {
+        CertificateCheckError(err)
+    }
+}
+
+impl From<RevokeError> for TrustGraphError {
+    fn from(err: RevokeError) -> Self {
+        RevokeCheckError(err)
     }
 }
 
@@ -79,7 +92,7 @@ impl<S> TrustGraph<S> where S: Storage {
             .map(Into::into)
             .collect();
         // Check that certificate is valid and converges to one of the known roots
-        Certificate::verify(cert.borrow(), roots.as_slice(), cur_time).map_err(|e| e.into())?;
+        Certificate::verify(cert.borrow(), roots.as_slice(), cur_time)?;
 
         let mut chain = cert.borrow().chain.iter();
         let root_trust = chain.next().ok_or("empty chain").map_err(|e| InternalStorageError(e.into()))?;
@@ -133,7 +146,7 @@ impl<S> TrustGraph<S> where S: Storage {
             .collect();
 
         // get all possible certificates from the given public key to all roots in the graph
-        let certs = self.get_all_certs(pk, roots.as_slice());
+        let certs = self.get_all_certs(pk, roots.as_slice())?;
         Ok(self.certificates_weight(certs)?)
     }
 
@@ -156,17 +169,19 @@ impl<S> TrustGraph<S> where S: Storage {
         let mut weight = std::u32::MAX;
 
         for cert in certs {
-            let cert = cert.borrow();
+            let c = cert.borrow();
+
+            let first = c.chain.first().ok_or(CertificateCheckError(CertificateLengthError))?;
 
             let root_weight = self
                 .storage
-                .get_root_weight(cert.chain.first()?.issued_for.as_ref())
+                .get_root_weight(first.issued_for.as_ref())
                 // This panic shouldn't happen // TODO: why?
-                .map_err(|e| InternalStorageError(e.into()))?;
+                .map_err(|e| InternalStorageError(e.into()))?.ok_or(NoRoot)?;
 
             // certificate weight = root weight + 1 * every other element in the chain
             // (except root, so the formula is `root weight + chain length - 1`)
-            weight = std::cmp::min(weight, root_weight + cert.chain.len() as u32 - 1)
+            weight = std::cmp::min(weight, root_weight + c.chain.len() as u32 - 1)
         }
 
         Ok(Some(weight))
@@ -179,7 +194,7 @@ impl<S> TrustGraph<S> where S: Storage {
         &self,
         node: &TrustNode,
         roots: HashSet<&PublicKeyHashable>,
-    ) -> Vec<Vec<Auth>> {
+    ) -> Result<Vec<Vec<Auth>>, TrustGraphError> {
         // queue to collect all chains in the trust graph (each chain is a path in the trust graph)
         let mut chains_queue: VecDeque<Vec<Auth>> = VecDeque::new();
 
@@ -204,9 +219,10 @@ impl<S> TrustGraph<S> where S: Storage {
             let auths: Vec<Auth> = self
                 .storage
                 .get(&last.issued_by.clone().into())
-                .expect(
-                    "there cannot be paths without any nodes after adding verified certificates",
-                )
+                .map_err(|e| InternalStorageError(e.into()))?
+                .ok_or(
+                    CertificateCheckError(Unexpected("there cannot be paths without any nodes after adding verified certificates".to_string())),
+                )?
                 .authorizations()
                 .cloned()
                 .collect();
@@ -236,26 +252,26 @@ impl<S> TrustGraph<S> where S: Storage {
             }
         }
 
-        terminated_chains
+        Ok(terminated_chains)
     }
 
     // TODO: remove `roots` argument from api, leave it for tests and internal usage only
     /// Get all possible certificates where `issued_for` will be the last element of the chain
     /// and one of the destinations is the root of this chain.
-    pub fn get_all_certs<P>(&self, issued_for: P, roots: &[PublicKey]) -> Vec<Certificate>
+    pub fn get_all_certs<P>(&self, issued_for: P, roots: &[PublicKey]) -> Result<Vec<Certificate>, TrustGraphError>
     where
         P: Borrow<PublicKey>,
     {
         // get all auths (edges) for issued public key
-        let issued_for_node = self.storage.get(issued_for.borrow().as_ref());
+        let issued_for_node = self.storage.get(issued_for.borrow().as_ref()).map_err(|e| InternalStorageError(e.into()))?;
 
         let roots = roots.iter().map(|pk| pk.as_ref());
-        let keys = self.storage.root_keys();
+        let keys = self.storage.root_keys().map_err(|e| InternalStorageError(e.into()))?;
         let roots = keys.iter().chain(roots).collect();
 
         match issued_for_node {
-            Some(node) => self
-                .bf_search_paths(&node, roots)
+            Some(node) => Ok(self
+                .bf_search_paths(&node, roots)?
                 .iter()
                 .map(|auths| {
                     // TODO: can avoid cloning here by returning &Certificate
@@ -272,18 +288,18 @@ impl<S> TrustGraph<S> where S: Storage {
                     );
                     c.chain.len() > 1
                 })
-                .collect(),
-            None => Vec::new(),
+                .collect()),
+            None => Ok(Vec::new()),
         }
     }
 
     /// Mark public key as revoked.
-    pub fn revoke(&mut self, revoke: Revoke) -> Result<(), String> {
+    pub fn revoke(&mut self, revoke: Revoke) -> Result<(), TrustGraphError> {
         Revoke::verify(&revoke)?;
 
         let pk: PublicKeyHashable = revoke.pk.clone().into();
 
-        self.storage.revoke(&pk, revoke)
+        self.storage.revoke(&pk, revoke).map_err(|e| InternalStorageError(e.into()))
     }
 
     /// Check information about new certificates and about revoked certificates.
@@ -329,7 +345,7 @@ mod tests {
         keys: HashMap<usize, KeyPair>,
         expires_at: Duration,
         issued_at: Duration,
-    ) -> (Vec<KeyPair>, Certificate) {
+    ) -> Result<(Vec<KeyPair>, Certificate), TrustGraphError> {
         assert!(len > 2);
 
         let root_kp = KeyPair::generate();
@@ -351,18 +367,17 @@ mod tests {
                 // TODO: why `issued_at = issued_at - 60 seconds`?
                 issued_at.checked_sub(Duration::from_secs(60)).unwrap(),
                 current_time(),
-            )
-            .unwrap();
+            )?;
             key_pairs.push(kp);
         }
 
-        (key_pairs, cert)
+        Ok((key_pairs, cert))
     }
 
     fn generate_cert_with_len(
         len: usize,
         keys: HashMap<usize, KeyPair>,
-    ) -> (Vec<KeyPair>, Certificate) {
+    ) -> Result<(Vec<KeyPair>, Certificate), TrustGraphError> {
         let cur_time = current_time();
         let far_future = cur_time.checked_add(one_minute()).unwrap();
 
@@ -406,7 +421,7 @@ mod tests {
         chain_keys.insert(5, key_pair1.clone());
         chain_keys.insert(6, key_pair2.clone());
 
-        let (key_pairs1, cert1) = generate_cert_with(10, chain_keys, far_future * 2, far_future);
+        let (key_pairs1, cert1) = generate_cert_with(10, chain_keys, far_future * 2, far_future).expect("");
 
         // Use key_pair1 and key_pair2 for 7th and 8th trust in the cert chain
         let mut chain_keys = HashMap::new();
@@ -414,7 +429,7 @@ mod tests {
         chain_keys.insert(8, key_pair2.clone());
 
         let (key_pairs2, cert2) =
-            generate_cert_with(10, chain_keys, far_far_future * 2, far_far_future);
+            generate_cert_with(10, chain_keys, far_far_future * 2, far_far_future).unwrap();
 
         let st = Box::new(InMemoryStorage::new());
         let mut graph = TrustGraph::new(st);
@@ -424,7 +439,7 @@ mod tests {
         graph.add_root_weight(root2_pk.into(), 0);
         graph.add(cert1, cur_time).unwrap();
 
-        let node2 = graph.get(key_pair2.public_key()).unwrap();
+        let node2 = graph.get(key_pair2.public_key()).unwrap().unwrap();
         let auth_by_kp1 = node2
             .authorizations()
             .find(|a| a.issued_by == key_pair1.public_key())
@@ -434,7 +449,7 @@ mod tests {
 
         graph.add(cert2, cur_time).unwrap();
 
-        let node2 = graph.get(key_pair2.public_key()).unwrap();
+        let node2 = graph.get(key_pair2.public_key()).unwrap().unwrap();
         let auth_by_kp1 = node2
             .authorizations()
             .find(|a| a.issued_by == key_pair1.public_key())
@@ -445,7 +460,7 @@ mod tests {
 
     #[test]
     fn test_one_cert_in_graph() {
-        let (key_pairs, cert1) = generate_cert_with_len(10, HashMap::new());
+        let (key_pairs, cert1) = generate_cert_with_len(10, HashMap::new()).unwrap();
         let last_trust = cert1.chain[9].clone();
 
         let st = Box::new(InMemoryStorage::new());
@@ -456,16 +471,16 @@ mod tests {
 
         graph.add(cert1, current_time()).unwrap();
 
-        let w1 = graph.weight(key_pairs[0].public_key()).unwrap();
+        let w1 = graph.weight(key_pairs[0].public_key()).unwrap().unwrap();
         assert_eq!(w1, 1);
 
-        let w2 = graph.weight(key_pairs[1].public_key()).unwrap();
+        let w2 = graph.weight(key_pairs[1].public_key()).unwrap().unwrap();
         assert_eq!(w2, 2);
 
-        let w3 = graph.weight(key_pairs[9].public_key()).unwrap();
+        let w3 = graph.weight(key_pairs[9].public_key()).unwrap().unwrap();
         assert_eq!(w3, 10);
 
-        let node = graph.get(key_pairs[9].public_key()).unwrap();
+        let node = graph.get(key_pairs[9].public_key()).unwrap().unwrap();
         let auths: Vec<&Auth> = node.authorizations().collect();
 
         assert_eq!(auths.len(), 1);
@@ -483,14 +498,14 @@ mod tests {
         chain_keys.insert(5, key_pair2.clone());
         chain_keys.insert(7, key_pair3.clone());
 
-        let (key_pairs1, cert1) = generate_cert_with_len(10, chain_keys);
+        let (key_pairs1, cert1) = generate_cert_with_len(10, chain_keys).unwrap();
 
         let mut chain_keys = HashMap::new();
         chain_keys.insert(7, key_pair1.clone());
         chain_keys.insert(6, key_pair2.clone());
         chain_keys.insert(5, key_pair3.clone());
 
-        let (key_pairs2, cert2) = generate_cert_with_len(10, chain_keys);
+        let (key_pairs2, cert2) = generate_cert_with_len(10, chain_keys).unwrap();
 
         let st = Box::new(InMemoryStorage::new());
         let mut graph = TrustGraph::new(st);
@@ -510,12 +525,12 @@ mod tests {
         let revoke2 = Revoke::create(&key_pairs2[5], key_pairs2[6].public_key(), current_time());
         graph.revoke(revoke2).unwrap();
 
-        let w1 = graph.weight(key_pair1.public_key()).unwrap();
+        let w1 = graph.weight(key_pair1.public_key()).unwrap().unwrap();
         // all upper trusts are revoked for this public key
-        let w2 = graph.weight(key_pair2.public_key());
-        let w3 = graph.weight(key_pair3.public_key()).unwrap();
-        let w_last1 = graph.weight(last_pk1).unwrap();
-        let w_last2 = graph.weight(last_pk2).unwrap();
+        let w2 = graph.weight(key_pair2.public_key()).unwrap();
+        let w3 = graph.weight(key_pair3.public_key()).unwrap().unwrap();
+        let w_last1 = graph.weight(last_pk1).unwrap().unwrap();
+        let w_last2 = graph.weight(last_pk2).unwrap().unwrap();
 
         assert_eq!(w1, 4);
         assert_eq!(w2.is_none(), true);
@@ -526,7 +541,7 @@ mod tests {
 
     #[test]
     fn test_get_one_cert() {
-        let (key_pairs, cert) = generate_cert_with_len(5, HashMap::new());
+        let (key_pairs, cert) = generate_cert_with_len(5, HashMap::new()).unwrap();
 
         let st = Box::new(InMemoryStorage::new());
         let mut graph = TrustGraph::new(st);
@@ -535,7 +550,7 @@ mod tests {
 
         graph.add(cert.clone(), current_time()).unwrap();
 
-        let certs = graph.get_all_certs(key_pairs.last().unwrap().public_key(), &[root1_pk]);
+        let certs = graph.get_all_certs(key_pairs.last().unwrap().public_key(), &[root1_pk]).unwrap();
 
         assert_eq!(certs.len(), 1);
         assert_eq!(certs[0], cert);
@@ -543,7 +558,7 @@ mod tests {
 
     #[test]
     fn test_chain_from_root_to_another_root() {
-        let (_, cert) = generate_cert_with_len(6, HashMap::new());
+        let (_, cert) = generate_cert_with_len(6, HashMap::new()).unwrap();
 
         let st = Box::new(InMemoryStorage::new());
         let mut graph = TrustGraph::new(st);
@@ -555,7 +570,7 @@ mod tests {
         graph.add(cert.clone(), current_time()).unwrap();
 
         let t = cert.chain[5].clone();
-        let certs = graph.get_all_certs(t.issued_for, &[]);
+        let certs = graph.get_all_certs(t.issued_for, &[]).unwrap();
 
         assert_eq!(certs.len(), 1);
     }
@@ -571,21 +586,21 @@ mod tests {
         chain_keys.insert(3, key_pair2.clone());
         chain_keys.insert(4, key_pair3.clone());
 
-        let (key_pairs1, cert1) = generate_cert_with_len(5, chain_keys);
+        let (key_pairs1, cert1) = generate_cert_with_len(5, chain_keys).unwrap();
 
         let mut chain_keys = HashMap::new();
         chain_keys.insert(4, key_pair1.clone());
         chain_keys.insert(3, key_pair2.clone());
         chain_keys.insert(2, key_pair3.clone());
 
-        let (key_pairs2, cert2) = generate_cert_with_len(5, chain_keys);
+        let (key_pairs2, cert2) = generate_cert_with_len(5, chain_keys).unwrap();
 
         let mut chain_keys = HashMap::new();
         chain_keys.insert(3, key_pair1.clone());
         chain_keys.insert(4, key_pair2.clone());
         chain_keys.insert(2, key_pair3.clone());
 
-        let (key_pairs3, cert3) = generate_cert_with_len(5, chain_keys);
+        let (key_pairs3, cert3) = generate_cert_with_len(5, chain_keys).unwrap();
 
         let st = Box::new(InMemoryStorage::new());
         let mut graph = TrustGraph::new(st);
@@ -602,17 +617,17 @@ mod tests {
 
         let roots_values = [root1_pk, root2_pk, root3_pk];
 
-        let certs1 = graph.get_all_certs(key_pair1.public_key(), &roots_values);
+        let certs1 = graph.get_all_certs(key_pair1.public_key(), &roots_values).unwrap();
         let lenghts1: Vec<usize> = certs1.iter().map(|c| c.chain.len()).collect();
         let check_lenghts1: Vec<usize> = vec![3, 4, 4, 5, 5];
         assert_eq!(lenghts1, check_lenghts1);
 
-        let certs2 = graph.get_all_certs(key_pair2.public_key(), &roots_values);
+        let certs2 = graph.get_all_certs(key_pair2.public_key(), &roots_values).unwrap();
         let lenghts2: Vec<usize> = certs2.iter().map(|c| c.chain.len()).collect();
         let check_lenghts2: Vec<usize> = vec![4, 4, 4, 5, 5];
         assert_eq!(lenghts2, check_lenghts2);
 
-        let certs3 = graph.get_all_certs(key_pair3.public_key(), &roots_values);
+        let certs3 = graph.get_all_certs(key_pair3.public_key(), &roots_values).unwrap();
         let lenghts3: Vec<usize> = certs3.iter().map(|c| c.chain.len()).collect();
         let check_lenghts3: Vec<usize> = vec![3, 3, 5];
         assert_eq!(lenghts3, check_lenghts3);

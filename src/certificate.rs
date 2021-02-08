@@ -33,6 +33,7 @@ pub struct Certificate {
     pub chain: Vec<Trust>,
 }
 
+#[derive(Debug)]
 pub enum CerificateError {
     DecodeError(String),
     ExpirationError {
@@ -41,7 +42,7 @@ pub enum CerificateError {
     },
     KeyInCertificateError,
     CertificateLengthError,
-
+    Unexpected(String)
 }
 
 impl Certificate {

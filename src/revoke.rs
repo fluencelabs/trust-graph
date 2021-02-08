@@ -20,6 +20,13 @@ use fluence_identity::public_key::PublicKey;
 use fluence_identity::signature::Signature;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use ed25519_dalek::SignatureError;
+use crate::revoke::RevokeError::IncorrectSignature;
+
+#[derive(Debug)]
+pub enum RevokeError {
+    IncorrectSignature(SignatureError)
+}
 
 /// "A document" that cancels trust created before.
 /// TODO delete pk from Revoke (it is already in a trust node)
@@ -69,13 +76,13 @@ impl Revoke {
     }
 
     /// Verifies that revocation is cryptographically correct.
-    pub fn verify(revoke: &Revoke) -> Result<(), String> {
+    pub fn verify(revoke: &Revoke) -> Result<(), RevokeError> {
         let msg = Revoke::signature_bytes(&revoke.pk, revoke.revoked_at);
 
         revoke
             .revoked_by
             .verify_strict(msg.as_slice(), &revoke.signature)
-            .map_err(|err| format!("Revoke has incorrect signature: {:?}", err))
+            .map_err(|err| IncorrectSignature(err))
     }
 }
 
