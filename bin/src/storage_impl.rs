@@ -2,22 +2,26 @@
 // check if trust is already in list before adding
 // if there is an older trust - don't add received trust
 
+use crate::storage_impl::SqliteStorageError::{
+    ConvertionError, DecodeError, EncodeError, RevokeError, SqliteError, Unexpected,
+};
 use core::convert::TryFrom;
+use fce_sqlite_connector;
+use fce_sqlite_connector::Connection;
+use fce_sqlite_connector::Error as InternalSqliteError;
+use fce_sqlite_connector::Value;
 use fluence_identity::public_key::PublicKey;
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
-use fce_sqlite_connector;
-use fce_sqlite_connector::Connection;
-use fce_sqlite_connector::Value;
-use fce_sqlite_connector::Error as InternalSqliteError;
+use rmp_serde::decode::Error as RmpDecodeError;
+use rmp_serde::encode::Error as RmpEncodeError;
+use std::convert::From;
 use std::str::FromStr;
 use std::time::Duration;
-use trust_graph::{Auth, PublicKeyHashable, Revoke, Storage, TrustGraph, TrustNode, Weight, StorageError};
 use thiserror::Error as ThisError;
-use crate::storage_impl::SqliteStorageError::{SqliteError, EncodeError, ConvertionError, DecodeError, Unexpected, RevokeError};
-use rmp_serde::encode::Error as RmpEncodeError;
-use rmp_serde::decode::Error as RmpDecodeError;
-use std::convert::From;
+use trust_graph::{
+    Auth, PublicKeyHashable, Revoke, Storage, StorageError, TrustGraph, TrustNode, Weight,
+};
 
 static INSTANCE: OnceCell<Mutex<TrustGraph<SqliteStorage>>> = OnceCell::new();
 
@@ -64,7 +68,7 @@ pub enum SqliteStorageError {
     #[error("There is no entry for {0}")]
     ConvertionError(String),
     #[error("Cannot revoke a trust: {0}")]
-    RevokeError(String)
+    RevokeError(String),
 }
 
 impl From<InternalSqliteError> for SqliteStorageError {
@@ -94,7 +98,6 @@ impl From<SqliteStorageError> for String {
 impl StorageError for SqliteStorageError {}
 
 impl Storage for SqliteStorage {
-
     type Error = SqliteStorageError;
 
     fn get(&self, pk: &PublicKeyHashable) -> Result<Option<TrustNode>, Self::Error> {
@@ -103,14 +106,14 @@ impl Storage for SqliteStorage {
             .prepare("SELECT trustnode FROM trustnodes WHERE public_key = ?")?
             .cursor();
 
-        cursor
-            .bind(&[Value::String(format!("{}", pk))])?;
+        cursor.bind(&[Value::String(format!("{}", pk))])?;
 
         match cursor.next().unwrap() {
             Some(r) => {
                 log::info!("row: {:?}", r);
-                let tn_bin: &[u8] = r[0]
-                    .as_binary().ok_or(ConvertionError("cannot get trustnode as binary".to_string()))?;
+                let tn_bin: &[u8] = r[0].as_binary().ok_or(ConvertionError(
+                    "cannot get trustnode as binary".to_string(),
+                ))?;
 
                 log::info!("binary: {:?}", tn_bin);
 
@@ -135,8 +138,7 @@ impl Storage for SqliteStorage {
 
         log::info!("insert: {:?}", tn_vec);
 
-        cursor
-            .bind(&[Value::String(format!("{}", pk)), Value::Binary(tn_vec)])?;
+        cursor.bind(&[Value::String(format!("{}", pk)), Value::Binary(tn_vec)])?;
 
         cursor.next()?;
         Ok({})
@@ -153,8 +155,12 @@ impl Storage for SqliteStorage {
         if let Some(row) = cursor.next()? {
             log::info!("row: {:?}", row);
 
-            let w = u32::try_from(row[1].as_integer().ok_or(ConvertionError("cannot get weight as integer".to_string()))?)
-                .map_err(|e| Unexpected(format!("Unexpected. Cannot convert weight to u32: {}", e)))?;
+            let w = u32::try_from(
+                row[1]
+                    .as_integer()
+                    .ok_or(ConvertionError("cannot get weight as integer".to_string()))?,
+            )
+            .map_err(|e| Unexpected(format!("Unexpected. Cannot convert weight to u32: {}", e)))?;
 
             Ok(Some(w))
         } else {
@@ -162,18 +168,21 @@ impl Storage for SqliteStorage {
         }
     }
 
-    fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight) -> Result<(), Self::Error> {
+    fn add_root_weight(
+        &mut self,
+        pk: PublicKeyHashable,
+        weight: Weight,
+    ) -> Result<(), Self::Error> {
         log::info!("add root: {} weight: {}", pk, weight);
         let mut cursor = self
             .connection
             .prepare("INSERT OR REPLACE INTO roots VALUES (?, ?)")?
             .cursor();
 
-        cursor
-            .bind(&[
-                Value::String(format!("{}", pk)),
-                Value::Integer(i64::from(weight)),
-            ])?;
+        cursor.bind(&[
+            Value::String(format!("{}", pk)),
+            Value::Integer(i64::from(weight)),
+        ])?;
 
         cursor.next()?;
         Ok({})
@@ -189,8 +198,9 @@ impl Storage for SqliteStorage {
 
         while let Some(row) = cursor.next()? {
             log::info!("row: {:?}", row);
-            let pk = row[0].as_string()
-                .ok_or(ConvertionError("cannot get public key as binary".to_string()))?;
+            let pk = row[0].as_string().ok_or(ConvertionError(
+                "cannot get public key as binary".to_string(),
+            ))?;
             let pk: PublicKeyHashable =
                 PublicKeyHashable::from_str(pk).map_err(|e| DecodeError(e.to_string()))?;
 
@@ -207,7 +217,9 @@ impl Storage for SqliteStorage {
                 self.insert(pk.clone(), trust_node)?;
                 Ok(())
             }
-            None => Err(RevokeError("There is no trust with such PublicKey".to_string())),
+            None => Err(RevokeError(
+                "There is no trust with such PublicKey".to_string(),
+            )),
         }
     }
 

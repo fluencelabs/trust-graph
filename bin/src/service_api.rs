@@ -1,28 +1,44 @@
 use crate::storage_impl::get_data;
 use fluence::fce;
 use fluence_identity::KeyPair;
+use std::convert::{From, Into};
+use std::fmt::Display;
+use std::str::FromStr;
 use std::time::Duration;
 use trust_graph::Certificate;
-use std::str::FromStr;
 
 struct InsertResult {
     ret_code: u32,
     error: String,
 }
 
-// TODO: some sort of auth?
-fn insert_cert(certificate: String, duration: u64) -> InsertResult {
+impl From<Result<(), String>> for InsertResult {
+    fn from(result: Result<(), String>) -> Self {
+        match result {
+            Ok(()) => InsertResult {
+                ret_code: 0,
+                error: "".to_string(),
+            },
+            Err(e) => InsertResult {
+                ret_code: 1,
+                error: e,
+            },
+        }
+    }
+}
 
+fn insert_cert_impl(certificate: String, duration: u64) -> Result<(), String> {
     let duration = Duration::from_millis(duration);
-    let certificate = Certificate::from_str(&certificate).unwrap();
+    let certificate = Certificate::from_str(&certificate)?;
 
     let mut tg = get_data().lock();
-    tg.add(certificate, duration).unwrap();
+    tg.add(certificate, duration)?;
+    Ok(())
+}
 
-    return InsertResult {
-        ret_code: 0,
-        error: "".to_string()
-    }
+// TODO: some sort of auth?
+fn insert_cert(certificate: String, duration: u64) -> InsertResult {
+    insert_cert_impl(certificate, duration).into()
 }
 
 #[fce]

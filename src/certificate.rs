@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use crate::certificate::CerificateError::{
+use crate::certificate::CertificateError::{
     CertificateLengthError, DecodeError, ExpirationError, KeyInCertificateError, MalformedRoot,
     NoTrustedRoot, VerificationError,
 };
@@ -39,7 +39,7 @@ pub struct Certificate {
 }
 
 #[derive(ThisError, Debug)]
-pub enum CerificateError {
+pub enum CertificateError {
     #[error("Error while decoding a certificate: {0}")]
     DecodeError(String),
     #[error("Certificate is expired. Issued at {issued_at} and expired at {expires_at}")]
@@ -59,6 +59,12 @@ pub enum CerificateError {
     VerificationError(usize, String),
     #[error("Unexpected error: {0}")]
     Unexpected(String),
+}
+
+impl From<CertificateError> for String {
+    fn from(err: CertificateError) -> Self {
+        format!("{}", err)
+    }
 }
 
 impl Certificate {
@@ -93,7 +99,7 @@ impl Certificate {
         expires_at: Duration,
         issued_at: Duration,
         cur_time: Duration,
-    ) -> Result<Self, CerificateError> {
+    ) -> Result<Self, CertificateError> {
         if expires_at.lt(&issued_at) {
             return Err(ExpirationError {
                 expires_at: format!("{:?}", expires_at),
@@ -141,7 +147,7 @@ impl Certificate {
         cert: &Certificate,
         trusted_roots: &[PublicKey],
         cur_time: Duration,
-    ) -> Result<(), CerificateError> {
+    ) -> Result<(), CertificateError> {
         let chain = &cert.chain;
 
         if chain.is_empty() {
@@ -186,7 +192,7 @@ impl Certificate {
     }
 
     #[allow(dead_code)]
-    pub fn decode(arr: &[u8]) -> Result<Self, CerificateError> {
+    pub fn decode(arr: &[u8]) -> Result<Self, CertificateError> {
         let trusts_offset = arr.len() - 2 - 4;
         if trusts_offset % TRUST_LEN != 0 {
             return Err(DecodeError("Incorrect length of an array. Should be 2 bytes of a format, 4 bytes of a version and 104 bytes for each trust. ".to_string()));
@@ -228,7 +234,7 @@ impl std::fmt::Display for Certificate {
 }
 
 impl FromStr for Certificate {
-    type Err = CerificateError;
+    type Err = CertificateError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let str_lines: Vec<&str> = s.lines().collect();

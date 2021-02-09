@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-use crate::certificate::CerificateError::{CertificateLengthError, Unexpected};
-use crate::certificate::{CerificateError, Certificate};
+use crate::certificate::CertificateError::{CertificateLengthError, Unexpected};
+use crate::certificate::{Certificate, CertificateError};
 use crate::public_key_hashable::PublicKeyHashable;
 use crate::revoke::Revoke;
 use crate::revoke::RevokeError;
@@ -31,6 +31,7 @@ use std::collections::{HashSet, VecDeque};
 use std::convert::{From, Into};
 use std::result::Result;
 use std::time::Duration;
+use thiserror::Error as ThisError;
 
 /// for simplicity, we store `n` where Weight = 1/n^2
 pub type Weight = u32;
@@ -46,17 +47,27 @@ where
     storage: Box<S>,
 }
 
-#[derive(Debug)]
+#[derive(ThisError, Debug)]
 pub enum TrustGraphError {
+    #[error("Internal storage error: {0}")]
     InternalStorageError(String),
+    #[error("There is no root for this certificate.")]
     NoRoot,
-    CertificateCheckError(CerificateError),
+    #[error("Certificate check error: {0}")]
+    CertificateCheckError(CertificateError),
+    #[error("Error on revoking a trust: {0}")]
     RevokeCheckError(RevokeError),
 }
 
-impl From<CerificateError> for TrustGraphError {
-    fn from(err: CerificateError) -> Self {
+impl From<CertificateError> for TrustGraphError {
+    fn from(err: CertificateError) -> Self {
         CertificateCheckError(err)
+    }
+}
+
+impl From<TrustGraphError> for String {
+    fn from(err: TrustGraphError) -> Self {
+        format!("{}", err)
     }
 }
 
@@ -130,7 +141,9 @@ where
                 issued_by: root_trust.issued_for.clone(),
             };
             trust_node.update_auth(root_auth);
-            self.storage.insert(root_pk, trust_node).map_err(|e| InternalStorageError(e.into()))?;
+            self.storage
+                .insert(root_pk, trust_node)
+                .map_err(|e| InternalStorageError(e.into()))?;
         }
 
         // Insert remaining trusts to the graph
@@ -144,7 +157,8 @@ where
             };
 
             self.storage
-                .update_auth(&pk, auth, &root_trust.issued_for, cur_time).map_err(|e| InternalStorageError(e.into()))?;
+                .update_auth(&pk, auth, &root_trust.issued_for, cur_time)
+                .map_err(|e| InternalStorageError(e.into()))?;
 
             previous_trust = trust;
         }
