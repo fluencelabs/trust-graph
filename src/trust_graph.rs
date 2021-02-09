@@ -14,21 +14,23 @@
  * limitations under the License.
  */
 
-use crate::certificate::{Certificate, CerificateError};
+use crate::certificate::CerificateError::{CertificateLengthError, Unexpected};
+use crate::certificate::{CerificateError, Certificate};
 use crate::public_key_hashable::PublicKeyHashable;
 use crate::revoke::Revoke;
+use crate::revoke::RevokeError;
 use crate::trust::Trust;
-use crate::trust_graph_storage::{Storage, StorageError};
+use crate::trust_graph::TrustGraphError::{
+    CertificateCheckError, InternalStorageError, NoRoot, RevokeCheckError,
+};
+use crate::trust_graph_storage::Storage;
 use crate::trust_node::{Auth, TrustNode};
 use fluence_identity::public_key::PublicKey;
 use std::borrow::Borrow;
 use std::collections::{HashSet, VecDeque};
-use std::time::Duration;
-use crate::trust_graph::TrustGraphError::{InternalStorageError, CertificateCheckError, NoRoot, RevokeCheckError};
-use crate::certificate::CerificateError::{CertificateLengthError, Unexpected};
-use crate::revoke::RevokeError;
 use std::convert::{From, Into};
 use std::result::Result;
+use std::time::Duration;
 
 /// for simplicity, we store `n` where Weight = 1/n^2
 pub type Weight = u32;
@@ -37,7 +39,10 @@ pub type Weight = u32;
 /// TODO serialization/deserialization
 /// TODO export a certificate from graph
 #[allow(dead_code)]
-pub struct TrustGraph<S> where S: Storage {
+pub struct TrustGraph<S>
+where
+    S: Storage,
+{
     storage: Box<S>,
 }
 
@@ -62,19 +67,30 @@ impl From<RevokeError> for TrustGraphError {
 }
 
 #[allow(dead_code)]
-impl<S> TrustGraph<S> where S: Storage {
+impl<S> TrustGraph<S>
+where
+    S: Storage,
+{
     pub fn new(storage: Box<S>) -> Self {
         Self { storage: storage }
     }
 
     /// Insert new root weight
-    pub fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight) -> Result<(), TrustGraphError> {
-        self.storage.add_root_weight(pk, weight).map_err(|e| InternalStorageError(e.into()))
+    pub fn add_root_weight(
+        &mut self,
+        pk: PublicKeyHashable,
+        weight: Weight,
+    ) -> Result<(), TrustGraphError> {
+        self.storage
+            .add_root_weight(pk, weight)
+            .map_err(|e| InternalStorageError(e.into()))
     }
 
     /// Get trust by public key
     pub fn get(&self, pk: PublicKey) -> Result<Option<TrustNode>, TrustGraphError> {
-        self.storage.get(&pk.into()).map_err(|e| InternalStorageError(e.into()))
+        self.storage
+            .get(&pk.into())
+            .map_err(|e| InternalStorageError(e.into()))
     }
 
     // TODO: remove cur_time from api, leave it for tests only
@@ -95,18 +111,26 @@ impl<S> TrustGraph<S> where S: Storage {
         Certificate::verify(cert.borrow(), roots.as_slice(), cur_time)?;
 
         let mut chain = cert.borrow().chain.iter();
-        let root_trust = chain.next().ok_or("empty chain").map_err(|e| InternalStorageError(e.into()))?;
+        let root_trust = chain
+            .next()
+            .ok_or("empty chain")
+            .map_err(|e| InternalStorageError(e.into()))?;
         let root_pk: PublicKeyHashable = root_trust.issued_for.clone().into();
 
         // Insert new TrustNode for this root_pk if there wasn't one
-        if self.storage.get(&root_pk).map_err(|e| InternalStorageError(e.into()))?.is_none() {
+        if self
+            .storage
+            .get(&root_pk)
+            .map_err(|e| InternalStorageError(e.into()))?
+            .is_none()
+        {
             let mut trust_node = TrustNode::new(root_trust.issued_for.clone(), cur_time);
             let root_auth = Auth {
                 trust: root_trust.clone(),
                 issued_by: root_trust.issued_for.clone(),
             };
             trust_node.update_auth(root_auth);
-            self.storage.insert(root_pk, trust_node);
+            self.storage.insert(root_pk, trust_node).map_err(|e| InternalStorageError(e.into()))?;
         }
 
         // Insert remaining trusts to the graph
@@ -120,7 +144,7 @@ impl<S> TrustGraph<S> where S: Storage {
             };
 
             self.storage
-                .update_auth(&pk, auth, &root_trust.issued_for, cur_time);
+                .update_auth(&pk, auth, &root_trust.issued_for, cur_time).map_err(|e| InternalStorageError(e.into()))?;
 
             previous_trust = trust;
         }
@@ -133,7 +157,11 @@ impl<S> TrustGraph<S> where S: Storage {
     where
         P: Borrow<PublicKey>,
     {
-        if let Some(weight) = self.storage.get_root_weight(pk.borrow().as_ref()).map_err(|e| InternalStorageError(e.into()))? {
+        if let Some(weight) = self
+            .storage
+            .get_root_weight(pk.borrow().as_ref())
+            .map_err(|e| InternalStorageError(e.into()))?
+        {
             return Ok(Some(weight));
         }
 
@@ -163,7 +191,7 @@ impl<S> TrustGraph<S> where S: Storage {
         // if there are no certificates for the given public key, there is no info about this public key
         // or some elements of possible certificate chains was revoked
         if certs.peek().is_none() {
-            return Ok(None)
+            return Ok(None);
         }
 
         let mut weight = std::u32::MAX;
@@ -171,13 +199,17 @@ impl<S> TrustGraph<S> where S: Storage {
         for cert in certs {
             let c = cert.borrow();
 
-            let first = c.chain.first().ok_or(CertificateCheckError(CertificateLengthError))?;
+            let first = c
+                .chain
+                .first()
+                .ok_or(CertificateCheckError(CertificateLengthError))?;
 
             let root_weight = self
                 .storage
                 .get_root_weight(first.issued_for.as_ref())
                 // This panic shouldn't happen // TODO: why?
-                .map_err(|e| InternalStorageError(e.into()))?.ok_or(NoRoot)?;
+                .map_err(|e| InternalStorageError(e.into()))?
+                .ok_or(NoRoot)?;
 
             // certificate weight = root weight + 1 * every other element in the chain
             // (except root, so the formula is `root weight + chain length - 1`)
@@ -220,9 +252,10 @@ impl<S> TrustGraph<S> where S: Storage {
                 .storage
                 .get(&last.issued_by.clone().into())
                 .map_err(|e| InternalStorageError(e.into()))?
-                .ok_or(
-                    CertificateCheckError(Unexpected("there cannot be paths without any nodes after adding verified certificates".to_string())),
-                )?
+                .ok_or(CertificateCheckError(Unexpected(
+                    "there cannot be paths without any nodes after adding verified certificates"
+                        .to_string(),
+                )))?
                 .authorizations()
                 .cloned()
                 .collect();
@@ -258,15 +291,25 @@ impl<S> TrustGraph<S> where S: Storage {
     // TODO: remove `roots` argument from api, leave it for tests and internal usage only
     /// Get all possible certificates where `issued_for` will be the last element of the chain
     /// and one of the destinations is the root of this chain.
-    pub fn get_all_certs<P>(&self, issued_for: P, roots: &[PublicKey]) -> Result<Vec<Certificate>, TrustGraphError>
+    pub fn get_all_certs<P>(
+        &self,
+        issued_for: P,
+        roots: &[PublicKey],
+    ) -> Result<Vec<Certificate>, TrustGraphError>
     where
         P: Borrow<PublicKey>,
     {
         // get all auths (edges) for issued public key
-        let issued_for_node = self.storage.get(issued_for.borrow().as_ref()).map_err(|e| InternalStorageError(e.into()))?;
+        let issued_for_node = self
+            .storage
+            .get(issued_for.borrow().as_ref())
+            .map_err(|e| InternalStorageError(e.into()))?;
 
         let roots = roots.iter().map(|pk| pk.as_ref());
-        let keys = self.storage.root_keys().map_err(|e| InternalStorageError(e.into()))?;
+        let keys = self
+            .storage
+            .root_keys()
+            .map_err(|e| InternalStorageError(e.into()))?;
         let roots = keys.iter().chain(roots).collect();
 
         match issued_for_node {
@@ -299,7 +342,9 @@ impl<S> TrustGraph<S> where S: Storage {
 
         let pk: PublicKeyHashable = revoke.pk.clone().into();
 
-        self.storage.revoke(&pk, revoke).map_err(|e| InternalStorageError(e.into()))
+        self.storage
+            .revoke(&pk, revoke)
+            .map_err(|e| InternalStorageError(e.into()))
     }
 
     /// Check information about new certificates and about revoked certificates.
@@ -421,7 +466,8 @@ mod tests {
         chain_keys.insert(5, key_pair1.clone());
         chain_keys.insert(6, key_pair2.clone());
 
-        let (key_pairs1, cert1) = generate_cert_with(10, chain_keys, far_future * 2, far_future).expect("");
+        let (key_pairs1, cert1) =
+            generate_cert_with(10, chain_keys, far_future * 2, far_future).expect("");
 
         // Use key_pair1 and key_pair2 for 7th and 8th trust in the cert chain
         let mut chain_keys = HashMap::new();
@@ -550,7 +596,9 @@ mod tests {
 
         graph.add(cert.clone(), current_time()).unwrap();
 
-        let certs = graph.get_all_certs(key_pairs.last().unwrap().public_key(), &[root1_pk]).unwrap();
+        let certs = graph
+            .get_all_certs(key_pairs.last().unwrap().public_key(), &[root1_pk])
+            .unwrap();
 
         assert_eq!(certs.len(), 1);
         assert_eq!(certs[0], cert);
@@ -617,17 +665,23 @@ mod tests {
 
         let roots_values = [root1_pk, root2_pk, root3_pk];
 
-        let certs1 = graph.get_all_certs(key_pair1.public_key(), &roots_values).unwrap();
+        let certs1 = graph
+            .get_all_certs(key_pair1.public_key(), &roots_values)
+            .unwrap();
         let lenghts1: Vec<usize> = certs1.iter().map(|c| c.chain.len()).collect();
         let check_lenghts1: Vec<usize> = vec![3, 4, 4, 5, 5];
         assert_eq!(lenghts1, check_lenghts1);
 
-        let certs2 = graph.get_all_certs(key_pair2.public_key(), &roots_values).unwrap();
+        let certs2 = graph
+            .get_all_certs(key_pair2.public_key(), &roots_values)
+            .unwrap();
         let lenghts2: Vec<usize> = certs2.iter().map(|c| c.chain.len()).collect();
         let check_lenghts2: Vec<usize> = vec![4, 4, 4, 5, 5];
         assert_eq!(lenghts2, check_lenghts2);
 
-        let certs3 = graph.get_all_certs(key_pair3.public_key(), &roots_values).unwrap();
+        let certs3 = graph
+            .get_all_certs(key_pair3.public_key(), &roots_values)
+            .unwrap();
         let lenghts3: Vec<usize> = certs3.iter().map(|c| c.chain.len()).collect();
         let check_lenghts3: Vec<usize> = vec![3, 3, 5];
         assert_eq!(lenghts3, check_lenghts3);

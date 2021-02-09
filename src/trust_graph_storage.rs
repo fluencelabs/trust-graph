@@ -1,26 +1,24 @@
 use crate::public_key_hashable::PublicKeyHashable;
 use crate::revoke::Revoke;
 use crate::trust_graph::Weight;
+use crate::trust_graph_storage::InMemoryStorageError::RevokeError;
 use crate::trust_node::{Auth, TrustNode};
 use fluence_identity::public_key::PublicKey;
 use std::collections::HashMap;
 use std::time::Duration;
 use thiserror::Error as ThisError;
-use crate::trust_graph_storage::InMemoryStorageError::RevokeError;
 
-pub trait StorageError {}
-
-
+pub trait StorageError: std::error::Error {}
 
 pub trait Storage {
-
     type Error: StorageError + Into<String>;
 
     fn get(&self, pk: &PublicKeyHashable) -> Result<Option<TrustNode>, Self::Error>;
     fn insert(&mut self, pk: PublicKeyHashable, node: TrustNode) -> Result<(), Self::Error>;
 
     fn get_root_weight(&self, pk: &PublicKeyHashable) -> Result<Option<Weight>, Self::Error>;
-    fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight) -> Result<(), Self::Error>;
+    fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight)
+        -> Result<(), Self::Error>;
     fn root_keys(&self) -> Result<Vec<PublicKeyHashable>, Self::Error>;
     fn revoke(&mut self, pk: &PublicKeyHashable, revoke: Revoke) -> Result<(), Self::Error>;
     fn update_auth(
@@ -62,15 +60,19 @@ impl InMemoryStorage {
 
 #[derive(ThisError, Debug)]
 pub enum InMemoryStorageError {
-
-    #[error("{0:?}")]
-    RevokeError(String)
+    #[error("InMemoryStorageError::RevokeError {0:?}")]
+    RevokeError(String),
 }
 
-impl StorageError for InMemoryStorage {}
+impl From<InMemoryStorageError> for String {
+    fn from(err: InMemoryStorageError) -> Self {
+        err.into()
+    }
+}
+
+impl StorageError for InMemoryStorageError {}
 
 impl Storage for InMemoryStorage {
-
     type Error = InMemoryStorageError;
 
     fn get(&self, pk: &PublicKeyHashable) -> Result<Option<TrustNode>, Self::Error> {
@@ -86,8 +88,13 @@ impl Storage for InMemoryStorage {
         Ok(self.root_weights.get(pk).cloned())
     }
 
-    fn add_root_weight(&mut self, pk: PublicKeyHashable, weight: Weight) -> Result<(), Self::Error> {
-        Ok(&self.root_weights.insert(pk, weight));
+    fn add_root_weight(
+        &mut self,
+        pk: PublicKeyHashable,
+        weight: Weight,
+    ) -> Result<(), Self::Error> {
+        &self.root_weights.insert(pk, weight);
+        Ok({})
     }
 
     fn root_keys(&self) -> Result<Vec<PublicKeyHashable>, Self::Error> {
@@ -100,7 +107,9 @@ impl Storage for InMemoryStorage {
                 trust_node.update_revoke(revoke);
                 Ok(())
             }
-            None => RevokeError("There is no trust with such PublicKey".to_string()),
+            None => Err(RevokeError(
+                "There is no trust with such PublicKey".to_string(),
+            )),
         }
     }
 
@@ -110,15 +119,17 @@ impl Storage for InMemoryStorage {
         auth: Auth,
         issued_for: &PublicKey,
         cur_time: Duration,
-    ) {
+    ) -> Result<(), InMemoryStorageError> {
         match self.nodes.get_mut(&pk) {
             Some(trust_node) => {
                 trust_node.update_auth(auth);
+                Ok({})
             }
             None => {
                 let mut trust_node = TrustNode::new(issued_for.clone(), cur_time);
                 trust_node.update_auth(auth);
                 self.nodes.insert(pk.clone(), trust_node);
+                Ok({})
             }
         }
     }

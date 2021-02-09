@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
+use crate::revoke::RevokeError::IncorrectSignature;
 use crate::trust::{EXPIRATION_LEN, PK_LEN};
+use ed25519_dalek::SignatureError;
 use fluence_identity::key_pair::KeyPair;
 use fluence_identity::public_key::PublicKey;
 use fluence_identity::signature::Signature;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
-use ed25519_dalek::SignatureError;
-use crate::revoke::RevokeError::IncorrectSignature;
 
 #[derive(Debug)]
 pub enum RevokeError {
-    IncorrectSignature(SignatureError)
+    IncorrectSignature(SignatureError),
 }
 
 /// "A document" that cancels trust created before.
