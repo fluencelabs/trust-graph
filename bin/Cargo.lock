@@ -1594,6 +1594,7 @@ dependencies = [
  "serde_bencode",
  "serde_json",
  "sqlite",
+ "thiserror",
  "trust-graph",
 ]
 

@@ -42,7 +42,7 @@ pub struct Certificate {
 pub enum CerificateError {
     #[error("Error while decoding a certificate: {0}")]
     DecodeError(String),
-    #[error("Certificate is expired. Issued at {issued_at:?} and expired at {expires_at:?}")]
+    #[error("Certificate is expired. Issued at {issued_at} and expired at {expires_at}")]
     ExpirationError {
         expires_at: String,
         issued_at: String,

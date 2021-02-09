@@ -26,19 +26,6 @@ fn insert_cert(certificate: String, duration: u64) -> InsertResult {
 }
 
 #[fce]
-fn looper() {
-
-    let second = std::time::Duration::from_millis(1000);
-
-    let mut a = 0;
-    while true {
-        std::thread::sleep(second);
-        a = a + 1;
-        log::info!("{}", a)
-    }
-}
-
-#[fce]
 fn test() -> String {
     let mut tg = get_data().lock();
 

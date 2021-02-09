@@ -119,7 +119,7 @@ impl Storage for InMemoryStorage {
         auth: Auth,
         issued_for: &PublicKey,
         cur_time: Duration,
-    ) -> Result<(), InMemoryStorageError> {
+    ) -> Result<(), Self::Error> {
         match self.nodes.get_mut(&pk) {
             Some(trust_node) => {
                 trust_node.update_auth(auth);
