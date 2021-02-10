@@ -1,3 +1,5 @@
+use crate::proxy_structs::Certificate;
+use crate::results::{AllCertsResult, InsertResult, WeightResult};
 use crate::storage_impl::get_data;
 use fluence::fce;
 use fluence_identity::{KeyPair, PublicKey};
@@ -5,9 +7,7 @@ use std::convert::{From, Into};
 use std::fmt::Display;
 use std::str::FromStr;
 use std::time::Duration;
-use trust_graph::{Certificate as TGCertificate};
-use crate::proxy_structs::Certificate;
-use crate::results::{WeightResult, InsertResult, AllCertsResult};
+use trust_graph::Certificate as TGCertificate;
 
 fn insert_cert_impl(certificate: String, duration: u64) -> Result<(), String> {
     let duration = Duration::from_millis(duration);
@@ -41,7 +41,8 @@ fn get_weight(public_key: String) -> WeightResult {
 
 fn string_to_public_key(public_key: String) -> Result<PublicKey, String> {
     let public_key = bs58::decode(public_key)
-        .into_vec().map_err(|e| format!("Couldn't decode public_key from base58: {}", e))?;
+        .into_vec()
+        .map_err(|e| format!("Couldn't decode public_key from base58: {}", e))?;
     let public_key = PublicKey::from_bytes(&public_key)
         .map_err(|e| format!("Couldn't decode public_key: {}", e))?;
 

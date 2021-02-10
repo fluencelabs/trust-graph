@@ -1,5 +1,5 @@
-use fluence::fce;
 use crate::proxy_structs::Certificate;
+use fluence::fce;
 
 #[fce]
 pub struct InsertResult {
@@ -26,7 +26,7 @@ impl From<Result<(), String>> for InsertResult {
 pub struct WeightResult {
     pub ret_code: u32,
     pub weight: Vec<u32>,
-    pub error: String
+    pub error: String,
 }
 
 impl From<Result<Option<u32>, String>> for WeightResult {
@@ -50,7 +50,7 @@ impl From<Result<Option<u32>, String>> for WeightResult {
 pub struct AllCertsResult {
     pub ret_code: u32,
     pub certificates: Vec<Certificate>,
-    pub error: String
+    pub error: String,
 }
 
 impl From<Result<Vec<Certificate>, String>> for AllCertsResult {

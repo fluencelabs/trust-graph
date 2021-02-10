@@ -1,5 +1,5 @@
-use trust_graph::{Trust as TGTrust, Certificate as TGCertificate};
 use fluence::fce;
+use trust_graph::{Certificate as TGCertificate, Trust as TGTrust};
 
 #[fce]
 pub struct Certificate {
@@ -7,12 +7,9 @@ pub struct Certificate {
 }
 
 impl From<TGCertificate> for Certificate {
-
     fn from(t: TGCertificate) -> Self {
         let chain: Vec<Trust> = t.chain.into_iter().map(|t| t.into()).collect();
-        return Certificate {
-            chain
-        }
+        return Certificate { chain };
     }
 }
 
@@ -30,7 +27,6 @@ pub struct Trust {
 }
 
 impl From<TGTrust> for Trust {
-
     fn from(t: TGTrust) -> Self {
         let issued_for = bs58::encode(t.issued_for.to_bytes()).into_string();
         let signature = bs58::encode(t.signature.to_bytes()).into_string();
@@ -40,7 +36,7 @@ impl From<TGTrust> for Trust {
             issued_for,
             expires_at,
             signature,
-            issued_at
-        }
+            issued_at,
+        };
     }
 }
