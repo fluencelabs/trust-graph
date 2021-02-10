@@ -2,6 +2,8 @@ use fluence::WasmLoggerBuilder;
 
 mod service_api;
 mod storage_impl;
+mod results;
+mod proxy_structs;
 
 pub fn main() {
     WasmLoggerBuilder::new()
