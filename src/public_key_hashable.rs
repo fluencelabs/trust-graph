@@ -16,7 +16,9 @@
 
 use fluence_identity::public_key::PublicKey;
 
+use crate::public_key_hashable::PkError::{Base58DecodeError, BytesDecodeError};
 use core::fmt;
+use ed25519_dalek::SignatureError;
 use ref_cast::RefCast;
 use serde::ser::Serializer;
 use std::str::FromStr;
@@ -24,6 +26,7 @@ use std::{
     fmt::{Display, Formatter},
     hash::{Hash, Hasher},
 };
+use thiserror::Error as ThisError;
 
 /// Wrapper to use PublicKey in HashMap
 #[derive(PartialEq, Eq, Debug, Clone, RefCast)]
@@ -81,16 +84,23 @@ impl Display for PublicKeyHashable {
     }
 }
 
+#[derive(ThisError, Debug)]
+pub enum PkError {
+    #[error("Invalid string '{0}': {1}")]
+    Base58DecodeError(String, bs58::decode::Error),
+    #[error("Invalid bytes {0:?}: {1}")]
+    BytesDecodeError(Vec<u8>, SignatureError),
+}
+
 impl FromStr for PublicKeyHashable {
-    type Err = String;
+    type Err = PkError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let bytes = bs58::decode(s)
             .into_vec()
-            .map_err(|err| format!("Invalid string '{}': {}", s, err))?;
+            .map_err(|err| Base58DecodeError(s.to_string(), err))?;
 
-        let pk = PublicKey::from_bytes(&bytes)
-            .map_err(|err| format!("Invalid bytes {:?}: {}", bytes, err))?;
+        let pk = PublicKey::from_bytes(&bytes).map_err(|err| BytesDecodeError(bytes, err))?;
         Ok(PublicKeyHashable::from(pk))
     }
 }

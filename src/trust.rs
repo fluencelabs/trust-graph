@@ -64,11 +64,11 @@ pub enum TrustError {
     Expired(Duration, Duration),
 
     /// Errors occured on signature verification
-    #[error("{0:?}")]
+    #[error("{0}")]
     SignatureError(String),
 
     /// Errors occured on trust decoding from differrent formats
-    #[error("{0:?}")]
+    #[error("{0}")]
     DecodeError(String),
 }
 

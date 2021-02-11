@@ -1,17 +1,16 @@
-use crate::proxy_structs::Certificate;
+use crate::dto::Certificate;
 use crate::results::{AllCertsResult, InsertResult, WeightResult};
 use crate::storage_impl::get_data;
 use fluence::fce;
 use fluence_identity::{KeyPair, PublicKey};
-use std::convert::{From, Into};
-use std::fmt::Display;
+use std::convert::Into;
 use std::str::FromStr;
 use std::time::Duration;
-use trust_graph::Certificate as TGCertificate;
 
 fn insert_cert_impl(certificate: String, duration: u64) -> Result<(), String> {
     let duration = Duration::from_millis(duration);
-    let certificate = TGCertificate::from_str(&certificate)?;
+    let certificate =
+        trust_graph::Certificate::from_str(&certificate).map_err(|e| format!("{}", e))?;
 
     let mut tg = get_data().lock();
     tg.add(certificate, duration)?;
@@ -25,7 +24,7 @@ fn insert_cert(certificate: String, duration: u64) -> InsertResult {
 }
 
 fn get_weight_impl(public_key: String) -> Result<Option<u32>, String> {
-    let mut tg = get_data().lock();
+    let tg = get_data().lock();
 
     let public_key = string_to_public_key(public_key)?;
 
@@ -49,12 +48,13 @@ fn string_to_public_key(public_key: String) -> Result<PublicKey, String> {
     Ok(public_key)
 }
 
+#[fce]
 fn get_all_certs(issued_for: String) -> AllCertsResult {
     get_all_certs_impl(issued_for).into()
 }
 
 fn get_all_certs_impl(issued_for: String) -> Result<Vec<Certificate>, String> {
-    let mut tg = get_data().lock();
+    let tg = get_data().lock();
 
     let public_key = string_to_public_key(issued_for)?;
     let certs = tg.get_all_certs(public_key, &[])?;
@@ -72,7 +72,12 @@ fn test() -> String {
     let expires_at = Duration::new(15, 15);
     let issued_at = Duration::new(5, 5);
 
-    let cert = TGCertificate::issue_root(&root_kp, second_kp.public_key(), expires_at, issued_at);
+    let cert = trust_graph::Certificate::issue_root(
+        &root_kp,
+        second_kp.public_key(),
+        expires_at,
+        issued_at,
+    );
     tg.add_root_weight(root_kp.public().into(), 0).unwrap();
     tg.add_root_weight(root_kp2.public().into(), 1).unwrap();
     tg.add(cert, Duration::new(10, 10)).unwrap();

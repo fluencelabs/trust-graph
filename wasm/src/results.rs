@@ -1,4 +1,4 @@
-use crate::proxy_structs::Certificate;
+use crate::dto::Certificate;
 use fluence::fce;
 
 #[fce]

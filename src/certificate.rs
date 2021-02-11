@@ -15,10 +15,11 @@
  */
 
 use crate::certificate::CertificateError::{
-    CertificateLengthError, DecodeError, ExpirationError, KeyInCertificateError, MalformedRoot,
-    NoTrustedRoot, VerificationError,
+    CertificateLengthError, DecodeError, DecodeTrustError, ExpirationError, IncorrectByteLength,
+    IncorrectCertificateFormat, KeyInCertificateError, MalformedRoot, NoTrustedRoot,
+    VerificationError,
 };
-use crate::trust::{Trust, TRUST_LEN};
+use crate::trust::{Trust, TrustError, TRUST_LEN};
 use fluence_identity::key_pair::KeyPair;
 use fluence_identity::public_key::PublicKey;
 use std::str::FromStr;
@@ -40,8 +41,12 @@ pub struct Certificate {
 
 #[derive(ThisError, Debug)]
 pub enum CertificateError {
-    #[error("Error while decoding a certificate: {0}")]
-    DecodeError(String),
+    #[error("Incorrect format of the certificate: {0}")]
+    IncorrectCertificateFormat(String),
+    #[error("Incorrect length of an array. Should be 2 bytes of a format, 4 bytes of a version and 104 bytes for each trust")]
+    IncorrectByteLength,
+    #[error("Error while decoding a trust in a certificate: {0}")]
+    DecodeError(TrustError),
     #[error("Certificate is expired. Issued at {issued_at} and expired at {expires_at}")]
     ExpirationError {
         expires_at: String,
@@ -50,21 +55,17 @@ pub enum CertificateError {
     #[error("Certificate does not contain a trusted root.")]
     NoTrustedRoot,
     #[error("Root trust did not pass verification: {0}")]
-    MalformedRoot(String),
+    MalformedRoot(TrustError),
     #[error("There is no `issued_by` public key in a certificate")]
     KeyInCertificateError,
     #[error("The certificate must have at least 1 trust")]
     CertificateLengthError,
+    #[error("Cannot convert trust number {0} from string: {1}")]
+    DecodeTrustError(usize, TrustError),
     #[error("Trust {0} in chain did not pass verification: {1}")]
-    VerificationError(usize, String),
-    #[error("Unexpected error: {0}")]
-    Unexpected(String),
-}
-
-impl From<CertificateError> for String {
-    fn from(err: CertificateError) -> Self {
-        format!("{}", err)
-    }
+    VerificationError(usize, TrustError),
+    #[error("there cannot be paths without any nodes after adding verified certificates")]
+    Unexpected,
 }
 
 impl Certificate {
@@ -156,8 +157,7 @@ impl Certificate {
 
         // check root trust and its existence in trusted roots list
         let root = &chain[0];
-        Trust::verify(root, &root.issued_for, cur_time)
-            .map_err(|e| MalformedRoot(format!("{}", e)))?;
+        Trust::verify(root, &root.issued_for, cur_time).map_err(|e| MalformedRoot(e))?;
         if !trusted_roots.contains(&root.issued_for) {
             return Err(NoTrustedRoot);
         }
@@ -169,7 +169,7 @@ impl Certificate {
             let trust_giver = &chain[trust_id - 1];
 
             Trust::verify(trust, &trust_giver.issued_for, cur_time)
-                .map_err(|e| VerificationError(trust_id, format!("{}", e)))?;
+                .map_err(|e| VerificationError(trust_id, e))?;
         }
 
         Ok(())
@@ -195,7 +195,7 @@ impl Certificate {
     pub fn decode(arr: &[u8]) -> Result<Self, CertificateError> {
         let trusts_offset = arr.len() - 2 - 4;
         if trusts_offset % TRUST_LEN != 0 {
-            return Err(DecodeError("Incorrect length of an array. Should be 2 bytes of a format, 4 bytes of a version and 104 bytes for each trust. ".to_string()));
+            return Err(IncorrectByteLength);
         }
 
         let number_of_trusts = trusts_offset / TRUST_LEN;
@@ -214,7 +214,7 @@ impl Certificate {
             let from = i * TRUST_LEN + 6;
             let to = (i + 1) * TRUST_LEN + 6;
             let slice = &arr[from..to];
-            let t = Trust::decode(slice).map_err(|e| DecodeError(format!("{}", e)))?;
+            let t = Trust::decode(slice).map_err(|e| DecodeError(e))?;
             chain.push(t);
         }
 
@@ -244,10 +244,7 @@ impl FromStr for Certificate {
         let _version = str_lines[1];
 
         if (str_lines.len() - 2) % 4 != 0 {
-            return Err(DecodeError(format!(
-                "Incorrect format of the certificate: {}",
-                s
-            )));
+            return Err(IncorrectCertificateFormat(s.to_string()));
         }
 
         let num_of_trusts = (str_lines.len() - 2) / 4;
@@ -260,12 +257,7 @@ impl FromStr for Certificate {
                 str_lines[i + 2],
                 str_lines[i + 3],
             )
-            .map_err(|e| {
-                DecodeError(format!(
-                    "Cannot convert trust number {} from string: {}",
-                    i, e
-                ))
-            })?;
+            .map_err(|e| DecodeTrustError(i, e))?;
 
             trusts.push(trust);
         }

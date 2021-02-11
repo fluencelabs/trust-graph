@@ -1,6 +1,6 @@
 use fluence::WasmLoggerBuilder;
 
-mod proxy_structs;
+mod dto;
 mod results;
 mod service_api;
 mod storage_impl;

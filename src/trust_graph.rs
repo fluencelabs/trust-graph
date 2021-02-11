@@ -21,10 +21,11 @@ use crate::revoke::Revoke;
 use crate::revoke::RevokeError;
 use crate::trust::Trust;
 use crate::trust_graph::TrustGraphError::{
-    CertificateCheckError, InternalStorageError, NoRoot, RevokeCheckError,
+    CertificateCheckError, EmptyChain, InternalStorageError, NoRoot, RevokeCheckError,
 };
 use crate::trust_graph_storage::Storage;
 use crate::trust_node::{Auth, TrustNode};
+use crate::StorageError;
 use fluence_identity::public_key::PublicKey;
 use std::borrow::Borrow;
 use std::collections::{HashSet, VecDeque};
@@ -50,13 +51,21 @@ where
 #[derive(ThisError, Debug)]
 pub enum TrustGraphError {
     #[error("Internal storage error: {0}")]
-    InternalStorageError(String),
+    InternalStorageError(Box<dyn StorageError>),
     #[error("There is no root for this certificate.")]
     NoRoot,
+    #[error("Chain is empty")]
+    EmptyChain,
     #[error("Certificate check error: {0}")]
     CertificateCheckError(CertificateError),
     #[error("Error on revoking a trust: {0}")]
     RevokeCheckError(RevokeError),
+}
+
+impl<T: StorageError + 'static> From<T> for TrustGraphError {
+    fn from(err: T) -> Self {
+        InternalStorageError(Box::new(err))
+    }
 }
 
 impl From<CertificateError> for TrustGraphError {
@@ -92,16 +101,12 @@ where
         pk: PublicKeyHashable,
         weight: Weight,
     ) -> Result<(), TrustGraphError> {
-        self.storage
-            .add_root_weight(pk, weight)
-            .map_err(|e| InternalStorageError(e.into()))
+        Ok(self.storage.add_root_weight(pk, weight)?)
     }
 
     /// Get trust by public key
     pub fn get(&self, pk: PublicKey) -> Result<Option<TrustNode>, TrustGraphError> {
-        self.storage
-            .get(&pk.into())
-            .map_err(|e| InternalStorageError(e.into()))
+        Ok(self.storage.get(&pk.into())?)
     }
 
     // TODO: remove cur_time from api, leave it for tests only
@@ -112,8 +117,7 @@ where
     {
         let roots: Vec<PublicKey> = self
             .storage
-            .root_keys()
-            .map_err(|e| InternalStorageError(e.into()))?
+            .root_keys()?
             .iter()
             .cloned()
             .map(Into::into)
@@ -122,28 +126,18 @@ where
         Certificate::verify(cert.borrow(), roots.as_slice(), cur_time)?;
 
         let mut chain = cert.borrow().chain.iter();
-        let root_trust = chain
-            .next()
-            .ok_or("empty chain")
-            .map_err(|e| InternalStorageError(e.into()))?;
+        let root_trust = chain.next().ok_or(EmptyChain)?;
         let root_pk: PublicKeyHashable = root_trust.issued_for.clone().into();
 
         // Insert new TrustNode for this root_pk if there wasn't one
-        if self
-            .storage
-            .get(&root_pk)
-            .map_err(|e| InternalStorageError(e.into()))?
-            .is_none()
-        {
+        if self.storage.get(&root_pk)?.is_none() {
             let mut trust_node = TrustNode::new(root_trust.issued_for.clone(), cur_time);
             let root_auth = Auth {
                 trust: root_trust.clone(),
                 issued_by: root_trust.issued_for.clone(),
             };
             trust_node.update_auth(root_auth);
-            self.storage
-                .insert(root_pk, trust_node)
-                .map_err(|e| InternalStorageError(e.into()))?;
+            self.storage.insert(root_pk, trust_node)?;
         }
 
         // Insert remaining trusts to the graph
@@ -157,8 +151,7 @@ where
             };
 
             self.storage
-                .update_auth(&pk, auth, &root_trust.issued_for, cur_time)
-                .map_err(|e| InternalStorageError(e.into()))?;
+                .update_auth(&pk, auth, &root_trust.issued_for, cur_time)?;
 
             previous_trust = trust;
         }
@@ -171,18 +164,13 @@ where
     where
         P: Borrow<PublicKey>,
     {
-        if let Some(weight) = self
-            .storage
-            .get_root_weight(pk.borrow().as_ref())
-            .map_err(|e| InternalStorageError(e.into()))?
-        {
+        if let Some(weight) = self.storage.get_root_weight(pk.borrow().as_ref())? {
             return Ok(Some(weight));
         }
 
         let roots: Vec<PublicKey> = self
             .storage
-            .root_keys()
-            .map_err(|e| InternalStorageError(e.into()))?
+            .root_keys()?
             .iter()
             .map(|pk| pk.clone().into())
             .collect();
@@ -220,9 +208,7 @@ where
 
             let root_weight = self
                 .storage
-                .get_root_weight(first.issued_for.as_ref())
-                // This panic shouldn't happen // TODO: why?
-                .map_err(|e| InternalStorageError(e.into()))?
+                .get_root_weight(first.issued_for.as_ref())?
                 .ok_or(NoRoot)?;
 
             // certificate weight = root weight + 1 * every other element in the chain
@@ -264,12 +250,8 @@ where
 
             let auths: Vec<Auth> = self
                 .storage
-                .get(&last.issued_by.clone().into())
-                .map_err(|e| InternalStorageError(e.into()))?
-                .ok_or(CertificateCheckError(Unexpected(
-                    "there cannot be paths without any nodes after adding verified certificates"
-                        .to_string(),
-                )))?
+                .get(&last.issued_by.clone().into())?
+                .ok_or(CertificateCheckError(Unexpected))?
                 .authorizations()
                 .cloned()
                 .collect();
@@ -314,16 +296,10 @@ where
         P: Borrow<PublicKey>,
     {
         // get all auths (edges) for issued public key
-        let issued_for_node = self
-            .storage
-            .get(issued_for.borrow().as_ref())
-            .map_err(|e| InternalStorageError(e.into()))?;
+        let issued_for_node = self.storage.get(issued_for.borrow().as_ref())?;
 
         let roots = roots.iter().map(|pk| pk.as_ref());
-        let keys = self
-            .storage
-            .root_keys()
-            .map_err(|e| InternalStorageError(e.into()))?;
+        let keys = self.storage.root_keys()?;
         let roots = keys.iter().chain(roots).collect();
 
         match issued_for_node {
@@ -356,9 +332,7 @@ where
 
         let pk: PublicKeyHashable = revoke.pk.clone().into();
 
-        self.storage
-            .revoke(&pk, revoke)
-            .map_err(|e| InternalStorageError(e.into()))
+        Ok(self.storage.revoke(&pk, revoke)?)
     }
 
     /// Check information about new certificates and about revoked certificates.
