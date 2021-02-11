@@ -1,4 +1,5 @@
 use crate::dto::Certificate;
+use crate::service_api::ServiceError;
 use fluence::fce;
 
 #[fce]
@@ -7,8 +8,8 @@ pub struct InsertResult {
     pub error: String,
 }
 
-impl From<Result<(), String>> for InsertResult {
-    fn from(result: Result<(), String>) -> Self {
+impl From<Result<(), ServiceError>> for InsertResult {
+    fn from(result: Result<(), ServiceError>) -> Self {
         match result {
             Ok(()) => InsertResult {
                 ret_code: 0,
@@ -16,7 +17,7 @@ impl From<Result<(), String>> for InsertResult {
             },
             Err(e) => InsertResult {
                 ret_code: 1,
-                error: e,
+                error: format!("{}", e),
             },
         }
     }
@@ -29,8 +30,8 @@ pub struct WeightResult {
     pub error: String,
 }
 
-impl From<Result<Option<u32>, String>> for WeightResult {
-    fn from(result: Result<Option<u32>, String>) -> Self {
+impl From<Result<Option<u32>, ServiceError>> for WeightResult {
+    fn from(result: Result<Option<u32>, ServiceError>) -> Self {
         match result {
             Ok(wo) => WeightResult {
                 ret_code: 0,
@@ -40,7 +41,7 @@ impl From<Result<Option<u32>, String>> for WeightResult {
             Err(e) => WeightResult {
                 ret_code: 1,
                 weight: vec![],
-                error: e,
+                error: format!("{}", e),
             },
         }
     }
@@ -53,8 +54,8 @@ pub struct AllCertsResult {
     pub error: String,
 }
 
-impl From<Result<Vec<Certificate>, String>> for AllCertsResult {
-    fn from(result: Result<Vec<Certificate>, String>) -> Self {
+impl From<Result<Vec<Certificate>, ServiceError>> for AllCertsResult {
+    fn from(result: Result<Vec<Certificate>, ServiceError>) -> Self {
         match result {
             Ok(certs) => AllCertsResult {
                 ret_code: 0,
@@ -64,7 +65,7 @@ impl From<Result<Vec<Certificate>, String>> for AllCertsResult {
             Err(e) => AllCertsResult {
                 ret_code: 1,
                 certificates: vec![],
-                error: e,
+                error: format!("{}", e),
             },
         }
     }

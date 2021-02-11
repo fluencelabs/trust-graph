@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-use crate::trust::TrustError::{DecodeError, SignatureError};
+use crate::trust::TrustError::{
+    DecodeError, IncorrectTrustLength, PublicKeyError, SignatureError, SignatureFromBytesError,
+};
 use derivative::Derivative;
 use fluence_identity::key_pair::KeyPair;
-use fluence_identity::public_key::PublicKey;
+use fluence_identity::public_key::{PKError, PublicKey};
 use fluence_identity::signature::Signature;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
@@ -65,11 +67,22 @@ pub enum TrustError {
 
     /// Errors occured on signature verification
     #[error("{0}")]
-    SignatureError(String),
+    SignatureError(ed25519_dalek::SignatureError),
 
     /// Errors occured on trust decoding from differrent formats
     #[error("{0}")]
     DecodeError(String),
+
+    #[error("Cannot decode a signature from bytes: {0}")]
+    SignatureFromBytesError(signature::Error),
+
+    #[error("{0}")]
+    PublicKeyError(PKError),
+
+    #[error(
+        "Trust length should be 104: public key(32) + signature(64) + expiration date(8), was: {0}"
+    )]
+    IncorrectTrustLength(usize),
 }
 
 impl Trust {
@@ -155,19 +168,13 @@ impl Trust {
     #[allow(dead_code)]
     pub fn decode(arr: &[u8]) -> Result<Self, TrustError> {
         if arr.len() != TRUST_LEN {
-            return Err(DecodeError(
-                format!("Trust length should be 104: public key(32) + signature(64) + expiration date(8), was: {}",
-                arr.len())
-            ));
+            return Err(IncorrectTrustLength(arr.len()));
         }
 
-        let pk = PublicKey::from_bytes(&arr[0..PK_LEN]).map_err(|err| {
-            DecodeError(format!("Cannot decode a public key: {}", err.to_string()))
-        })?;
+        let pk = PublicKey::from_bytes(&arr[0..PK_LEN]).map_err(PublicKeyError)?;
 
         let signature = &arr[PK_LEN..PK_LEN + SIG_LEN];
-        let signature = Signature::from_bytes(signature)
-            .map_err(|err| DecodeError(format!("Cannot decode a signature: {}", err)))?;
+        let signature = Signature::from_bytes(signature).map_err(SignatureFromBytesError)?;
 
         let expiration_bytes = &arr[PK_LEN + SIG_LEN..PK_LEN + SIG_LEN + EXPIRATION_LEN];
         let expiration_date = u64::from_le_bytes(expiration_bytes.try_into().unwrap());
@@ -221,7 +228,7 @@ impl Trust {
 
         // 64 bytes signature
         let signature = Self::bs58_str_to_vec(signature, "signature")?;
-        let signature = Signature::from_bytes(&signature).map_err(DecodeError)?;
+        let signature = Signature::from_bytes(&signature).map_err(SignatureFromBytesError)?;
 
         // Duration
         let expires_at = Self::str_to_duration(expires_at, "expires_at")?;

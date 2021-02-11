@@ -79,11 +79,10 @@ impl KeyPair {
     }
 
     /// Verify the Ed25519 signature on a message using the public key.
-    pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> Result<(), String> {
+    pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> Result<(), SignatureError> {
         // let signature = ed25519_dalek::Signature::from_bytes(signature)
         //     .map_err(|err| format!("Cannot convert bytes to a signature: {:?}", err))?;
         pk.verify_strict(msg, signature)
-            .map_err(|err| format!("Signature verification failed: {:?}", err))
     }
 }
 

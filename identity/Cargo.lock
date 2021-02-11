@@ -344,6 +344,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "signature",
+ "thiserror",
 ]
 
 [[package]]

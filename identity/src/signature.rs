@@ -15,6 +15,7 @@
  */
 
 use serde::{Deserialize, Serialize};
+use signature::Error as SigError;
 use signature::Signature as SigSignature;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -33,8 +34,8 @@ impl Signature {
         self.0.to_bytes()
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
-        let sig = ed25519_dalek::Signature::from_bytes(bytes).map_err(|err| err.to_string())?;
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SigError> {
+        let sig = ed25519_dalek::Signature::from_bytes(bytes)?;
         Ok(Signature(sig))
     }
 }
