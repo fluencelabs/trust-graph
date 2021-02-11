@@ -84,7 +84,7 @@ impl Revoke {
         revoke
             .revoked_by
             .verify_strict(msg.as_slice(), &revoke.signature)
-            .map_err(|err| IncorrectSignature(err))
+            .map_err(IncorrectSignature)
     }
 }
 

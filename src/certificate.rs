@@ -109,11 +109,7 @@ impl Certificate {
         }
 
         // first, verify given certificate
-        Certificate::verify(
-            extend_cert,
-            &[extend_cert.chain[0].issued_for.clone()],
-            cur_time,
-        )?;
+        Certificate::verify(extend_cert, &[extend_cert.chain[0].issued_for], cur_time)?;
 
         let issued_by_pk = issued_by.public_key();
 
@@ -157,7 +153,7 @@ impl Certificate {
 
         // check root trust and its existence in trusted roots list
         let root = &chain[0];
-        Trust::verify(root, &root.issued_for, cur_time).map_err(|e| MalformedRoot(e))?;
+        Trust::verify(root, &root.issued_for, cur_time).map_err(MalformedRoot)?;
         if !trusted_roots.contains(&root.issued_for) {
             return Err(NoTrustedRoot);
         }
@@ -214,7 +210,7 @@ impl Certificate {
             let from = i * TRUST_LEN + 6;
             let to = (i + 1) * TRUST_LEN + 6;
             let slice = &arr[from..to];
-            let t = Trust::decode(slice).map_err(|e| DecodeError(e))?;
+            let t = Trust::decode(slice).map_err(DecodeError)?;
             chain.push(t);
         }
 

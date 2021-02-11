@@ -92,7 +92,7 @@ where
     S: Storage,
 {
     pub fn new(storage: Box<S>) -> Self {
-        Self { storage: storage }
+        Self { storage }
     }
 
     /// Insert new root weight
@@ -131,10 +131,10 @@ where
 
         // Insert new TrustNode for this root_pk if there wasn't one
         if self.storage.get(&root_pk)?.is_none() {
-            let mut trust_node = TrustNode::new(root_trust.issued_for.clone(), cur_time);
+            let mut trust_node = TrustNode::new(root_trust.issued_for, cur_time);
             let root_auth = Auth {
                 trust: root_trust.clone(),
-                issued_by: root_trust.issued_for.clone(),
+                issued_by: root_trust.issued_for,
             };
             trust_node.update_auth(root_auth);
             self.storage.insert(root_pk, trust_node)?;
@@ -147,7 +147,7 @@ where
 
             let auth = Auth {
                 trust: trust.clone(),
-                issued_by: previous_trust.issued_for.clone(),
+                issued_by: previous_trust.issued_for,
             };
 
             self.storage

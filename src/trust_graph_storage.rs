@@ -45,7 +45,7 @@ impl InMemoryStorage {
             .collect();
         Self {
             nodes: HashMap::new(),
-            root_weights: root_weights,
+            root_weights,
         }
     }
 
@@ -74,7 +74,7 @@ impl Storage for InMemoryStorage {
     }
 
     fn insert(&mut self, pk: PK, node: TrustNode) -> Result<(), Self::Error> {
-        &self.nodes.insert(pk, node);
+        self.nodes.insert(pk, node);
         Ok(())
     }
 
@@ -83,8 +83,8 @@ impl Storage for InMemoryStorage {
     }
 
     fn add_root_weight(&mut self, pk: PK, weight: Weight) -> Result<(), Self::Error> {
-        &self.root_weights.insert(pk, weight);
-        Ok({})
+        self.root_weights.insert(pk, weight);
+        Ok(())
     }
 
     fn root_keys(&self) -> Result<Vec<PK>, Self::Error> {
@@ -113,13 +113,13 @@ impl Storage for InMemoryStorage {
         match self.nodes.get_mut(&pk) {
             Some(trust_node) => {
                 trust_node.update_auth(auth);
-                Ok({})
+                Ok(())
             }
             None => {
-                let mut trust_node = TrustNode::new(issued_for.clone(), cur_time);
+                let mut trust_node = TrustNode::new(*issued_for, cur_time);
                 trust_node.update_auth(auth);
                 self.nodes.insert(pk.clone(), trust_node);
-                Ok({})
+                Ok(())
             }
         }
     }

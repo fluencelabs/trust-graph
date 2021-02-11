@@ -119,7 +119,7 @@ impl Trust {
         let msg: &[u8] =
             &Self::metadata_bytes(&trust.issued_for, trust.expires_at, trust.issued_at);
 
-        KeyPair::verify(issued_by, msg, &trust.signature).map_err(|e| SignatureError(e))?;
+        KeyPair::verify(issued_by, msg, &trust.signature).map_err(SignatureError)?;
 
         Ok(())
     }
@@ -166,9 +166,8 @@ impl Trust {
         })?;
 
         let signature = &arr[PK_LEN..PK_LEN + SIG_LEN];
-        let signature = Signature::from_bytes(signature).map_err(|err| {
-            DecodeError(format!("Cannot decode a signature: {}", err.to_string()))
-        })?;
+        let signature = Signature::from_bytes(signature)
+            .map_err(|err| DecodeError(format!("Cannot decode a signature: {}", err)))?;
 
         let expiration_bytes = &arr[PK_LEN + SIG_LEN..PK_LEN + SIG_LEN + EXPIRATION_LEN];
         let expiration_date = u64::from_le_bytes(expiration_bytes.try_into().unwrap());
@@ -180,7 +179,7 @@ impl Trust {
 
         Ok(Self {
             issued_for: pk,
-            signature: signature,
+            signature,
             expires_at: expiration_date,
             issued_at: issued_date,
         })
@@ -222,8 +221,7 @@ impl Trust {
 
         // 64 bytes signature
         let signature = Self::bs58_str_to_vec(signature, "signature")?;
-        let signature =
-            Signature::from_bytes(&signature).map_err(|err| DecodeError(err.to_string()))?;
+        let signature = Signature::from_bytes(&signature).map_err(DecodeError)?;
 
         // Duration
         let expires_at = Self::str_to_duration(expires_at, "expires_at")?;
