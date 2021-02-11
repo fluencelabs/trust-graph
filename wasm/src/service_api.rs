@@ -1,6 +1,5 @@
 use crate::dto::Certificate;
 use crate::results::{AllCertsResult, InsertResult, WeightResult};
-use crate::service_api::ServiceError::{CertError, PublicKeyDecodeError, TGError};
 use crate::storage_impl::get_data;
 use fluence::fce;
 use fluence_identity::public_key::PKError;
@@ -14,20 +13,20 @@ use trust_graph::{CertificateError, TrustGraphError};
 #[derive(ThisError, Debug)]
 pub enum ServiceError {
     #[error("{0}")]
-    PublicKeyDecodeError(PKError),
+    PublicKeyDecodeError(#[from] PKError),
 
     #[error("{0}")]
-    TGError(TrustGraphError),
+    TGError(#[from] TrustGraphError),
     #[error("{0}")]
-    CertError(CertificateError),
+    CertError(#[from] CertificateError),
 }
 
 fn insert_cert_impl(certificate: String, duration: u64) -> Result<(), ServiceError> {
     let duration = Duration::from_millis(duration);
-    let certificate = trust_graph::Certificate::from_str(&certificate).map_err(CertError)?;
+    let certificate = trust_graph::Certificate::from_str(&certificate)?;
 
     let mut tg = get_data().lock();
-    tg.add(certificate, duration).map_err(TGError)?;
+    tg.add(certificate, duration)?;
     Ok(())
 }
 
@@ -42,7 +41,7 @@ fn get_weight_impl(public_key: String) -> Result<Option<u32>, ServiceError> {
 
     let public_key = string_to_public_key(public_key)?;
 
-    let weight = tg.weight(public_key).map_err(TGError)?;
+    let weight = tg.weight(public_key)?;
 
     Ok(weight)
 }
@@ -53,7 +52,7 @@ fn get_weight(public_key: String) -> WeightResult {
 }
 
 fn string_to_public_key(public_key: String) -> Result<PublicKey, ServiceError> {
-    let public_key = PublicKey::from_base58(&public_key).map_err(PublicKeyDecodeError)?;
+    let public_key = PublicKey::from_base58(&public_key)?;
 
     Ok(public_key)
 }
@@ -67,7 +66,7 @@ fn get_all_certs_impl(issued_for: String) -> Result<Vec<Certificate>, ServiceErr
     let tg = get_data().lock();
 
     let public_key = string_to_public_key(issued_for)?;
-    let certs = tg.get_all_certs(public_key, &[]).map_err(TGError)?;
+    let certs = tg.get_all_certs(public_key, &[])?;
     Ok(certs.into_iter().map(|c| c.into()).collect())
 }
 

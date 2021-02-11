@@ -15,7 +15,8 @@
  */
 
 use crate::trust::TrustError::{
-    DecodeError, IncorrectTrustLength, PublicKeyError, SignatureError, SignatureFromBytesError,
+    Base58DecodeError, DecodePublicKeyError, IncorrectTrustLength, ParseError, PublicKeyError,
+    SignatureError, SignatureFromBytesError,
 };
 use derivative::Derivative;
 use fluence_identity::key_pair::KeyPair;
@@ -23,6 +24,7 @@ use fluence_identity::public_key::{PKError, PublicKey};
 use fluence_identity::signature::Signature;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
+use std::num::ParseIntError;
 use std::time::Duration;
 use thiserror::Error as ThisError;
 
@@ -70,8 +72,14 @@ pub enum TrustError {
     SignatureError(ed25519_dalek::SignatureError),
 
     /// Errors occured on trust decoding from differrent formats
-    #[error("{0}")]
-    DecodeError(String),
+    #[error("Cannot decode the public key: {0} in the trust: {1}")]
+    DecodePublicKeyError(String, PKError),
+
+    #[error("Cannot parse `{0}` field in the trust '{1}': {2}")]
+    ParseError(String, String, ParseIntError),
+
+    #[error("Cannot decode `{0}` from base58 format in the trust '{1}': {2}")]
+    Base58DecodeError(String, String, bs58::decode::Error),
 
     #[error("Cannot decode a signature from bytes: {0}")]
     SignatureFromBytesError(signature::Error),
@@ -193,21 +201,15 @@ impl Trust {
     }
 
     fn bs58_str_to_vec(str: &str, field: &str) -> Result<Vec<u8>, TrustError> {
-        bs58::decode(str).into_vec().map_err(|e| {
-            DecodeError(format!(
-                "Cannot decode `{}` from base58 format in the trust '{}': {}",
-                field, str, e
-            ))
-        })
+        bs58::decode(str)
+            .into_vec()
+            .map_err(|e| Base58DecodeError(field.to_string(), str.to_string(), e))
     }
 
     fn str_to_duration(str: &str, field: &str) -> Result<Duration, TrustError> {
-        let secs = str.parse().map_err(|e| {
-            DecodeError(format!(
-                "Cannot parse `{}` field in the trust '{}': {}",
-                field, str, e
-            ))
-        })?;
+        let secs = str
+            .parse()
+            .map_err(|e| ParseError(field.to_string(), str.to_string(), e))?;
         Ok(Duration::from_secs(secs))
     }
 
@@ -219,12 +221,8 @@ impl Trust {
     ) -> Result<Self, TrustError> {
         // PublicKey
         let issued_for_bytes = Self::bs58_str_to_vec(issued_for, "issued_for")?;
-        let issued_for = PublicKey::from_bytes(issued_for_bytes.as_slice()).map_err(|e| {
-            DecodeError(format!(
-                "Cannot decode the public key: {} in the trust '{}'",
-                issued_for, e
-            ))
-        })?;
+        let issued_for = PublicKey::from_bytes(issued_for_bytes.as_slice())
+            .map_err(|e| DecodePublicKeyError(issued_for.to_string(), e))?;
 
         // 64 bytes signature
         let signature = Self::bs58_str_to_vec(signature, "signature")?;
