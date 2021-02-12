@@ -70,3 +70,24 @@ impl From<Result<Vec<Certificate>, ServiceError>> for AllCertsResult {
         }
     }
 }
+
+#[fce]
+pub struct AddRootResult {
+    pub ret_code: u32,
+    pub error: String,
+}
+
+impl From<Result<(), ServiceError>> for AddRootResult {
+    fn from(result: Result<(), ServiceError>) -> Self {
+        match result {
+            Ok(()) => AddRootResult {
+                ret_code: 0,
+                error: "".to_string(),
+            },
+            Err(e) => AddRootResult {
+                ret_code: 1,
+                error: format!("{}", e),
+            },
+        }
+    }
+}

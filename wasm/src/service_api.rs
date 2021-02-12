@@ -1,9 +1,9 @@
 use crate::dto::Certificate;
-use crate::results::{AllCertsResult, InsertResult, WeightResult};
+use crate::results::{AddRootResult, AllCertsResult, InsertResult, WeightResult};
 use crate::service_impl::{
-    get_all_certs_impl, get_weight_impl, insert_cert_impl, insert_cert_impl_raw,
+    add_root_impl, get_all_certs_impl, get_weight_impl, insert_cert_impl, insert_cert_impl_raw,
 };
-use fluence::fce;
+use fluence::{fce, CallParameters};
 
 #[fce]
 /// add a certificate in string representation to trust graph if it is valid
@@ -28,6 +28,21 @@ fn get_weight(public_key: String) -> WeightResult {
 #[fce]
 fn get_all_certs(issued_for: String) -> AllCertsResult {
     get_all_certs_impl(issued_for).into()
+}
+
+#[fce]
+/// could add only a host of a trust graph service
+fn add_root(pk: String, weight: u32) -> AddRootResult {
+    let call_parameters: CallParameters = fluence::get_call_parameters();
+    let init_peer_id = call_parameters.init_peer_id.clone();
+    if call_parameters.host_id == init_peer_id {
+        add_root_impl(pk, weight).into()
+    } else {
+        return AddRootResult {
+            ret_code: 1,
+            error: "Root could add only a host of trust graph service",
+        };
+    }
 }
 
 // TODO rewrite test after #[fce_test] will be implemented

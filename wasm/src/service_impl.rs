@@ -6,7 +6,7 @@ use std::convert::{Into, TryInto};
 use std::str::FromStr;
 use std::time::Duration;
 use thiserror::Error as ThisError;
-use trust_graph::{CertificateError, TrustGraphError};
+use trust_graph::{CertificateError, PublicKeyHashable, TrustGraphError};
 
 #[derive(ThisError, Debug)]
 pub enum ServiceError {
@@ -59,5 +59,12 @@ pub fn insert_cert_impl(certificate: Certificate, duration: u64) -> Result<(), S
     let certificate: trust_graph::Certificate = certificate.try_into()?;
 
     add_cert(certificate, duration)?;
+    Ok(())
+}
+
+pub fn add_root_impl(pk: String, weight: u32) -> Result<(), ServiceError> {
+    let mut tg = get_data().lock();
+    let pk = PublicKey::from_base58(&pk)?.into();
+    tg.add_root_weight(pk, weight)?;
     Ok(())
 }
