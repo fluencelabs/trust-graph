@@ -14,7 +14,6 @@ use trust_graph::{CertificateError, TrustGraphError};
 pub enum ServiceError {
     #[error("{0}")]
     PublicKeyDecodeError(#[from] PKError),
-
     #[error("{0}")]
     TGError(#[from] TrustGraphError),
     #[error("{0}")]
@@ -31,9 +30,11 @@ fn insert_cert_impl(certificate: String, duration: u64) -> Result<(), ServiceErr
 }
 
 #[fce]
-// TODO: some sort of auth?
-fn insert_cert(certificate: String, duration: u64) -> InsertResult {
-    insert_cert_impl(certificate, duration).into()
+/// add a certificate in string representation to trust graph if it is valid
+/// see `Certificate` class for string encoding/decoding
+// TODO change `current_time` to time service
+fn insert_cert(certificate: String, current_time: u64) -> InsertResult {
+    insert_cert_impl(certificate, current_time).into()
 }
 
 fn get_weight_impl(public_key: String) -> Result<Option<u32>, ServiceError> {

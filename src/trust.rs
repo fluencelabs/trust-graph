@@ -15,13 +15,12 @@
  */
 
 use crate::trust::TrustError::{
-    Base58DecodeError, DecodePublicKeyError, IncorrectTrustLength, ParseError, PublicKeyError,
-    SignatureError, SignatureFromBytesError,
+    Base58DecodeError, DecodePublicKeyError, IncorrectTrustLength, ParseError, SignatureError,
 };
 use derivative::Derivative;
 use fluence_identity::key_pair::KeyPair;
 use fluence_identity::public_key::{PKError, PublicKey};
-use fluence_identity::signature::Signature;
+use fluence_identity::signature::{Signature, SignatureError as SigError};
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use std::num::ParseIntError;
@@ -69,7 +68,7 @@ pub enum TrustError {
 
     /// Errors occured on signature verification
     #[error("{0}")]
-    SignatureError(ed25519_dalek::SignatureError),
+    SignatureError(#[from] ed25519_dalek::SignatureError),
 
     /// Errors occured on trust decoding from differrent formats
     #[error("Cannot decode the public key: {0} in the trust: {1}")]
@@ -82,10 +81,10 @@ pub enum TrustError {
     Base58DecodeError(String, String, bs58::decode::Error),
 
     #[error("Cannot decode a signature from bytes: {0}")]
-    SignatureFromBytesError(signature::Error),
+    SignatureFromBytesError(#[from] SigError),
 
     #[error("{0}")]
-    PublicKeyError(PKError),
+    PublicKeyError(#[from] PKError),
 
     #[error(
         "Trust length should be 104: public key(32) + signature(64) + expiration date(8), was: {0}"
@@ -179,10 +178,10 @@ impl Trust {
             return Err(IncorrectTrustLength(arr.len()));
         }
 
-        let pk = PublicKey::from_bytes(&arr[0..PK_LEN]).map_err(PublicKeyError)?;
+        let pk = PublicKey::from_bytes(&arr[0..PK_LEN])?;
 
         let signature = &arr[PK_LEN..PK_LEN + SIG_LEN];
-        let signature = Signature::from_bytes(signature).map_err(SignatureFromBytesError)?;
+        let signature = Signature::from_bytes(signature)?;
 
         let expiration_bytes = &arr[PK_LEN + SIG_LEN..PK_LEN + SIG_LEN + EXPIRATION_LEN];
         let expiration_date = u64::from_le_bytes(expiration_bytes.try_into().unwrap());
@@ -226,7 +225,7 @@ impl Trust {
 
         // 64 bytes signature
         let signature = Self::bs58_str_to_vec(signature, "signature")?;
-        let signature = Signature::from_bytes(&signature).map_err(SignatureFromBytesError)?;
+        let signature = Signature::from_bytes(&signature)?;
 
         // Duration
         let expires_at = Self::str_to_duration(expires_at, "expires_at")?;

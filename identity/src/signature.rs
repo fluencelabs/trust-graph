@@ -17,6 +17,13 @@
 use serde::{Deserialize, Serialize};
 use signature::Error as SigError;
 use signature::Signature as SigSignature;
+use thiserror::Error as ThisError;
+
+#[derive(ThisError, Debug)]
+pub enum SignatureError {
+    #[error("{0}")]
+    Error(#[from] SigError),
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Signature(pub ed25519_dalek::Signature);
@@ -34,7 +41,7 @@ impl Signature {
         self.0.to_bytes()
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SigError> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SignatureError> {
         let sig = ed25519_dalek::Signature::from_bytes(bytes)?;
         Ok(Signature(sig))
     }
