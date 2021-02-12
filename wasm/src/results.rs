@@ -1,5 +1,5 @@
 use crate::dto::Certificate;
-use crate::service_api::ServiceError;
+use crate::service_impl::ServiceError;
 use fluence::fce;
 
 #[fce]
