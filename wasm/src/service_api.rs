@@ -1,10 +1,10 @@
-use crate::dto::Certificate;
+use crate::dto::{Certificate, DtoConversionError};
 use crate::results::{AllCertsResult, InsertResult, WeightResult};
 use crate::storage_impl::get_data;
 use fluence::fce;
 use fluence_identity::public_key::PKError;
 use fluence_identity::{KeyPair, PublicKey};
-use std::convert::Into;
+use std::convert::{Into, TryInto};
 use std::str::FromStr;
 use std::time::Duration;
 use thiserror::Error as ThisError;
@@ -18,22 +18,43 @@ pub enum ServiceError {
     TGError(#[from] TrustGraphError),
     #[error("{0}")]
     CertError(#[from] CertificateError),
+    #[error("{0}")]
+    DtoError(#[from] DtoConversionError),
 }
 
-fn insert_cert_impl(certificate: String, duration: u64) -> Result<(), ServiceError> {
+fn add_cert(certificate: trust_graph::Certificate, duration: u64) -> Result<(), ServiceError> {
     let duration = Duration::from_millis(duration);
-    let certificate = trust_graph::Certificate::from_str(&certificate)?;
-
     let mut tg = get_data().lock();
     tg.add(certificate, duration)?;
     Ok(())
 }
 
+fn insert_cert_impl_raw(certificate: String, duration: u64) -> Result<(), ServiceError> {
+    let certificate = trust_graph::Certificate::from_str(&certificate)?;
+
+    add_cert(certificate, duration)?;
+    Ok(())
+}
+
+fn insert_cert_impl(certificate: Certificate, duration: u64) -> Result<(), ServiceError> {
+    let certificate: trust_graph::Certificate = certificate.try_into()?;
+
+    add_cert(certificate, duration)?;
+    Ok(())
+}
+
 #[fce]
 /// add a certificate in string representation to trust graph if it is valid
-/// see `Certificate` class for string encoding/decoding
+/// see `trust_graph::Certificate` class for string encoding/decoding
 // TODO change `current_time` to time service
-fn insert_cert(certificate: String, current_time: u64) -> InsertResult {
+fn insert_cert_raw(certificate: String, current_time: u64) -> InsertResult {
+    insert_cert_impl_raw(certificate, current_time).into()
+}
+
+#[fce]
+/// add a certificate in JSON representation to trust graph if it is valid
+/// see `dto::Certificate` class for structure
+fn insert_cert(certificate: Certificate, current_time: u64) -> InsertResult {
     insert_cert_impl(certificate, current_time).into()
 }
 
