@@ -40,7 +40,7 @@ fn add_root(pk: String, weight: u32) -> AddRootResult {
     } else {
         return AddRootResult {
             ret_code: 1,
-            error: "Root could add only a host of trust graph service",
+            error: "Root could add only a host of trust graph service".to_string(),
         };
     }
 }

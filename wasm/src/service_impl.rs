@@ -6,7 +6,7 @@ use std::convert::{Into, TryInto};
 use std::str::FromStr;
 use std::time::Duration;
 use thiserror::Error as ThisError;
-use trust_graph::{CertificateError, PublicKeyHashable, TrustGraphError};
+use trust_graph::{CertificateError, TrustGraphError};
 
 #[derive(ThisError, Debug)]
 pub enum ServiceError {
