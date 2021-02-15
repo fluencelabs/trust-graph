@@ -46,7 +46,7 @@ pub enum CertificateError {
     #[error("Incorrect length of an array. Should be 2 bytes of a format, 4 bytes of a version and 104 bytes for each trust")]
     IncorrectByteLength,
     #[error("Error while decoding a trust in a certificate: {0}")]
-    DecodeError(TrustError),
+    DecodeError(#[source] TrustError),
     #[error("Certificate is expired. Issued at {issued_at} and expired at {expires_at}")]
     ExpirationError {
         expires_at: String,
@@ -55,15 +55,15 @@ pub enum CertificateError {
     #[error("Certificate does not contain a trusted root.")]
     NoTrustedRoot,
     #[error("Root trust did not pass verification: {0}")]
-    MalformedRoot(TrustError),
+    MalformedRoot(#[source] TrustError),
     #[error("There is no `issued_by` public key in a certificate")]
     KeyInCertificateError,
     #[error("The certificate must have at least 1 trust")]
     CertificateLengthError,
     #[error("Cannot convert trust number {0} from string: {1}")]
-    DecodeTrustError(usize, TrustError),
+    DecodeTrustError(usize, #[source] TrustError),
     #[error("Trust {0} in chain did not pass verification: {1}")]
-    VerificationError(usize, TrustError),
+    VerificationError(usize, #[source] TrustError),
     #[error("there cannot be paths without any nodes after adding verified certificates")]
     Unexpected,
 }

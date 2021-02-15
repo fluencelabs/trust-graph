@@ -10,14 +10,30 @@ use trust_graph::{CertificateError, TrustGraphError};
 
 #[derive(ThisError, Debug)]
 pub enum ServiceError {
-    #[error(transparent)]
-    PublicKeyDecodeError(#[from] PKError),
-    #[error(transparent)]
-    TGError(#[from] TrustGraphError),
-    #[error(transparent)]
-    CertError(#[from] CertificateError),
-    #[error(transparent)]
-    DtoError(#[from] DtoConversionError),
+    #[error("{0}")]
+    PublicKeyDecodeError(
+        #[from]
+        #[source]
+        PKError,
+    ),
+    #[error("{0}")]
+    TGError(
+        #[from]
+        #[source]
+        TrustGraphError,
+    ),
+    #[error("{0}")]
+    CertError(
+        #[from]
+        #[source]
+        CertificateError,
+    ),
+    #[error("{0}")]
+    DtoError(
+        #[from]
+        #[source]
+        DtoConversionError,
+    ),
 }
 
 pub fn get_weight_impl(public_key: String) -> Result<Option<u32>, ServiceError> {

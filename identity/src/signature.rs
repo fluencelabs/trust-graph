@@ -21,8 +21,12 @@ use thiserror::Error as ThisError;
 
 #[derive(ThisError, Debug)]
 pub enum SignatureError {
-    #[error(transparent)]
-    Error(#[from] SigError),
+    #[error("{0}")]
+    Error(
+        #[from]
+        #[source]
+        SigError,
+    ),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -3,8 +3,8 @@
 // if there is an older trust - don't add received trust
 
 use crate::storage_impl::SQLiteStorageError::{
-    DecodeError, EncodeError, PublcKeyNotFound, PublicKeyConversion, PublicKeyFromStr, SQLiteError,
-    TrustNodeConversion, WeightConversionDB,
+    PublcKeyNotFound, PublicKeyConversion, PublicKeyFromStr, TrustNodeConversion,
+    WeightConversionDB,
 };
 use core::convert::TryFrom;
 use fce_sqlite_connector;
@@ -58,14 +58,26 @@ impl SQLiteStorage {
 
 #[derive(ThisError, Debug)]
 pub enum SQLiteStorageError {
-    #[error(transparent)]
-    SQLiteError(InternalSqliteError),
+    #[error("{0}")]
+    SQLiteError(
+        #[from]
+        #[source]
+        InternalSqliteError,
+    ),
     #[error("{0}")]
     PublicKeyFromStr(String),
-    #[error(transparent)]
-    EncodeError(RmpEncodeError),
-    #[error(transparent)]
-    DecodeError(RmpDecodeError),
+    #[error("{0}")]
+    EncodeError(
+        #[from]
+        #[source]
+        RmpEncodeError,
+    ),
+    #[error("{0}")]
+    DecodeError(
+        #[from]
+        #[source]
+        RmpDecodeError,
+    ),
     #[error("Cannot convert weight as integer from DB")]
     WeightConversionDB,
     #[error("Cannot convert public key as binary from DB")]
@@ -74,24 +86,6 @@ pub enum SQLiteStorageError {
     TrustNodeConversion,
     #[error("Cannot revoke. There is no trust with such PublicKey")]
     PublcKeyNotFound,
-}
-
-impl From<InternalSqliteError> for SQLiteStorageError {
-    fn from(err: InternalSqliteError) -> Self {
-        SQLiteError(err)
-    }
-}
-
-impl From<RmpEncodeError> for SQLiteStorageError {
-    fn from(err: RmpEncodeError) -> Self {
-        EncodeError(err)
-    }
-}
-
-impl From<RmpDecodeError> for SQLiteStorageError {
-    fn from(err: RmpDecodeError) -> Self {
-        DecodeError(err)
-    }
 }
 
 impl From<SQLiteStorageError> for String {

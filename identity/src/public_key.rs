@@ -24,9 +24,9 @@ use thiserror::Error as ThisError;
 #[derive(ThisError, Debug)]
 pub enum PKError {
     #[error("Cannot decode public key from bytes: {0}")]
-    FromBytesError(SignatureError),
+    FromBytesError(#[source] SignatureError),
     #[error("Cannot decode public key from base58 format: {0}")]
-    FromBase58Error(bs58::decode::Error),
+    FromBase58Error(#[source] bs58::decode::Error),
 }
 
 #[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]

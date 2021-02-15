@@ -27,7 +27,7 @@ use thiserror::Error as ThisError;
 #[derive(ThisError, Debug)]
 pub enum RevokeError {
     #[error("Signature is incorrect: {0}")]
-    IncorrectSignature(SignatureError),
+    IncorrectSignature(#[source] SignatureError),
 }
 
 /// "A document" that cancels trust created before.

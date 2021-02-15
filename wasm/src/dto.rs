@@ -9,11 +9,23 @@ use thiserror::Error as ThisError;
 #[derive(ThisError, Debug)]
 pub enum DtoConversionError {
     #[error("Cannot convert base58 string to bytes: {0}")]
-    Base58Error(#[from] bs58::decode::Error),
+    Base58Error(
+        #[from]
+        #[source]
+        bs58::decode::Error,
+    ),
     #[error("Cannot convert string to PublicKey: {0}")]
-    PublicKeyDecodeError(#[from] PKError),
+    PublicKeyDecodeError(
+        #[from]
+        #[source]
+        PKError,
+    ),
     #[error("Cannot convert string to PublicKey: {0}")]
-    SignatureDecodeError(#[from] SignatureError),
+    SignatureDecodeError(
+        #[from]
+        #[source]
+        SignatureError,
+    ),
 }
 
 #[fce]

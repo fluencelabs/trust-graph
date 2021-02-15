@@ -21,7 +21,7 @@ use crate::revoke::Revoke;
 use crate::revoke::RevokeError;
 use crate::trust::Trust;
 use crate::trust_graph::TrustGraphError::{
-    CertificateCheckError, EmptyChain, InternalStorageError, NoRoot, RevokeCheckError,
+    CertificateCheckError, EmptyChain, InternalStorageError, NoRoot,
 };
 use crate::trust_graph_storage::Storage;
 use crate::trust_node::{Auth, TrustNode};
@@ -57,9 +57,17 @@ pub enum TrustGraphError {
     #[error("Chain is empty")]
     EmptyChain,
     #[error("Certificate check error: {0}")]
-    CertificateCheckError(CertificateError),
+    CertificateCheckError(
+        #[from]
+        #[source]
+        CertificateError,
+    ),
     #[error("Error on revoking a trust: {0}")]
-    RevokeCheckError(RevokeError),
+    RevokeCheckError(
+        #[from]
+        #[source]
+        RevokeError,
+    ),
 }
 
 impl<T: StorageError + 'static> From<T> for TrustGraphError {
@@ -68,21 +76,9 @@ impl<T: StorageError + 'static> From<T> for TrustGraphError {
     }
 }
 
-impl From<CertificateError> for TrustGraphError {
-    fn from(err: CertificateError) -> Self {
-        CertificateCheckError(err)
-    }
-}
-
 impl From<TrustGraphError> for String {
     fn from(err: TrustGraphError) -> Self {
         format!("{}", err)
-    }
-}
-
-impl From<RevokeError> for TrustGraphError {
-    fn from(err: RevokeError) -> Self {
-        RevokeCheckError(err)
     }
 }
 

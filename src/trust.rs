@@ -67,24 +67,32 @@ pub enum TrustError {
     Expired(Duration, Duration),
 
     /// Errors occured on signature verification
-    #[error(transparent)]
-    SignatureError(#[from] ed25519_dalek::SignatureError),
+    #[error("{0}")]
+    SignatureError(
+        #[from]
+        #[source]
+        ed25519_dalek::SignatureError,
+    ),
 
     /// Errors occured on trust decoding from differrent formats
     #[error("Cannot decode the public key: {0} in the trust: {1}")]
-    DecodePublicKeyError(String, PKError),
+    DecodePublicKeyError(String, #[source] PKError),
 
     #[error("Cannot parse `{0}` field in the trust '{1}': {2}")]
-    ParseError(String, String, ParseIntError),
+    ParseError(String, String, #[source] ParseIntError),
 
     #[error("Cannot decode `{0}` from base58 format in the trust '{1}': {2}")]
-    Base58DecodeError(String, String, bs58::decode::Error),
+    Base58DecodeError(String, String, #[source] bs58::decode::Error),
 
     #[error("Cannot decode a signature from bytes: {0}")]
     SignatureFromBytesError(#[from] SigError),
 
-    #[error(transparent)]
-    PublicKeyError(#[from] PKError),
+    #[error("{0}")]
+    PublicKeyError(
+        #[from]
+        #[source]
+        PKError,
+    ),
 
     #[error(
         "Trust length should be 104: public key(32) + signature(64) + expiration date(8), was: {0}"
