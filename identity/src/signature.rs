@@ -21,7 +21,7 @@ use thiserror::Error as ThisError;
 
 #[derive(ThisError, Debug)]
 pub enum SignatureError {
-    #[error("{0}")]
+    #[error(transparent)]
     Error(#[from] SigError),
 }
 

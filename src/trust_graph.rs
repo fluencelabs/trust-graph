@@ -16,7 +16,7 @@
 
 use crate::certificate::CertificateError::{CertificateLengthError, Unexpected};
 use crate::certificate::{Certificate, CertificateError};
-use crate::public_key_hashable::PublicKeyHashable;
+use crate::public_key_hashable::PublicKeyHashable as PK;
 use crate::revoke::Revoke;
 use crate::revoke::RevokeError;
 use crate::trust::Trust;
@@ -96,11 +96,7 @@ where
     }
 
     /// Insert new root weight
-    pub fn add_root_weight(
-        &mut self,
-        pk: PublicKeyHashable,
-        weight: Weight,
-    ) -> Result<(), TrustGraphError> {
+    pub fn add_root_weight(&mut self, pk: PK, weight: Weight) -> Result<(), TrustGraphError> {
         Ok(self.storage.add_root_weight(pk, weight)?)
     }
 
@@ -127,7 +123,7 @@ where
 
         let mut chain = cert.borrow().chain.iter();
         let root_trust = chain.next().ok_or(EmptyChain)?;
-        let root_pk: PublicKeyHashable = root_trust.issued_for.clone().into();
+        let root_pk: PK = root_trust.issued_for.clone().into();
 
         // Insert new TrustNode for this root_pk if there wasn't one
         if self.storage.get(&root_pk)?.is_none() {
@@ -225,7 +221,7 @@ where
     fn bf_search_paths(
         &self,
         node: &TrustNode,
-        roots: HashSet<&PublicKeyHashable>,
+        roots: HashSet<&PK>,
     ) -> Result<Vec<Vec<Auth>>, TrustGraphError> {
         // queue to collect all chains in the trust graph (each chain is a path in the trust graph)
         let mut chains_queue: VecDeque<Vec<Auth>> = VecDeque::new();
@@ -273,7 +269,7 @@ where
             // - that trust must converge to one of the root weights
             // - there should be more than 1 trust in the chain
             let self_signed = last.issued_by == last.trust.issued_for;
-            let issued_by: &PublicKeyHashable = last.issued_by.as_ref();
+            let issued_by: &PK = last.issued_by.as_ref();
             let converges_to_root = roots.contains(issued_by);
 
             if self_signed && converges_to_root && cur_chain.len() > 1 {
@@ -330,7 +326,7 @@ where
     pub fn revoke(&mut self, revoke: Revoke) -> Result<(), TrustGraphError> {
         Revoke::verify(&revoke)?;
 
-        let pk: PublicKeyHashable = revoke.pk.clone().into();
+        let pk: PK = revoke.pk.clone().into();
 
         Ok(self.storage.revoke(&pk, revoke)?)
     }

@@ -10,13 +10,13 @@ use trust_graph::{CertificateError, TrustGraphError};
 
 #[derive(ThisError, Debug)]
 pub enum ServiceError {
-    #[error("{0}")]
+    #[error(transparent)]
     PublicKeyDecodeError(#[from] PKError),
-    #[error("{0}")]
+    #[error(transparent)]
     TGError(#[from] TrustGraphError),
-    #[error("{0}")]
+    #[error(transparent)]
     CertError(#[from] CertificateError),
-    #[error("{0}")]
+    #[error(transparent)]
     DtoError(#[from] DtoConversionError),
 }
 

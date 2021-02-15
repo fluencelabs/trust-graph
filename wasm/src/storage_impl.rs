@@ -21,7 +21,7 @@ use std::str::FromStr;
 use std::time::Duration;
 use thiserror::Error as ThisError;
 use trust_graph::{
-    Auth, PublicKeyHashable, Revoke, Storage, StorageError, TrustGraph, TrustNode, Weight,
+    Auth, PublicKeyHashable as PK, Revoke, Storage, StorageError, TrustGraph, TrustNode, Weight,
 };
 
 static INSTANCE: OnceCell<Mutex<TrustGraph<SQLiteStorage>>> = OnceCell::new();
@@ -58,13 +58,13 @@ impl SQLiteStorage {
 
 #[derive(ThisError, Debug)]
 pub enum SQLiteStorageError {
-    #[error("{0}")]
+    #[error(transparent)]
     SQLiteError(InternalSqliteError),
     #[error("{0}")]
     PublicKeyFromStr(String),
-    #[error("{0}")]
+    #[error(transparent)]
     EncodeError(RmpEncodeError),
-    #[error("{0}")]
+    #[error(transparent)]
     DecodeError(RmpDecodeError),
     #[error("Cannot convert weight as integer from DB")]
     WeightConversionDB,
@@ -105,7 +105,7 @@ impl StorageError for SQLiteStorageError {}
 impl Storage for SQLiteStorage {
     type Error = SQLiteStorageError;
 
-    fn get(&self, pk: &PublicKeyHashable) -> Result<Option<TrustNode>, Self::Error> {
+    fn get(&self, pk: &PK) -> Result<Option<TrustNode>, Self::Error> {
         let mut cursor = self
             .connection
             .prepare("SELECT trustnode FROM trustnodes WHERE public_key = ?")?
@@ -131,7 +131,7 @@ impl Storage for SQLiteStorage {
         }
     }
 
-    fn insert(&mut self, pk: PublicKeyHashable, node: TrustNode) -> Result<(), Self::Error> {
+    fn insert(&mut self, pk: PK, node: TrustNode) -> Result<(), Self::Error> {
         let mut cursor = self
             .connection
             .prepare("INSERT OR REPLACE INTO trustnodes VALUES (?, ?)")?
@@ -147,7 +147,7 @@ impl Storage for SQLiteStorage {
         Ok({})
     }
 
-    fn get_root_weight(&self, pk: &PublicKeyHashable) -> Result<Option<Weight>, Self::Error> {
+    fn get_root_weight(&self, pk: &PK) -> Result<Option<Weight>, Self::Error> {
         let mut cursor = self
             .connection
             .prepare("SELECT public_key,weight FROM roots WHERE public_key = ?")?
@@ -167,11 +167,7 @@ impl Storage for SQLiteStorage {
         }
     }
 
-    fn add_root_weight(
-        &mut self,
-        pk: PublicKeyHashable,
-        weight: Weight,
-    ) -> Result<(), Self::Error> {
+    fn add_root_weight(&mut self, pk: PK, weight: Weight) -> Result<(), Self::Error> {
         log::info!("add root: {} weight: {}", pk, weight);
         let mut cursor = self
             .connection
@@ -187,7 +183,7 @@ impl Storage for SQLiteStorage {
         Ok({})
     }
 
-    fn root_keys(&self) -> Result<Vec<PublicKeyHashable>, Self::Error> {
+    fn root_keys(&self) -> Result<Vec<PK>, Self::Error> {
         let mut cursor = self
             .connection
             .prepare("SELECT public_key,weight FROM roots")?
@@ -198,8 +194,7 @@ impl Storage for SQLiteStorage {
         while let Some(row) = cursor.next()? {
             log::info!("row: {:?}", row);
             let pk = row[0].as_string().ok_or(PublicKeyConversion)?;
-            let pk: PublicKeyHashable =
-                PublicKeyHashable::from_str(pk).map_err(|e| PublicKeyFromStr(e.to_string()))?;
+            let pk: PK = PK::from_str(pk).map_err(|e| PublicKeyFromStr(e.to_string()))?;
 
             roots.push(pk)
         }
@@ -207,7 +202,7 @@ impl Storage for SQLiteStorage {
         Ok(roots)
     }
 
-    fn revoke(&mut self, pk: &PublicKeyHashable, revoke: Revoke) -> Result<(), Self::Error> {
+    fn revoke(&mut self, pk: &PK, revoke: Revoke) -> Result<(), Self::Error> {
         match self.get(&pk)? {
             Some(mut trust_node) => {
                 trust_node.update_revoke(revoke);
@@ -220,7 +215,7 @@ impl Storage for SQLiteStorage {
 
     fn update_auth(
         &mut self,
-        pk: &PublicKeyHashable,
+        pk: &PK,
         auth: Auth,
         issued_for: &PublicKey,
         cur_time: Duration,

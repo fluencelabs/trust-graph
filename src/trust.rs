@@ -67,7 +67,7 @@ pub enum TrustError {
     Expired(Duration, Duration),
 
     /// Errors occured on signature verification
-    #[error("{0}")]
+    #[error(transparent)]
     SignatureError(#[from] ed25519_dalek::SignatureError),
 
     /// Errors occured on trust decoding from differrent formats
@@ -83,7 +83,7 @@ pub enum TrustError {
     #[error("Cannot decode a signature from bytes: {0}")]
     SignatureFromBytesError(#[from] SigError),
 
-    #[error("{0}")]
+    #[error(transparent)]
     PublicKeyError(#[from] PKError),
 
     #[error(
