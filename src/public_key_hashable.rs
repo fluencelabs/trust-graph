@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use fluence_identity::public_key::PublicKey;
+use fluence_identity::public_key::{PKError, PublicKey};
 
 use core::fmt;
 use ref_cast::RefCast;
@@ -82,15 +82,10 @@ impl Display for PublicKeyHashable {
 }
 
 impl FromStr for PublicKeyHashable {
-    type Err = String;
+    type Err = PKError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let bytes = bs58::decode(s)
-            .into_vec()
-            .map_err(|err| format!("Invalid string '{}': {}", s, err))?;
-
-        let pk = PublicKey::from_bytes(&bytes)
-            .map_err(|err| format!("Invalid bytes {:?}: {}", bytes, err))?;
+        let pk = PublicKey::from_base58(s)?;
         Ok(PublicKeyHashable::from(pk))
     }
 }

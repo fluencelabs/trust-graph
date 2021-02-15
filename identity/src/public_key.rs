@@ -14,10 +14,20 @@
  * limitations under the License.
  */
 
+use crate::public_key::PKError::{FromBase58Error, FromBytesError};
 use crate::signature::Signature;
 use core::fmt::Debug;
 use ed25519_dalek::SignatureError;
 use serde::{Deserialize, Serialize};
+use thiserror::Error as ThisError;
+
+#[derive(ThisError, Debug)]
+pub enum PKError {
+    #[error("Cannot decode public key from bytes: {0}")]
+    FromBytesError(#[source] SignatureError),
+    #[error("Cannot decode public key from base58 format: {0}")]
+    FromBase58Error(#[source] bs58::decode::Error),
+}
 
 #[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PublicKey(pub(crate) ed25519_dalek::PublicKey);
@@ -37,9 +47,13 @@ impl PublicKey {
         self.0.verify_strict(message, &signature.0)
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, SignatureError> {
-        let pk = ed25519_dalek::PublicKey::from_bytes(bytes)?;
+    pub fn from_base58(str: &str) -> Result<PublicKey, PKError> {
+        let bytes = bs58::decode(str).into_vec().map_err(FromBase58Error)?;
+        Self::from_bytes(&bytes)
+    }
 
+    pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, PKError> {
+        let pk = ed25519_dalek::PublicKey::from_bytes(bytes).map_err(FromBytesError)?;
         Ok(PublicKey(pk))
     }
 

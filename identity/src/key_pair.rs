@@ -79,11 +79,10 @@ impl KeyPair {
     }
 
     /// Verify the Ed25519 signature on a message using the public key.
-    pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> Result<(), String> {
+    pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> Result<(), SignatureError> {
         // let signature = ed25519_dalek::Signature::from_bytes(signature)
         //     .map_err(|err| format!("Cannot convert bytes to a signature: {:?}", err))?;
         pk.verify_strict(msg, signature)
-            .map_err(|err| format!("Signature verification failed: {:?}", err))
     }
 }
 
@@ -144,8 +143,8 @@ impl<'de> serde::Deserialize<'de> for KeyPair {
 
 impl Clone for KeyPair {
     fn clone(&self) -> KeyPair {
-        let mut sk_bytes = self.key_pair.secret.to_bytes();
-        let secret = ed25519_dalek::SecretKey::from_bytes(&mut sk_bytes)
+        let sk_bytes = self.key_pair.secret.to_bytes();
+        let secret = ed25519_dalek::SecretKey::from_bytes(&sk_bytes)
             .expect("ed25519::SecretKey::from_bytes(to_bytes(k)) != k");
         let public = ed25519_dalek::PublicKey::from_bytes(&self.key_pair.public.to_bytes())
             .expect("ed25519::PublicKey::from_bytes(to_bytes(k)) != k");

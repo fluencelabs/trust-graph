@@ -1,6 +1,9 @@
 use fluence::WasmLoggerBuilder;
 
+mod dto;
+mod results;
 mod service_api;
+mod service_impl;
 mod storage_impl;
 
 pub fn main() {

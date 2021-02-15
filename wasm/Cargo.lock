@@ -441,6 +441,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "signature",
+ "thiserror",
 ]
 
 [[package]]
@@ -1537,6 +1538,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "signature",
+ "thiserror",
 ]
 
 [[package]]
@@ -1556,6 +1558,7 @@ dependencies = [
  "rmp-serde",
  "serde_bencode",
  "serde_json",
+ "thiserror",
  "trust-graph",
 ]
 
