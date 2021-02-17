@@ -31,6 +31,7 @@ export class TrustGraph {
             certsStr.push(await certificateToString(cert));
         }
         // TODO inherit this with FluenceClient in fluence-js
+        throw new Error("unimplemented")
         /*let response = await this.client.callPeer("add_certificates", {
             certificates: certsStr,
             peer_id: peerId
@@ -52,6 +53,7 @@ export class TrustGraph {
     async getCertificates(peerId: string): Promise<Certificate[]> {
         let resp: any = {};
         // TODO inherit this with FluenceClient in fluence-js
+        throw new Error("unimplemented")
         /*let resp = await this.client.callPeer("certificates", {
             peer_id: peerId
         });*/
