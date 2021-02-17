@@ -17,7 +17,7 @@
 import { Certificate, certificateFromString, certificateToString } from './certificate';
 import * as log from 'loglevel';
 
-// TODO update after 'aquamarine' implemented
+// TODO inherit this with FluenceClient in fluence-js
 // The client to interact with the Fluence trust graph API
 export class TrustGraph {
     //client: FluenceClient;
@@ -30,7 +30,7 @@ export class TrustGraph {
         for (let cert of certs) {
             certsStr.push(await certificateToString(cert));
         }
-
+        // TODO inherit this with FluenceClient in fluence-js
         /*let response = await this.client.callPeer("add_certificates", {
             certificates: certsStr,
             peer_id: peerId
@@ -51,6 +51,7 @@ export class TrustGraph {
     // Get certificates that stores in Kademlia neighbourhood by `peerId` key.
     async getCertificates(peerId: string): Promise<Certificate[]> {
         let resp: any = {};
+        // TODO inherit this with FluenceClient in fluence-js
         /*let resp = await this.client.callPeer("certificates", {
             peer_id: peerId
         });*/
