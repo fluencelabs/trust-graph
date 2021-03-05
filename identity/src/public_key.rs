@@ -70,7 +70,7 @@ impl PublicKey {
             Self::from_bytes(&pk.encode())
         } else {
             // TODO: support all keys
-            PKError::UnsupportedKey
+            Err(PKError::UnsupportedKey)
         }
     }
 }
