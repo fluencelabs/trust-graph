@@ -1,6 +1,6 @@
 [package]
 name = "fluence-identity"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Fluence Labs"]
 edition = "2018"
 description = "identity"

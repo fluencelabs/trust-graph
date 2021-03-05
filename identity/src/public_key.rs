@@ -29,8 +29,6 @@ pub enum PKError {
     FromBytesError(#[source] SignatureError),
     #[error("Cannot decode public key from base58 format: {0}")]
     FromBase58Error(#[source] bs58::decode::Error),
-    #[error("Only ed25519 is supported")]
-    UnsupportedKey
 }
 
 #[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
@@ -65,12 +63,7 @@ impl PublicKey {
         self.0.to_bytes()
     }
 
-    pub fn from_libp2p(pk: identity::PublicKey) -> Result<Self, PKError> {
-        if let identity::PublicKey::Ed25519(pk) = pk {
+    pub fn from_libp2p(pk: identity::PublicKey::Ed25519()) -> Result<Self, PKError> {
             Self::from_bytes(&pk.encode())
-        } else {
-            // TODO: support all keys
-            Err(PKError::UnsupportedKey)
-        }
     }
 }
