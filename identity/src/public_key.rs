@@ -63,7 +63,7 @@ impl PublicKey {
         self.0.to_bytes()
     }
 
-    pub fn from_libp2p(pk: identity::PublicKey::Ed25519()) -> Result<Self, PKError> {
+    pub fn from_libp2p(pk: identity::ed25519::PublicKey) -> Result<Self, PKError> {
             Self::from_bytes(&pk.encode())
     }
 }
