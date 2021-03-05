@@ -5,6 +5,7 @@ authors = ["Fluence Labs"]
 edition = "2018"
 description = "identity"
 license = "Apache-2.0"
+repository = "https://github.com/fluencelabs/trust-graph"
 
 [dependencies]
 libp2p-core = { package = "fluence-fork-libp2p-core", version = "0.27.1" }
