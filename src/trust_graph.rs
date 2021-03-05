@@ -427,7 +427,7 @@ mod tests {
 
         let st = Box::new(InMemoryStorage::new());
         let mut graph = TrustGraph::new(st);
-        graph.add_root_weight(root.public().into(), 0);
+        graph.add_root_weight(root.public().into(), 0).unwrap();
 
         let addition = graph.add(cert, current_time());
         assert_eq!(addition.is_ok(), true);
@@ -461,8 +461,8 @@ mod tests {
         let mut graph = TrustGraph::new(st);
         let root1_pk = key_pairs1[0].public_key();
         let root2_pk = key_pairs2[0].public_key();
-        graph.add_root_weight(root1_pk.into(), 1);
-        graph.add_root_weight(root2_pk.into(), 0);
+        graph.add_root_weight(root1_pk.into(), 1).unwrap();
+        graph.add_root_weight(root2_pk.into(), 0).unwrap();
         graph.add(cert1, cur_time).unwrap();
 
         let node2 = graph.get(key_pair2.public_key()).unwrap().unwrap();
@@ -493,7 +493,7 @@ mod tests {
         let mut graph = TrustGraph::new(st);
 
         let root_pk = key_pairs[0].public_key();
-        graph.add_root_weight(root_pk.into(), 1);
+        graph.add_root_weight(root_pk.into(), 1).unwrap();
 
         graph.add(cert1, current_time()).unwrap();
 
@@ -537,8 +537,8 @@ mod tests {
         let mut graph = TrustGraph::new(st);
         let root1_pk = key_pairs1[0].public_key();
         let root2_pk = key_pairs2[0].public_key();
-        graph.add_root_weight(root1_pk.into(), 1);
-        graph.add_root_weight(root2_pk.into(), 0);
+        graph.add_root_weight(root1_pk.into(), 1).unwrap();
+        graph.add_root_weight(root2_pk.into(), 0).unwrap();
 
         let last_pk1 = cert1.chain[9].issued_for.clone();
         let last_pk2 = cert2.chain[9].issued_for.clone();
@@ -572,7 +572,7 @@ mod tests {
         let st = Box::new(InMemoryStorage::new());
         let mut graph = TrustGraph::new(st);
         let root1_pk = key_pairs[0].public_key();
-        graph.add_root_weight(root1_pk.clone().into(), 1);
+        graph.add_root_weight(root1_pk.clone().into(), 1).unwrap();
 
         graph.add(cert.clone(), current_time()).unwrap();
 
@@ -591,9 +591,9 @@ mod tests {
         let st = Box::new(InMemoryStorage::new());
         let mut graph = TrustGraph::new(st);
         // add first and last trusts as roots
-        graph.add_root_weight(cert.chain[0].clone().issued_for.into(), 1);
-        graph.add_root_weight(cert.chain[3].clone().issued_for.into(), 1);
-        graph.add_root_weight(cert.chain[5].clone().issued_for.into(), 1);
+        graph.add_root_weight(cert.chain[0].clone().issued_for.into(), 1).unwrap();
+        graph.add_root_weight(cert.chain[3].clone().issued_for.into(), 1).unwrap();
+        graph.add_root_weight(cert.chain[5].clone().issued_for.into(), 1).unwrap();
 
         graph.add(cert.clone(), current_time()).unwrap();
 
@@ -635,9 +635,9 @@ mod tests {
         let root1_pk = key_pairs1[0].public_key();
         let root2_pk = key_pairs2[0].public_key();
         let root3_pk = key_pairs3[0].public_key();
-        graph.add_root_weight(root1_pk.clone().into(), 1);
-        graph.add_root_weight(root2_pk.clone().into(), 0);
-        graph.add_root_weight(root3_pk.clone().into(), 0);
+        graph.add_root_weight(root1_pk.clone().into(), 1).unwrap();
+        graph.add_root_weight(root2_pk.clone().into(), 0).unwrap();
+        graph.add_root_weight(root3_pk.clone().into(), 0).unwrap();
 
         graph.add(cert1, current_time()).unwrap();
         graph.add(cert2, current_time()).unwrap();

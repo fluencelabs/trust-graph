@@ -7,7 +7,7 @@ description = "trust graph"
 license = "Apache-2.0"
 
 [dependencies]
-libp2p-core = { package = "fluence-fork-libp2p-core", version = "0.26.0" }
+libp2p-core = { package = "fluence-fork-libp2p-core", version = "0.27.1" }
 serde = { version = "=1.0.118", features = ["derive"] }
 
 fluence-identity = { path = "identity" }
