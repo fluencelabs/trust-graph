@@ -15,3 +15,5 @@ bundle/
 node_modules/
 jspm_packages/
 /dist/
+
+.idea
