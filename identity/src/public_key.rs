@@ -16,10 +16,12 @@
 
 use crate::public_key::PKError::{FromBase58Error, FromBytesError};
 use crate::signature::Signature;
+
 use core::fmt::Debug;
 use ed25519_dalek::SignatureError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
+use libp2p_core::identity;
 
 #[derive(ThisError, Debug)]
 pub enum PKError {
@@ -27,6 +29,8 @@ pub enum PKError {
     FromBytesError(#[source] SignatureError),
     #[error("Cannot decode public key from base58 format: {0}")]
     FromBase58Error(#[source] bs58::decode::Error),
+    #[error("Only ed25519 is supported")]
+    UnsupportedKey
 }
 
 #[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
@@ -59,5 +63,14 @@ impl PublicKey {
 
     pub fn to_bytes(&self) -> [u8; ed25519_dalek::PUBLIC_KEY_LENGTH] {
         self.0.to_bytes()
+    }
+
+    pub fn from_libp2p(pk: identity::PublicKey) -> Result<Self, PKError> {
+        if let identity::PublicKey::Ed25519(pk) = pk {
+            Self::from_bytes(&pk.encode())
+        } else {
+            // TODO: support all keys
+            PKError::UnsupportedKey
+        }
     }
 }
