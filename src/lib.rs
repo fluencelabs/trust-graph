@@ -42,5 +42,5 @@ pub use crate::public_key_hashable::PublicKeyHashable;
 pub use crate::revoke::Revoke;
 pub use crate::trust::Trust;
 pub use crate::trust_graph::{TrustGraph, TrustGraphError, Weight};
-pub use crate::trust_graph_storage::{Storage, StorageError};
+pub use crate::trust_graph_storage::{Storage, StorageError, InMemoryStorage, InMemoryStorageError};
 pub use crate::trust_node::{Auth, TrustNode};
