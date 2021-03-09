@@ -92,8 +92,8 @@ where
     }
 
     /// Insert new root weight
-    pub fn add_root_weight(&mut self, pk: PK, weight: Weight) -> Result<(), TrustGraphError> {
-        Ok(self.storage.add_root_weight(pk, weight)?)
+    pub fn add_root_weight(&mut self, pk: PublicKey, weight: Weight) -> Result<(), TrustGraphError> {
+        Ok(self.storage.add_root_weight(pk.into(), weight)?)
     }
 
     /// Get trust by public key
