@@ -88,6 +88,7 @@ impl KeyPair {
 
 impl From<Libp2pKeyPair> for KeyPair {
     fn from(kp: Libp2pKeyPair) -> Self {
+        // TODO: this is a hack. Convert directly. Maybe use mem::transmute?
         let kp = ed25519_dalek::Keypair::from_bytes(&kp.encode()).unwrap();
         Self { key_pair: kp }
     }
@@ -96,6 +97,12 @@ impl From<Libp2pKeyPair> for KeyPair {
 impl From<ed25519_dalek::Keypair> for KeyPair {
     fn from(kp: ed25519_dalek::Keypair) -> Self {
         Self { key_pair: kp }
+    }
+}
+
+impl From<KeyPair> for ed25519_dalek::Keypair {
+    fn from(kp: KeyPair) -> Self {
+        kp.key_pair
     }
 }
 
