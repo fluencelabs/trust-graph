@@ -67,3 +67,9 @@ impl PublicKey {
             Self::from_bytes(&pk.encode())
     }
 }
+
+impl From<PublicKey> for ed25519_dalek::PublicKey {
+    fn from(key: PublicKey) -> Self {
+        key.0
+    }
+}
