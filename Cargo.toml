@@ -1,6 +1,6 @@
 [package]
 name = "trust-graph"
-version = "0.2.5"
+version = "0.2.6"
 authors = ["Fluence Labs"]
 edition = "2018"
 description = "trust graph"
