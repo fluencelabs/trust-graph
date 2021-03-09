@@ -389,7 +389,7 @@ dependencies = [
 
 [[package]]
 name = "fluence-identity"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "bs58 0.3.1",
  "ed25519",
@@ -1399,7 +1399,7 @@ dependencies = [
 
 [[package]]
 name = "trust-graph"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "bs58 0.3.1",
  "derivative",
