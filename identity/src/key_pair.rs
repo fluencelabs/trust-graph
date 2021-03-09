@@ -106,6 +106,12 @@ impl From<KeyPair> for ed25519_dalek::Keypair {
     }
 }
 
+impl From<KeyPair> for Libp2pKeyPair {
+    fn from(kp: KeyPair) -> Self {
+        Libp2pKeyPair::from(kp.key_pair)
+    }
+}
+
 /// Implement serde::Deserialize for KeyPair
 impl<'de> serde::Deserialize<'de> for KeyPair {
     fn deserialize<D>(deserializer: D) -> Result<KeyPair, D::Error>
