@@ -1,6 +1,6 @@
 ### Trust Graph
 
-The network-wide peer relationship layer is used to manage connectivity and permissions. Peers keep the distributed graph of relationships, similar to Web of Trust, which is used to prioritize connections from known peers and avoid eclipse attacks. Also, TrustGraph may be used at the application level in various ways such as prioritization of service execution on authorized peers or a tighter connection of a single company’s peers.
+The network-wide peer relationship layer is used to manage connectivity and permissions. Peers keep the distributed graph of relationships, basically a Web of Trust. That graph is used is used to prioritize connections from known peers and avoid Sybil attacks. Also, TrustGraph may be used at the application level in various ways such as prioritization of service execution on authorized peers or a tighter connection of a single company’s peers.
 
 ### Project structure
 
@@ -9,6 +9,8 @@ The network-wide peer relationship layer is used to manage connectivity and perm
 `identity` directory is an abstracted cryptographical layer (key pairs, signature, etc.)
 
 `wasm` is a package that provides `fce` API and could be compiled to a Wasm file. It is used `SQLite` as storage and could be used only with `SQLite` Wasm file near.
+
+`js` is a `npm` package that allows you to create and serialize certificates
 
 ### Use trust-graph in Fluence network
 
