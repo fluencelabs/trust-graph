@@ -42,7 +42,7 @@ pub fn get_data() -> &'static Mutex<TrustGraph<SQLiteStorage>> {
 
         connection.execute(init_sql).expect("cannot connect to db");
 
-        Mutex::new(TrustGraph::new(Box::new(SQLiteStorage::new(connection))))
+        Mutex::new(TrustGraph::new(SQLiteStorage::new(connection)))
     })
 }
 
