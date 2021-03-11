@@ -57,9 +57,9 @@ impl From<PublicKey> for PublicKeyHashable {
     }
 }
 
-impl Into<PublicKey> for PublicKeyHashable {
-    fn into(self) -> PublicKey {
-        self.0
+impl From<PublicKeyHashable> for PublicKey {
+    fn from(pk: PublicKeyHashable) -> PublicKey {
+        pk.0
     }
 }
 

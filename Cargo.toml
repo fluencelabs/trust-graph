@@ -1,16 +1,17 @@
 [package]
 name = "trust-graph"
-version = "0.2.0"
+version = "0.2.6"
 authors = ["Fluence Labs"]
 edition = "2018"
 description = "trust graph"
 license = "Apache-2.0"
+repository = "https://github.com/fluencelabs/trust-graph"
 
 [dependencies]
-libp2p-core = { package = "fluence-fork-libp2p-core", version = "0.26.0" }
+libp2p-core = { package = "fluence-fork-libp2p-core", version = "0.27.1" }
 serde = { version = "=1.0.118", features = ["derive"] }
 
-fluence-identity = { path = "identity" }
+fluence-identity = { version = "0.2", path = "identity" }
 serde_json = "1.0.58"
 bs58 = "0.3.1"
 failure = "0.1.6"

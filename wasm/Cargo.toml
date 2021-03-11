@@ -11,8 +11,8 @@ name = "trust-graph"
 path = "src/main.rs"
 
 [dependencies]
-trust-graph = { path = "../" }
-fluence-identity = { path = "../identity" }
+trust-graph = { version = "0.2.1", path = "../" }
+fluence-identity = { version = "0.2.1", path = "../identity" }
 log = "0.4.8"
 fluence = { version = "0.2.18", features = ["logger"] }
 anyhow = "1.0.31"

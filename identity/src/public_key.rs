@@ -16,10 +16,12 @@
 
 use crate::public_key::PKError::{FromBase58Error, FromBytesError};
 use crate::signature::Signature;
+
 use core::fmt::Debug;
 use ed25519_dalek::SignatureError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error as ThisError;
+use libp2p_core::identity;
 
 #[derive(ThisError, Debug)]
 pub enum PKError {
@@ -59,5 +61,15 @@ impl PublicKey {
 
     pub fn to_bytes(&self) -> [u8; ed25519_dalek::PUBLIC_KEY_LENGTH] {
         self.0.to_bytes()
+    }
+
+    pub fn from_libp2p(pk: &identity::ed25519::PublicKey) -> Result<Self, PKError> {
+            Self::from_bytes(&pk.encode())
+    }
+}
+
+impl From<PublicKey> for ed25519_dalek::PublicKey {
+    fn from(key: PublicKey) -> Self {
+        key.0
     }
 }
