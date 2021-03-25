@@ -13,40 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use crate::ed25519;
+use crate::secp256k1;
+use crate::rsa;
 
 use serde::{Deserialize, Serialize};
-use signature::Error as SigError;
-use signature::Signature as SigSignature;
-use thiserror::Error as ThisError;
 
-#[derive(ThisError, Debug)]
-pub enum SignatureError {
-    #[error("{0}")]
-    Error(
-        #[from]
-        #[source]
-        SigError,
-    ),
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Signature(pub ed25519_dalek::Signature);
-
-pub const SIGNATURE_LENGTH: usize = 64;
-
-impl Signature {
-    /// Create a new signature from a byte array
-    pub fn new(bytes: [u8; SIGNATURE_LENGTH]) -> Self {
-        Signature(ed25519_dalek::Signature::from(bytes))
-    }
-
-    /// Return the inner byte array
-    pub fn to_bytes(&self) -> [u8; SIGNATURE_LENGTH] {
-        self.0.to_bytes()
-    }
-
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SignatureError> {
-        let sig = ed25519_dalek::Signature::from_bytes(bytes)?;
-        Ok(Signature(sig))
-    }
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Signature {
+    Ed25519(ed25519::Signature),
+    Secp256k1(secp256k1::Signature),
+    Rsa(rsa::Signature),
 }

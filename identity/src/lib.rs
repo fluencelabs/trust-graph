@@ -26,14 +26,17 @@
     unreachable_patterns
 )]
 
-pub mod key_pair;
-pub mod public_key;
-pub mod secret_key;
-pub mod signature;
+mod secp256k1;
+mod ed25519;
+mod rsa;
+mod keypair;
+mod error;
+mod public_key;
+mod signature;
+mod secret_key;
 
-pub use crate::key_pair::KeyPair;
+pub use keypair::Keypair;
 pub use crate::public_key::PublicKey;
 pub use crate::secret_key::SecretKey;
 pub use crate::signature::Signature;
 
-pub(crate) use libp2p_core::identity::ed25519;

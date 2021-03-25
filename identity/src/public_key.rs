@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Fluence Labs Limited
+ * Copyright 2021 Fluence Labs Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,63 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use crate::ed25519;
+use crate::rsa;
+use crate::secp256k1;
 
-use crate::public_key::PKError::{FromBase58Error, FromBytesError};
-use crate::signature::Signature;
-
-use core::fmt::Debug;
-use ed25519_dalek::SignatureError;
-use serde::{Deserialize, Serialize};
-use thiserror::Error as ThisError;
-use libp2p_core::identity;
-
-#[derive(ThisError, Debug)]
-pub enum PKError {
-    #[error("Cannot decode public key from bytes: {0}")]
-    FromBytesError(#[source] SignatureError),
-    #[error("Cannot decode public key from base58 format: {0}")]
-    FromBase58Error(#[source] bs58::decode::Error),
-}
-
-#[derive(Copy, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
-pub struct PublicKey(pub(crate) ed25519_dalek::PublicKey);
-
-impl Debug for PublicKey {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(f, "{:?}", self.0)
-    }
+/// The public key of a node's identity keypair.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PublicKey {
+    /// A public Ed25519 key.
+    Ed25519(ed25519::PublicKey),
+    #[cfg(not(target_arch = "wasm32"))]
+    /// A public RSA key.
+    Rsa(rsa::PublicKey),
+    /// A public Secp256k1 key.
+    Secp256k1(secp256k1::PublicKey)
 }
 
 impl PublicKey {
-    pub fn verify_strict(
-        &self,
-        message: &[u8],
-        signature: &Signature,
-    ) -> Result<(), SignatureError> {
-        self.0.verify_strict(message, &signature.0)
-    }
-
-    pub fn from_base58(str: &str) -> Result<PublicKey, PKError> {
-        let bytes = bs58::decode(str).into_vec().map_err(FromBase58Error)?;
-        Self::from_bytes(&bytes)
-    }
-
-    pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, PKError> {
-        let pk = ed25519_dalek::PublicKey::from_bytes(bytes).map_err(FromBytesError)?;
-        Ok(PublicKey(pk))
-    }
-
-    pub fn to_bytes(&self) -> [u8; ed25519_dalek::PUBLIC_KEY_LENGTH] {
-        self.0.to_bytes()
-    }
-
-    pub fn from_libp2p(pk: &identity::ed25519::PublicKey) -> Result<Self, PKError> {
-            Self::from_bytes(&pk.encode())
+    /// Verify a signature for a message using this public key, i.e. check
+    /// that the signature has been produced by the corresponding
+    /// private key (authenticity), and that the message has not been
+    /// tampered with (integrity).
+    pub fn verify(&self, msg: &[u8], sig: &[u8]) -> bool {
+        use PublicKey::*;
+        match self {
+            Ed25519(pk) => pk.verify(msg, sig),
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(pk) => pk.verify(msg, sig),
+            Secp256k1(pk) => pk.verify(msg, sig)
+        }
     }
 }
 
-impl From<PublicKey> for ed25519_dalek::PublicKey {
-    fn from(key: PublicKey) -> Self {
-        key.0
-    }
-}

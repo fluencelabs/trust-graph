@@ -393,16 +393,21 @@ dependencies = [
 name = "fluence-identity"
 version = "0.2.7"
 dependencies = [
+ "asn1_der",
  "bs58 0.3.1",
  "ed25519",
  "ed25519-dalek",
- "fluence-fork-libp2p-core",
+ "lazy_static",
+ "libsecp256k1",
  "rand 0.7.3",
+ "ring",
  "serde",
  "serde_json",
  "serde_with",
+ "sha2 0.9.3",
  "signature",
  "thiserror",
+ "zeroize",
 ]
 
 [[package]]
@@ -1409,9 +1414,11 @@ dependencies = [
  "failure",
  "fluence-fork-libp2p-core",
  "fluence-identity",
+ "libsecp256k1",
  "log",
  "rand 0.7.3",
  "ref-cast",
+ "ring",
  "serde",
  "serde_json",
  "serde_with",

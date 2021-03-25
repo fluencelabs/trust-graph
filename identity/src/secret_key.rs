@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Fluence Labs Limited
+ * Copyright 2021 Fluence Labs Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+//use crate::rsa;
+use crate::ed25519;
+use crate::secp256k1;
 
-use ed25519_dalek::SignatureError;
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize)]
-pub struct SecretKey(ed25519_dalek::SecretKey);
-
-impl SecretKey {
-    pub fn from_bytes(bytes: &[u8]) -> Result<SecretKey, SignatureError> {
-        let pk = ed25519_dalek::SecretKey::from_bytes(bytes)?;
-
-        Ok(SecretKey(pk))
-    }
+/// The secret key of a node's identity keypair.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SecretKey {
+    /// A secret Ed25519 key.
+    Ed25519(ed25519::SecretKey),
+    #[cfg(not(target_arch = "wasm32"))]
+    /// A secret RSA key.
+    //Rsa(rsa::SecretKey),
+    /// A secret Secp256k1 key.
+    Secp256k1(secp256k1::SecretKey),
 }
 
-impl AsRef<[u8]> for SecretKey {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_bytes()
-    }
-}
+impl SecretKey {}
+
