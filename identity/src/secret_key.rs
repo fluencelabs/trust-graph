@@ -18,7 +18,6 @@ use crate::ed25519;
 use crate::secp256k1;
 
 /// The secret key of a node's identity keypair.
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SecretKey {
     /// A secret Ed25519 key.
     Ed25519(ed25519::SecretKey),

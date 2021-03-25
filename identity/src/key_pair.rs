@@ -25,6 +25,8 @@ use crate::rsa;
 use crate::error::*;
 use crate::ed25519;
 use crate::secp256k1;
+use crate::ed25519::SecretKey;
+
 /// Identity keypair of a node.
 ///
 /// # Example: Generating RSA keys with OpenSSL
@@ -43,7 +45,7 @@ use crate::secp256k1;
 /// ```
 ///
 #[derive(Clone)]
-pub enum Keypair {
+pub enum KeyPair {
     /// An Ed25519 keypair.
     Ed25519(ed25519::Keypair),
     #[cfg(not(target_arch = "wasm32"))]
@@ -53,15 +55,15 @@ pub enum Keypair {
     Secp256k1(secp256k1::Keypair)
 }
 
-impl Keypair {
+impl KeyPair {
     /// Generate a new Ed25519 keypair.
-    pub fn generate_ed25519() -> Keypair {
-        Keypair::Ed25519(ed25519::Keypair::generate())
+    pub fn generate_ed25519() -> KeyPair {
+        KeyPair::Ed25519(ed25519::Keypair::generate())
     }
 
     /// Generate a new Secp256k1 keypair.
-    pub fn generate_secp256k1() -> Keypair {
-        Keypair::Secp256k1(secp256k1::Keypair::generate())
+    pub fn generate_secp256k1() -> KeyPair {
+        KeyPair::Secp256k1(secp256k1::Keypair::generate())
     }
 
     /// Decode an keypair from a DER-encoded secret key in PKCS#8 PrivateKeyInfo
@@ -69,41 +71,50 @@ impl Keypair {
     ///
     /// [RFC5208]: https://tools.ietf.org/html/rfc5208#section-5
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn rsa_from_pkcs8(pkcs8_der: &mut [u8]) -> Result<Keypair, DecodingError> {
-        rsa::Keypair::from_pkcs8(pkcs8_der).map(Keypair::Rsa)
+    pub fn rsa_from_pkcs8(pkcs8_der: &mut [u8]) -> Result<KeyPair, DecodingError> {
+        rsa::Keypair::from_pkcs8(pkcs8_der).map(KeyPair::Rsa)
     }
 
     /// Decode a keypair from a DER-encoded Secp256k1 secret key in an ECPrivateKey
     /// structure as defined in [RFC5915].
     ///
     /// [RFC5915]: https://tools.ietf.org/html/rfc5915
-    pub fn secp256k1_from_der(der: &mut [u8]) -> Result<Keypair, DecodingError> {
+    pub fn secp256k1_from_der(der: &mut [u8]) -> Result<KeyPair, DecodingError> {
         secp256k1::SecretKey::from_der(der)
-            .map(|sk| Keypair::Secp256k1(secp256k1::Keypair::from(sk)))
+            .map(|sk| KeyPair::Secp256k1(secp256k1::Keypair::from(sk)))
     }
 
     /// Sign a message using the private key of this keypair, producing
     /// a signature that can be verified using the corresponding public key.
     pub fn sign(&self, msg: &[u8]) -> Result<Vec<u8>, SigningError> {
-        use Keypair::*;
+        use KeyPair::*;
         match self {
             Ed25519(ref pair) => Ok(pair.sign(msg)),
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(ref pair) => pair.sign(msg),
-            #[cfg(feature = "secp256k1")]
             Secp256k1(ref pair) => pair.secret().sign(msg)
         }
     }
 
     /// Get the public key of this keypair.
     pub fn public(&self) -> PublicKey {
-        use Keypair::*;
+        use KeyPair::*;
         match self {
             Ed25519(pair) => PublicKey::Ed25519(pair.public()),
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(pair) => PublicKey::Rsa(pair.public()),
-            #[cfg(feature = "secp256k1")]
             Secp256k1(pair) => PublicKey::Secp256k1(pair.public().clone()),
+        }
+    }
+
+    /// Get the public key of this keypair.
+    pub fn secret(&self) -> SecretKey {
+        use KeyPair::*;
+        match self {
+            Ed25519(pair) => SecretKey::Ed25519(pair.secret()),
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(pair) => SecretKey::Rsa(pair.secret()),
+            Secp256k1(pair) => SecretKey::Secp256k1(pair.secret().clone()),
         }
     }
 }

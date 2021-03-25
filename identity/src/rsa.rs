@@ -215,6 +215,7 @@ struct Asn1SubjectPublicKeyInfo {
     subjectPublicKey: Asn1SubjectPublicKey
 }
 
+#[derive(Clone, Copy)]
 pub struct Signature(ring::signature::Signature);
 
 #[cfg(test)]

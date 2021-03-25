@@ -83,7 +83,7 @@ impl Certificate {
     ) -> Self {
         let root_expiration = Duration::from_secs(u64::max_value());
 
-        let root_trust = Trust::create(root_kp, root_kp.public_key(), root_expiration, issued_at);
+        let root_trust = Trust::create(root_kp, root_kp.public(), root_expiration, issued_at);
 
         let trust = Trust::create(root_kp, for_pk, expires_at, issued_at);
 
@@ -111,7 +111,7 @@ impl Certificate {
         // first, verify given certificate
         Certificate::verify(extend_cert, &[extend_cert.chain[0].issued_for], cur_time)?;
 
-        let issued_by_pk = issued_by.public_key();
+        let issued_by_pk = issued_by.public();
 
         // check if `issued_by_pk` is allowed to issue a certificate (i.e., there’s a trust for it in a chain)
         let mut previous_trust_num: i32 = -1;

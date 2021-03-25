@@ -29,13 +29,13 @@
 mod secp256k1;
 mod ed25519;
 mod rsa;
-mod keypair;
-mod error;
-mod public_key;
-mod signature;
-mod secret_key;
+pub mod key_pair;
+pub mod error;
+pub mod public_key;
+pub mod signature;
+pub mod secret_key;
 
-pub use keypair::Keypair;
+pub use key_pair::KeyPair;
 pub use crate::public_key::PublicKey;
 pub use crate::secret_key::SecretKey;
 pub use crate::signature::Signature;

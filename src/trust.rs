@@ -19,8 +19,8 @@ use crate::trust::TrustError::{
 };
 use derivative::Derivative;
 use fluence_identity::key_pair::KeyPair;
-use fluence_identity::public_key::{PKError, PublicKey};
-use fluence_identity::signature::{Signature, SignatureError as SigError};
+use fluence_identity::public_key::PublicKey;
+use fluence_identity::signature::Signature;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use std::num::ParseIntError;
@@ -76,7 +76,7 @@ pub enum TrustError {
 
     /// Errors occured on trust decoding from differrent formats
     #[error("Cannot decode the public key: {0} in the trust: {1}")]
-    DecodePublicKeyError(String, #[source] PKError),
+    DecodePublicKeyError(String, #[source] fluence_identity::error::DecodingError),
 
     #[error("Cannot parse `{0}` field in the trust '{1}': {2}")]
     ParseError(String, String, #[source] ParseIntError),
@@ -85,13 +85,13 @@ pub enum TrustError {
     Base58DecodeError(String, String, #[source] bs58::decode::Error),
 
     #[error("Cannot decode a signature from bytes: {0}")]
-    SignatureFromBytesError(#[from] SigError),
+    SignatureFromBytesError(#[from] fluence_identity::error::SigningError),
 
     #[error("{0}")]
     PublicKeyError(
         #[from]
         #[source]
-        PKError,
+        fluence_identity::error::DecodingError,
     ),
 
     #[error(
