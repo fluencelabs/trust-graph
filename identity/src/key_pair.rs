@@ -25,7 +25,6 @@ use crate::rsa;
 use crate::error::*;
 use crate::ed25519;
 use crate::secp256k1;
-use crate::ed25519::SecretKey;
 
 /// Identity keypair of a node.
 ///
@@ -104,17 +103,6 @@ impl KeyPair {
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(pair) => PublicKey::Rsa(pair.public()),
             Secp256k1(pair) => PublicKey::Secp256k1(pair.public().clone()),
-        }
-    }
-
-    /// Get the public key of this keypair.
-    pub fn secret(&self) -> SecretKey {
-        use KeyPair::*;
-        match self {
-            Ed25519(pair) => SecretKey::Ed25519(pair.secret()),
-            #[cfg(not(target_arch = "wasm32"))]
-            Rsa(pair) => SecretKey::Rsa(pair.secret()),
-            Secp256k1(pair) => SecretKey::Secp256k1(pair.secret().clone()),
         }
     }
 }

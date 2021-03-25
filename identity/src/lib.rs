@@ -33,10 +33,8 @@ pub mod key_pair;
 pub mod error;
 pub mod public_key;
 pub mod signature;
-pub mod secret_key;
 
 pub use key_pair::KeyPair;
 pub use crate::public_key::PublicKey;
-pub use crate::secret_key::SecretKey;
 pub use crate::signature::Signature;
 
