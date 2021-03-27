@@ -16,10 +16,46 @@
 use crate::ed25519;
 use crate::secp256k1;
 use crate::rsa;
+use crate::error::SigningError;
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Signature {
     Ed25519(ed25519::Signature),
-    Secp256k1(secp256k1::Signature),
     Rsa(rsa::Signature),
+    Secp256k1(secp256k1::Signature),
+}
+
+impl Signature {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        use Signature::*;
+
+        let mut result: Vec<u8> = Vec::new();
+
+        result.push(self.get_prefix());
+        match self {
+            Ed25519(sig) => result.extend(sig.to_bytes().to_vec()),
+            Rsa(sig) => result.extend(sig.0.clone()),
+            Secp256k1(sig) => result.extend(sig.0.clone()),
+        }
+
+        result
+    }
+
+    fn get_prefix(&self) -> u8 {
+        use Signature::*;
+        match self {
+            Ed25519(_) => 0,
+            Rsa(_) => 1,
+            Secp256k1(_) => 2
+        }
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SigningError> {
+        match bytes[0] {
+            0 => Ok(Signature::Ed25519(ed25519::Signature::from_bytes(&bytes[1..])?)),
+            1 => Ok(Signature::Rsa(rsa::Signature(bytes[1..].to_vec()))),
+            2 => Ok(Signature::Secp256k1(secp256k1::Signature(bytes[1..].to_vec()))),
+            _ => Err(SigningError::new("invalid type byte".to_string())),
+        }
+    }
 }

@@ -16,9 +16,14 @@
 use crate::ed25519;
 use crate::rsa;
 use crate::secp256k1;
+use crate::error::*;
+use crate::signature::Signature;
+
+use serde::{Deserialize, Serialize};
 
 /// The public key of a node's identity keypair.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[repr(u8)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PublicKey {
     /// A public Ed25519 key.
     Ed25519(ed25519::PublicKey),
@@ -34,14 +39,53 @@ impl PublicKey {
     /// that the signature has been produced by the corresponding
     /// private key (authenticity), and that the message has not been
     /// tampered with (integrity).
-    pub fn verify(&self, msg: &[u8], sig: &[u8]) -> bool {
+    pub fn verify(&self, msg: &[u8], sig: &Signature) -> bool {
         use PublicKey::*;
         match self {
-            Ed25519(pk) => pk.verify(msg, sig),
+            Ed25519(pk) => pk.verify(msg, sig.to_bytes().as_slice()),
             #[cfg(not(target_arch = "wasm32"))]
-            Rsa(pk) => pk.verify(msg, sig),
-            Secp256k1(pk) => pk.verify(msg, sig)
+            Rsa(pk) => pk.verify(msg, sig.to_bytes().as_slice()),
+            Secp256k1(pk) => pk.verify(msg, sig.to_bytes().as_slice())
         }
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        use PublicKey::*;
+        let mut result: Vec<u8> = Vec::new();
+
+        result.push(self.get_prefix());
+        match self {
+            Ed25519(pk) => result.extend(pk.encode().to_vec()),
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(pk) => result.extend(pk.encode_pkcs1().to_vec()),
+            Secp256k1(pk) => result.extend(pk.encode().to_vec()),
+        };
+
+        result
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, DecodingError> {
+        match bytes[0] {
+            0 => Ok(PublicKey::Ed25519(ed25519::PublicKey::decode(&bytes[1..])?)),
+            1 => Ok(PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(&bytes[1..])?)),
+            2 => Ok(PublicKey::Secp256k1(secp256k1::PublicKey::decode(&bytes[1..])?)),
+            _ => Err(DecodingError::new("invalid type byte".to_string())),
+        }
+    }
+
+    fn get_prefix(&self) -> u8 {
+        use PublicKey::*;
+        match self {
+            Ed25519(_) => 0,
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(_) => 1,
+            Secp256k1(_) => 2
+        }
+    }
+
+    pub fn from_base58(str: &str) -> Result<PublicKey, DecodingError> {
+        let bytes = bs58::decode(str).into_vec().map_err(DecodingError::new)?;
+        Self::from_bytes(&bytes)
     }
 }
 

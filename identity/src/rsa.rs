@@ -81,6 +81,10 @@ impl PublicKey {
         self.0.clone()
     }
 
+    pub fn decode_pkcs1(pk: &[u8]) -> Result<PublicKey, DecodingError> {
+        Ok(PublicKey(pk.to_vec()))
+    }
+
     /// Encode the RSA public key in DER as a X.509 SubjectPublicKeyInfo structure,
     /// as defined in [RFC5280].
     ///
@@ -215,8 +219,8 @@ struct Asn1SubjectPublicKeyInfo {
     subjectPublicKey: Asn1SubjectPublicKey
 }
 
-#[derive(Clone, Copy)]
-pub struct Signature(ring::signature::Signature);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Signature(pub Vec<u8>);
 
 #[cfg(test)]
 mod tests {

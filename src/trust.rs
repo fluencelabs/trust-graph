@@ -21,7 +21,6 @@ use derivative::Derivative;
 use fluence_identity::key_pair::KeyPair;
 use fluence_identity::public_key::PublicKey;
 use fluence_identity::signature::Signature;
-use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use std::num::ParseIntError;
 use std::time::Duration;
@@ -36,7 +35,7 @@ pub const TRUST_LEN: usize = SIG_LEN + PK_LEN + EXPIRATION_LEN + ISSUED_LEN;
 
 /// One element in chain of trust in a certificate.
 /// TODO delete pk from Trust (it is already in a trust node)
-#[derive(Clone, PartialEq, Derivative, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Derivative, Eq)]
 #[derivative(Debug)]
 pub struct Trust {
     /// For whom this certificate is issued
@@ -71,7 +70,7 @@ pub enum TrustError {
     SignatureError(
         #[from]
         #[source]
-        ed25519_dalek::SignatureError,
+        fluence_identity::error::SigningError,
     ),
 
     /// Errors occured on trust decoding from differrent formats
@@ -84,8 +83,8 @@ pub enum TrustError {
     #[error("Cannot decode `{0}` from base58 format in the trust '{1}': {2}")]
     Base58DecodeError(String, String, #[source] bs58::decode::Error),
 
-    #[error("Cannot decode a signature from bytes: {0}")]
-    SignatureFromBytesError(#[from] fluence_identity::error::SigningError),
+    // #[error("Cannot decode a signature from bytes: {0}")]
+    // SignatureFromBytesError(#[from] fluence_identity::error::SigningError),
 
     #[error("{0}")]
     PublicKeyError(
@@ -124,7 +123,7 @@ impl Trust {
     ) -> Self {
         let msg = Self::metadata_bytes(&issued_for, expires_at, issued_at);
 
-        let signature = issued_by.sign(&msg);
+        let signature = issued_by.sign(&msg).unwrap();
 
         Self {
             issued_for,

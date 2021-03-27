@@ -282,12 +282,12 @@ mod tests {
     }
 
     #[test]
-    pub fn test_string_encoding_decoding() {
+    pub fn test_string_encoding_decoding_ed25519() {
         let (_root_kp, second_kp, cert) = generate_root_cert();
 
         let cur_time = current_time();
 
-        let third_kp = KeyPair::generate();
+        let third_kp = KeyPair::generate_ed25519();
 
         let new_cert = Certificate::issue(
             &second_kp,
@@ -309,12 +309,12 @@ mod tests {
     }
 
     #[test]
-    pub fn test_serialization_deserialization() {
+    pub fn test_serialization_deserialization_ed25519() {
         let (_root_kp, second_kp, cert) = generate_root_cert();
 
         let cur_time = current_time();
 
-        let third_kp = KeyPair::generate();
+        let third_kp = KeyPair::generate_ed25519();
 
         let new_cert = Certificate::issue(
             &second_kp,
@@ -336,7 +336,7 @@ mod tests {
     }
 
     #[test]
-    fn test_small_chain() {
+    fn test_small_chain_ed25519() {
         let bad_cert = Certificate { chain: Vec::new() };
 
         let check = Certificate::verify(&bad_cert, &[], current_time());
@@ -344,8 +344,8 @@ mod tests {
     }
 
     fn generate_root_cert() -> (KeyPair, KeyPair, Certificate) {
-        let root_kp = KeyPair::generate();
-        let second_kp = KeyPair::generate();
+        let root_kp = KeyPair::generate_ed25519();
+        let second_kp = KeyPair::generate_ed25519();
 
         let cur_time = current_time();
 
@@ -354,7 +354,7 @@ mod tests {
             second_kp.clone(),
             Certificate::issue_root(
                 &root_kp,
-                second_kp.public_key(),
+                second_kp.public(),
                 cur_time.checked_add(one_year()).unwrap(),
                 cur_time,
             ),
@@ -362,9 +362,9 @@ mod tests {
     }
 
     #[test]
-    fn test_issue_cert() {
+    fn test_issue_cert_ed25519() {
         let (root_kp, second_kp, cert) = generate_root_cert();
-        let trusted_roots = [root_kp.public_key()];
+        let trusted_roots = [root_kp.public()];
 
         // we don't need nanos for serialization, etc
         let cur_time = Duration::from_secs(
@@ -374,7 +374,7 @@ mod tests {
                 .as_secs() as u64,
         );
 
-        let third_kp = KeyPair::generate();
+        let third_kp = KeyPair::generate_ed25519();
 
         let new_cert = Certificate::issue(
             &second_kp,
@@ -387,37 +387,37 @@ mod tests {
         assert_eq!(new_cert.is_ok(), true);
         let new_cert = new_cert.unwrap();
 
-        println!(
-            "root_kp:\n\tprivate: {}\n\tpublic: {}",
-            bs58::encode(root_kp.clone().secret()).into_string(),
-            bs58::encode(&root_kp.public().to_bytes().to_vec()).into_string()
-        );
-        println!(
-            "second_kp:\n\tprivate: {}\n\tpublic: {}",
-            bs58::encode(second_kp.clone().secret()).into_string(),
-            bs58::encode(&second_kp.public().to_bytes().to_vec()).into_string()
-        );
-        println!(
-            "third_kp:\n\tprivate: {}\n\tpublic: {}",
-            bs58::encode(third_kp.clone().secret()).into_string(),
-            bs58::encode(&third_kp.public().to_bytes().to_vec()).into_string()
-        );
+        // println!(
+        //     "root_kp:\n\tprivate: {}\n\tpublic: {}",
+        //     bs58::encode(root_kp.clone().secret()).into_string(),
+        //     bs58::encode(&root_kp.public().to_bytes().to_vec()).into_string()
+        // );
+        // println!(
+        //     "second_kp:\n\tprivate: {}\n\tpublic: {}",
+        //     bs58::encode(second_kp.clone().secret()).into_string(),
+        //     bs58::encode(&second_kp.public().to_bytes().to_vec()).into_string()
+        // );
+        // println!(
+        //     "third_kp:\n\tprivate: {}\n\tpublic: {}",
+        //     bs58::encode(third_kp.clone().secret()).into_string(),
+        //     bs58::encode(&third_kp.public().to_bytes().to_vec()).into_string()
+        // );
         println!("cert is\n{}", new_cert.to_string());
 
         assert_eq!(new_cert.chain.len(), 3);
-        assert_eq!(new_cert.chain[0].issued_for, root_kp.public_key());
-        assert_eq!(new_cert.chain[1].issued_for, second_kp.public_key());
-        assert_eq!(new_cert.chain[2].issued_for, third_kp.public_key());
+        assert_eq!(new_cert.chain[0].issued_for, root_kp.public());
+        assert_eq!(new_cert.chain[1].issued_for, second_kp.public());
+        assert_eq!(new_cert.chain[2].issued_for, third_kp.public());
         assert!(Certificate::verify(&new_cert, &trusted_roots, cur_time).is_ok());
     }
 
     #[test]
-    fn test_cert_expiration() {
+    fn test_cert_expiration_ed25519() {
         let (root_kp, second_kp, cert) = generate_root_cert();
-        let trusted_roots = [root_kp.public_key()];
+        let trusted_roots = [root_kp.public()];
         let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-        let third_kp = KeyPair::generate();
+        let third_kp = KeyPair::generate_ed25519();
 
         let new_cert = Certificate::issue(
             &second_kp,
@@ -433,13 +433,13 @@ mod tests {
     }
 
     #[test]
-    fn test_issue_in_chain_tail() {
+    fn test_issue_in_chain_tail_ed25519() {
         let (root_kp, second_kp, cert) = generate_root_cert();
-        let trusted_roots = [root_kp.public_key()];
+        let trusted_roots = [root_kp.public()];
         let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-        let third_kp = KeyPair::generate();
-        let fourth_kp = KeyPair::generate();
+        let third_kp = KeyPair::generate_ed25519();
+        let fourth_kp = KeyPair::generate_ed25519();
 
         let new_cert = Certificate::issue(
             &second_kp,
@@ -463,21 +463,21 @@ mod tests {
         let new_cert = new_cert.unwrap();
 
         assert_eq!(new_cert.chain.len(), 4);
-        assert_eq!(new_cert.chain[0].issued_for, root_kp.public_key());
-        assert_eq!(new_cert.chain[1].issued_for, second_kp.public_key());
-        assert_eq!(new_cert.chain[2].issued_for, third_kp.public_key());
-        assert_eq!(new_cert.chain[3].issued_for, fourth_kp.public_key());
+        assert_eq!(new_cert.chain[0].issued_for, root_kp.public());
+        assert_eq!(new_cert.chain[1].issued_for, second_kp.public());
+        assert_eq!(new_cert.chain[2].issued_for, third_kp.public());
+        assert_eq!(new_cert.chain[3].issued_for, fourth_kp.public());
         assert!(Certificate::verify(&new_cert, &trusted_roots, cur_time).is_ok());
     }
 
     #[test]
-    fn test_issue_in_chain_body() {
+    fn test_issue_in_chain_body_ed25519() {
         let (root_kp, second_kp, cert) = generate_root_cert();
-        let trusted_roots = [root_kp.public_key()];
+        let trusted_roots = [root_kp.public()];
         let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-        let third_kp = KeyPair::generate();
-        let fourth_kp = KeyPair::generate();
+        let third_kp = KeyPair::generate_ed25519();
+        let fourth_kp = KeyPair::generate_ed25519();
 
         let new_cert = Certificate::issue(
             &second_kp,
@@ -501,18 +501,18 @@ mod tests {
         let new_cert = new_cert.unwrap();
 
         assert_eq!(new_cert.chain.len(), 3);
-        assert_eq!(new_cert.chain[0].issued_for, root_kp.public_key());
-        assert_eq!(new_cert.chain[1].issued_for, second_kp.public_key());
-        assert_eq!(new_cert.chain[2].issued_for, fourth_kp.public_key());
+        assert_eq!(new_cert.chain[0].issued_for, root_kp.public());
+        assert_eq!(new_cert.chain[1].issued_for, second_kp.public());
+        assert_eq!(new_cert.chain[2].issued_for, fourth_kp.public());
         assert!(Certificate::verify(&new_cert, &trusted_roots, cur_time).is_ok());
     }
 
     #[test]
-    fn test_no_cert_in_chain() {
+    fn test_no_cert_in_chain_ed25519() {
         let (_root_kp, _second_kp, cert) = generate_root_cert();
         let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-        let bad_kp = KeyPair::generate();
+        let bad_kp = KeyPair::generate_ed25519();
         let new_cert_bad = Certificate::issue(
             &bad_kp,
             bad_kp.public(),
@@ -529,7 +529,7 @@ mod tests {
         let (_root_kp, second_kp, cert) = generate_root_cert();
         let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-        let trusted_roots = [second_kp.public_key()];
+        let trusted_roots = [second_kp.public()];
         assert!(Certificate::verify(&cert, &trusted_roots, cur_time).is_err());
         assert!(Certificate::verify(&cert, &[], cur_time).is_err());
     }
@@ -538,7 +538,7 @@ mod tests {
     fn test_forged_cert() {
         let (root_kp, _second_kp, cert) = generate_root_cert();
         let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-        let trusted_roots = [root_kp.public_key()];
+        let trusted_roots = [root_kp.public()];
 
         // forged cert
         let mut bad_chain = cert.chain;
@@ -553,11 +553,11 @@ mod tests {
         let (root_kp, second_kp, cert) = generate_root_cert();
         let cur_time = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
 
-        let trusted_roots = [root_kp.public_key()];
+        let trusted_roots = [root_kp.public()];
 
         assert_eq!(cert.chain.len(), 2);
-        assert_eq!(cert.chain[0].issued_for, root_kp.public_key());
-        assert_eq!(cert.chain[1].issued_for, second_kp.public_key());
+        assert_eq!(cert.chain[0].issued_for, root_kp.public());
+        assert_eq!(cert.chain[1].issued_for, second_kp.public());
         assert!(Certificate::verify(&cert, &trusted_roots, cur_time).is_ok());
     }
 }

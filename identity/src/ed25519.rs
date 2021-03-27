@@ -219,7 +219,7 @@ impl SecretKey {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Signature(ed25519_dalek::Signature);
 
 pub const SIGNATURE_LENGTH: usize = 64;
@@ -235,7 +235,11 @@ impl Signature {
         self.0.to_bytes()
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SignatureError> {
+    pub fn as_bytes(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SigningError> {
         let sig = signature::Signature::from_bytes(bytes)?;
         Ok(Signature(sig))
     }

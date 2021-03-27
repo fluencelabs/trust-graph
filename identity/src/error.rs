@@ -19,8 +19,6 @@
 // DEALINGS IN THE SOFTWARE.
 
 //! Errors during identity key operations.
-use signature::Error as SigError;
-use thiserror::Error as ThisError;
 use std::error::Error;
 use std::fmt;
 
@@ -83,13 +81,8 @@ impl Error for SigningError {
     }
 }
 
-
-#[derive(ThisError, Debug)]
-pub enum SignatureError {
-    #[error("{0}")]
-    Error(
-        #[from]
-        #[source]
-        SigError,
-    ),
+impl From<signature::Error> for SigningError {
+    fn from(_: signature::Error) -> SigningError {
+      SigningError::new("signature error".to_string())
+    }
 }

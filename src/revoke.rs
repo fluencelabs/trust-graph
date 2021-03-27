@@ -16,7 +16,6 @@
 
 use crate::revoke::RevokeError::IncorrectSignature;
 use crate::trust::{EXPIRATION_LEN, PK_LEN};
-use ed25519_dalek::SignatureError;
 use fluence_identity::key_pair::KeyPair;
 use fluence_identity::public_key::PublicKey;
 use fluence_identity::signature::Signature;
@@ -26,13 +25,13 @@ use thiserror::Error as ThisError;
 
 #[derive(ThisError, Debug)]
 pub enum RevokeError {
-    #[error("Signature is incorrect: {0}")]
-    IncorrectSignature(#[source] SignatureError),
+    #[error("Signature is incorrect")]
+    IncorrectSignature(),
 }
 
 /// "A document" that cancels trust created before.
 /// TODO delete pk from Revoke (it is already in a trust node)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Revoke {
     /// who is revoked
     pub pk: PublicKey,
@@ -64,9 +63,9 @@ impl Revoke {
     #[allow(dead_code)]
     pub fn create(revoker: &KeyPair, to_revoke: PublicKey, revoked_at: Duration) -> Self {
         let msg = Revoke::signature_bytes(&to_revoke, revoked_at);
-        let signature = revoker.sign(&msg);
+        let signature = revoker.sign(&msg).unwrap();
 
-        Revoke::new(to_revoke, revoker.public_key(), revoked_at, signature)
+        Revoke::new(to_revoke, revoker.public(), revoked_at, signature)
     }
 
     fn signature_bytes(pk: &PublicKey, revoked_at: Duration) -> Vec<u8> {
@@ -81,10 +80,14 @@ impl Revoke {
     pub fn verify(revoke: &Revoke) -> Result<(), RevokeError> {
         let msg = Revoke::signature_bytes(&revoke.pk, revoke.revoked_at);
 
-        revoke
+       if revoke
             .revoked_by
-            .verify_strict(msg.as_slice(), &revoke.signature)
-            .map_err(IncorrectSignature)
+            .verify(msg.as_slice(), &revoke.signature)
+       {
+           Ok(())
+       } else {
+           Err(IncorrectSignature())
+       }
     }
 }
 
@@ -94,30 +97,30 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_gen_revoke_and_validate() {
-        let revoker = KeyPair::generate();
-        let to_revoke = KeyPair::generate();
+    fn test_gen_revoke_and_validate_ed25519() {
+        let revoker = KeyPair::generate_ed25519();
+        let to_revoke = KeyPair::generate_ed25519();
 
         let duration = Duration::new(100, 0);
 
-        let revoke = Revoke::create(&revoker, to_revoke.public_key(), duration);
+        let revoke = Revoke::create(&revoker, to_revoke.public(), duration);
 
         assert_eq!(Revoke::verify(&revoke).is_ok(), true);
     }
 
     #[test]
-    fn test_validate_corrupted_revoke() {
-        let revoker = KeyPair::generate();
-        let to_revoke = KeyPair::generate();
+    fn test_validate_corrupted_revoke_ed25519() {
+        let revoker = KeyPair::generate_ed25519();
+        let to_revoke = KeyPair::generate_ed25519();
 
         let duration = Duration::new(100, 0);
 
-        let revoke = Revoke::create(&revoker, to_revoke.public_key(), duration);
+        let revoke = Revoke::create(&revoker, to_revoke.public(), duration);
 
         let duration2 = Duration::new(95, 0);
         let corrupted_revoke = Revoke::new(
-            to_revoke.public_key(),
-            revoker.public_key(),
+            to_revoke.public(),
+            revoker.public(),
             duration2,
             revoke.signature,
         );

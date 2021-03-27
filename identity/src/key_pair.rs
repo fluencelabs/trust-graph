@@ -25,6 +25,7 @@ use crate::rsa;
 use crate::error::*;
 use crate::ed25519;
 use crate::secp256k1;
+use crate::signature::Signature;
 
 /// Identity keypair of a node.
 ///
@@ -51,7 +52,7 @@ pub enum KeyPair {
     /// An RSA keypair.
     Rsa(rsa::Keypair),
     /// A Secp256k1 keypair.
-    Secp256k1(secp256k1::Keypair)
+    Secp256k1(secp256k1::Keypair),
 }
 
 impl KeyPair {
@@ -85,13 +86,13 @@ impl KeyPair {
 
     /// Sign a message using the private key of this keypair, producing
     /// a signature that can be verified using the corresponding public key.
-    pub fn sign(&self, msg: &[u8]) -> Result<Vec<u8>, SigningError> {
+    pub fn sign(&self, msg: &[u8]) -> Result<Signature, SigningError> {
         use KeyPair::*;
         match self {
-            Ed25519(ref pair) => Ok(pair.sign(msg)),
+            Ed25519(ref pair) => Ok(Signature::Ed25519(ed25519::Signature::from_bytes(pair.sign(msg).as_slice())?)),
             #[cfg(not(target_arch = "wasm32"))]
-            Rsa(ref pair) => pair.sign(msg),
-            Secp256k1(ref pair) => pair.secret().sign(msg)
+            Rsa(ref pair) => Ok(Signature::Rsa(rsa::Signature(pair.sign(msg)?))),
+            Secp256k1(ref pair) => Ok(Signature::Secp256k1(secp256k1::Signature(pair.secret().sign(msg)?)))
         }
     }
 
@@ -103,6 +104,17 @@ impl KeyPair {
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(pair) => PublicKey::Rsa(pair.public()),
             Secp256k1(pair) => PublicKey::Secp256k1(pair.public().clone()),
+        }
+    }
+
+    /// Verify the signature on a message using the public key.
+    pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> Result<(), SigningError> {
+        // let signature = ed25519_dalek::Signature::from_bytes(signature)
+        //     .map_err(|err| format!("Cannot convert bytes to a signature: {:?}", err))?;
+        if pk.verify(msg, signature) {
+            Ok(())
+        } else {
+            Err(SigningError::new(""))
         }
     }
 }

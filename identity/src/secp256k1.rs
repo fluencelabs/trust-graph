@@ -187,8 +187,8 @@ impl PublicKey {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Signature(secp256k1::Signature);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Signature(pub Vec<u8>);
 
 #[cfg(test)]
 mod tests {
