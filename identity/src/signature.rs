@@ -27,7 +27,7 @@ pub enum Signature {
 }
 
 impl Signature {
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub fn encode(&self) -> Vec<u8> {
         use Signature::*;
 
         let mut result: Vec<u8> = Vec::new();
@@ -42,6 +42,16 @@ impl Signature {
         result
     }
 
+    pub fn to_bytes(&self) -> Vec<u8> {
+        use Signature::*;
+
+        match self {
+            Ed25519(sig) => sig.to_bytes().to_vec(),
+            Rsa(sig) => sig.0.to_vec(),
+            Secp256k1(sig) => sig.0.to_vec(),
+        }
+    }
+
     fn get_prefix(&self) -> u8 {
         use Signature::*;
         match self {
@@ -51,7 +61,7 @@ impl Signature {
         }
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SigningError> {
+    pub fn decode(bytes: &[u8]) -> Result<Self, SigningError> {
         match bytes[0] {
             0 => Ok(Signature::Ed25519(ed25519::Signature::from_bytes(&bytes[1..])?)),
             1 => Ok(Signature::Rsa(rsa::Signature(bytes[1..].to_vec()))),

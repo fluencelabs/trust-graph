@@ -27,7 +27,7 @@ use std::time::Duration;
 use thiserror::Error as ThisError;
 use serde::{Deserialize, Serialize};
 
-pub const SIG_LEN: usize = 64;
+pub const SIG_LEN: usize = 64 + 1;
 pub const PK_LEN: usize = 32;
 pub const EXPIRATION_LEN: usize = 8;
 pub const ISSUED_LEN: usize = 8;
@@ -57,7 +57,7 @@ fn show_pubkey(key: &PublicKey, f: &mut std::fmt::Formatter<'_>) -> Result<(), s
 }
 
 fn show_sig(sig: &Signature, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-    write!(f, "{}", bs58::encode(&sig.to_bytes()).into_string())
+    write!(f, "{}", bs58::encode(&sig.encode()).into_string())
 }
 
 #[derive(ThisError, Debug)]
@@ -172,7 +172,7 @@ impl Trust {
     pub fn encode(&self) -> Vec<u8> {
         let mut vec = Vec::with_capacity(TRUST_LEN);
         vec.extend_from_slice(&self.issued_for.to_bytes());
-        vec.extend_from_slice(&self.signature.to_bytes());
+        vec.extend_from_slice(&self.signature.encode());
         vec.extend_from_slice(&(self.expires_at.as_secs() as u64).to_le_bytes());
         vec.extend_from_slice(&(self.issued_at.as_secs() as u64).to_le_bytes());
 
@@ -189,7 +189,7 @@ impl Trust {
         let pk = PublicKey::from_bytes(&arr[0..PK_LEN])?;
 
         let signature = &arr[PK_LEN..PK_LEN + SIG_LEN];
-        let signature = Signature::from_bytes(signature)?;
+        let signature = Signature::decode(signature)?;
 
         let expiration_bytes = &arr[PK_LEN + SIG_LEN..PK_LEN + SIG_LEN + EXPIRATION_LEN];
         let expiration_date = u64::from_le_bytes(expiration_bytes.try_into().unwrap());
@@ -233,7 +233,7 @@ impl Trust {
 
         // 64 bytes signature
         let signature = Self::bs58_str_to_vec(signature, "signature")?;
-        let signature = Signature::from_bytes(&signature)?;
+        let signature = Signature::decode(&signature)?;
 
         // Duration
         let expires_at = Self::str_to_duration(expires_at, "expires_at")?;
@@ -248,7 +248,7 @@ impl Trust {
 impl ToString for Trust {
     fn to_string(&self) -> String {
         let issued_for = bs58::encode(self.issued_for.to_bytes()).into_string();
-        let signature = bs58::encode(self.signature.to_bytes()).into_string();
+        let signature = bs58::encode(self.signature.encode()).into_string();
         let expires_at = (self.expires_at.as_secs() as u64).to_string();
         let issued_at = (self.issued_at.as_secs() as u64).to_string();
 
