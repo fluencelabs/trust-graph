@@ -28,6 +28,7 @@ use zeroize::Zeroize;
 use core::fmt;
 use crate::error::*;
 use ed25519_dalek::ed25519::signature;
+use serde::{Deserialize, Serialize};
 
 /// An Ed25519 keypair.
 pub struct Keypair(ed25519::Keypair);
@@ -111,7 +112,7 @@ impl From<SecretKey> for Keypair {
 }
 
 /// An Ed25519 public key.
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Deserialize, Serialize)]
 pub struct PublicKey(ed25519::PublicKey);
 
 impl PublicKey {
@@ -131,46 +132,6 @@ impl PublicKey {
         ed25519::PublicKey::from_bytes(k)
             .map_err(|e| DecodingError::new("Ed25519 public key").source(e))
             .map(PublicKey)
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for PublicKey {
-    fn deserialize<D>(deserializer: D) -> Result<PublicKey, D::Error>
-        where
-            D: serde::Deserializer<'de>,
-    {
-        use serde::de::{Error, Visitor};
-
-        struct PKVisitor;
-
-        impl<'de> Visitor<'de> for PKVisitor {
-            type Value = PublicKey;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("byte array or base58 string")
-            }
-
-            fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
-                where
-                    E: Error,
-            {
-                bs58::decode(s)
-                    .into_vec()
-                    .map_err(|err| Error::custom(format!("Invalid string '{}': {}", s, err)))
-                    .and_then(|v| self.visit_bytes(v.as_slice()))
-                    .map_err(|err: E| Error::custom(format!("Parsed string '{}' as base58, but {}", s, err)))
-            }
-
-            fn visit_bytes<E>(self, b: &[u8]) -> Result<Self::Value, E>
-                where
-                    E: Error,
-            {
-                PublicKey::decode(b)
-                    .map_err(|err| Error::custom(format!("Invalid bytes {:?}: {}", b, err)))
-            }
-        }
-
-        deserializer.deserialize_str(PKVisitor)
     }
 }
 
@@ -219,7 +180,7 @@ impl SecretKey {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Signature(ed25519_dalek::Signature);
 
 pub const SIGNATURE_LENGTH: usize = 64;

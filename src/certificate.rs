@@ -109,7 +109,7 @@ impl Certificate {
         }
 
         // first, verify given certificate
-        Certificate::verify(extend_cert, &[extend_cert.chain[0].issued_for], cur_time)?;
+        Certificate::verify(extend_cert, &[extend_cert.chain[0].issued_for.clone()], cur_time)?;
 
         let issued_by_pk = issued_by.public();
 

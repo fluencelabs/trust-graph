@@ -25,6 +25,7 @@ use std::convert::TryInto;
 use std::num::ParseIntError;
 use std::time::Duration;
 use thiserror::Error as ThisError;
+use serde::{Deserialize, Serialize};
 
 pub const SIG_LEN: usize = 64;
 pub const PK_LEN: usize = 32;
@@ -35,7 +36,7 @@ pub const TRUST_LEN: usize = SIG_LEN + PK_LEN + EXPIRATION_LEN + ISSUED_LEN;
 
 /// One element in chain of trust in a certificate.
 /// TODO delete pk from Trust (it is already in a trust node)
-#[derive(Clone, PartialEq, Derivative, Eq)]
+#[derive(Clone, PartialEq, Derivative, Eq, Deserialize, Serialize)]
 #[derivative(Debug)]
 pub struct Trust {
     /// For whom this certificate is issued
@@ -263,31 +264,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_gen_revoke_and_validate() {
-        let truster = KeyPair::generate();
-        let trusted = KeyPair::generate();
+    fn test_gen_revoke_and_validate_ed25519() {
+        let truster = KeyPair::generate_ed25519();
+        let trusted = KeyPair::generate_ed25519();
 
         let current = Duration::new(100, 0);
         let duration = Duration::new(1000, 0);
         let issued_at = Duration::new(10, 0);
 
-        let trust = Trust::create(&truster, trusted.public_key(), duration, issued_at);
+        let trust = Trust::create(&truster, trusted.public(), duration, issued_at);
 
         assert_eq!(
-            Trust::verify(&trust, &truster.public_key(), current).is_ok(),
+            Trust::verify(&trust, &truster.public(), current).is_ok(),
             true
         );
     }
 
     #[test]
-    fn test_validate_corrupted_revoke() {
-        let truster = KeyPair::generate();
-        let trusted = KeyPair::generate();
+    fn test_validate_corrupted_revoke_ed25519() {
+        let truster = KeyPair::generate_ed25519();
+        let trusted = KeyPair::generate_ed25519();
 
         let current = Duration::new(1000, 0);
         let issued_at = Duration::new(10, 0);
 
-        let trust = Trust::create(&truster, trusted.public_key(), current, issued_at);
+        let trust = Trust::create(&truster, trusted.public(), current, issued_at);
 
         let corrupted_duration = Duration::new(1234, 0);
         let corrupted_trust = Trust::new(
@@ -297,18 +298,18 @@ mod tests {
             trust.signature,
         );
 
-        assert!(Trust::verify(&corrupted_trust, &truster.public_key(), current).is_err());
+        assert!(Trust::verify(&corrupted_trust, &truster.public(), current).is_err());
     }
 
     #[test]
-    fn test_encode_decode() {
-        let truster = KeyPair::generate();
-        let trusted = KeyPair::generate();
+    fn test_encode_decode_ed25519() {
+        let truster = KeyPair::generate_ed25519();
+        let trusted = KeyPair::generate_ed25519();
 
         let current = Duration::new(1000, 0);
         let issued_at = Duration::new(10, 0);
 
-        let trust = Trust::create(&truster, trusted.public_key(), current, issued_at);
+        let trust = Trust::create(&truster, trusted.public(), current, issued_at);
 
         let encoded = trust.encode();
         let decoded = Trust::decode(encoded.as_slice()).unwrap();

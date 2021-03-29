@@ -27,6 +27,9 @@ use secp256k1::Message;
 use super::error::{DecodingError, SigningError};
 use zeroize::Zeroize;
 use core::fmt;
+use serde::{Deserialize, Serialize, Serializer, Deserializer};
+use serde::de::Error as SerdeError;
+use serde_bytes::{Bytes as SerdeBytes, ByteBuf as SerdeByteBuf};
 
 /// A Secp256k1 keypair.
 #[derive(Clone)]
@@ -187,7 +190,28 @@ impl PublicKey {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+
+impl Serialize for PublicKey {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+    {
+        SerdeBytes::new(self.encode().to_vec().as_slice()).serialize(serializer)
+    }
+}
+
+impl<'d> Deserialize<'d> for PublicKey {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'d>,
+    {
+        let bytes = <SerdeByteBuf>::deserialize(deserializer)?;
+        PublicKey::decode(bytes.as_ref()).map_err(SerdeError::custom)
+    }
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Signature(pub Vec<u8>);
 
 #[cfg(test)]

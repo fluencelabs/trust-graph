@@ -17,8 +17,9 @@ use crate::ed25519;
 use crate::secp256k1;
 use crate::rsa;
 use crate::error::SigningError;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Signature {
     Ed25519(ed25519::Signature),
     Rsa(rsa::Signature),

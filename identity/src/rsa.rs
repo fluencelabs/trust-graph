@@ -28,6 +28,7 @@ use ring::signature::{self, RsaKeyPair, RSA_PKCS1_SHA256, RSA_PKCS1_2048_8192_SH
 use ring::signature::KeyPair;
 use std::{fmt::{self, Write}, sync::Arc};
 use zeroize::Zeroize;
+use serde::{Deserialize, Serialize};
 
 /// An RSA keypair.
 #[derive(Clone)]
@@ -62,7 +63,7 @@ impl Keypair {
 }
 
 /// An RSA public key.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PublicKey(Vec<u8>);
 
 impl PublicKey {
@@ -93,9 +94,9 @@ impl PublicKey {
         let spki = Asn1SubjectPublicKeyInfo {
             algorithmIdentifier: Asn1RsaEncryption {
                 algorithm: Asn1OidRsaEncryption(),
-                parameters: ()
+                parameters: (),
             },
-            subjectPublicKey: Asn1SubjectPublicKey(self.clone())
+            subjectPublicKey: Asn1SubjectPublicKey(self.clone()),
         };
         let mut buf = vec![0u8; spki.serialized_len()];
         spki.serialize(buf.iter_mut()).map(|_| buf)
@@ -164,10 +165,10 @@ impl IntoDerObject for Asn1OidRsaEncryption {
 impl FromDerObject for Asn1OidRsaEncryption {
     fn from_der_object(o: DerObject) -> Result<Self, Asn1DerError> {
         if o.tag != DerTag::x06 {
-            return Err(Asn1DerError::InvalidTag)
+            return Err(Asn1DerError::InvalidTag);
         }
         if o.value != OID_RSA_ENCRYPTION_DER.value {
-            return Err(Asn1DerError::InvalidEncoding)
+            return Err(Asn1DerError::InvalidEncoding);
         }
         Ok(Asn1OidRsaEncryption())
     }
@@ -177,7 +178,7 @@ impl FromDerObject for Asn1OidRsaEncryption {
 #[derive(Asn1Der)]
 struct Asn1RsaEncryption {
     algorithm: Asn1OidRsaEncryption,
-    parameters: ()
+    parameters: (),
 }
 
 /// The ASN.1 SubjectPublicKey inside a SubjectPublicKeyInfo,
@@ -202,7 +203,7 @@ impl IntoDerObject for Asn1SubjectPublicKey {
 impl FromDerObject for Asn1SubjectPublicKey {
     fn from_der_object(o: DerObject) -> Result<Self, Asn1DerError> {
         if o.tag != DerTag::x03 {
-            return Err(Asn1DerError::InvalidTag)
+            return Err(Asn1DerError::InvalidTag);
         }
         let pk_der: Vec<u8> = o.value.data.into_iter().skip(1).collect();
         // We don't parse pk_der further as an ASN.1 RsaPublicKey, since
@@ -216,10 +217,10 @@ impl FromDerObject for Asn1SubjectPublicKey {
 #[allow(non_snake_case)]
 struct Asn1SubjectPublicKeyInfo {
     algorithmIdentifier: Asn1RsaEncryption,
-    subjectPublicKey: Asn1SubjectPublicKey
+    subjectPublicKey: Asn1SubjectPublicKey,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Signature(pub Vec<u8>);
 
 #[cfg(test)]
@@ -272,7 +273,7 @@ mod tests {
         fn prop(SomeKeypair(kp): SomeKeypair, msg: Vec<u8>) -> Result<bool, SigningError> {
             kp.sign(&msg).map(|s| kp.public().verify(&msg, &s))
         }
-        QuickCheck::new().tests(10).quickcheck(prop as fn(_,_) -> _);
+        QuickCheck::new().tests(10).quickcheck(prop as fn(_, _) -> _);
     }
 }
 
