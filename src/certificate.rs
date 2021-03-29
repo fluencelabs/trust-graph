@@ -15,11 +15,11 @@
  */
 
 use crate::certificate::CertificateError::{
-    CertificateLengthError, DecodeError, DecodeTrustError, ExpirationError, IncorrectByteLength,
+    CertificateLengthError, DecodeError, DecodeTrustError, ExpirationError,
     IncorrectCertificateFormat, KeyInCertificateError, MalformedRoot, NoTrustedRoot,
     VerificationError,
 };
-use crate::trust::{Trust, TrustError, TRUST_LEN};
+use crate::trust::{Trust, TrustError};
 use fluence_identity::key_pair::KeyPair;
 use fluence_identity::public_key::PublicKey;
 use std::str::FromStr;
@@ -172,16 +172,18 @@ impl Certificate {
     }
 
     /// Convert certificate to byte format
-    /// 2 format + 4 version + (64 signature + 32 public key + 8 expiration) * number of trusts
+    /// 2 format + 4 version + 1 trusts_number + (64 signature + 32 public key + 8 expiration) * number of trusts
     #[allow(dead_code)]
     pub fn encode(&self) -> Vec<u8> {
-        let mut encoded =
-            Vec::with_capacity(FORMAT.len() + VERSION.len() + TRUST_LEN * self.chain.len());
+        let mut encoded = Vec::new();
         encoded.extend_from_slice(FORMAT);
         encoded.extend_from_slice(VERSION);
+        encoded.push(self.chain.len() as u8);
 
         for t in &self.chain {
-            encoded.extend(t.encode());
+            let trust = t.encode();
+            encoded.push(trust.len() as u8);
+            encoded.extend(trust);
         }
 
         encoded
@@ -189,29 +191,25 @@ impl Certificate {
 
     #[allow(dead_code)]
     pub fn decode(arr: &[u8]) -> Result<Self, CertificateError> {
-        let trusts_offset = arr.len() - 2 - 4;
-        if trusts_offset % TRUST_LEN != 0 {
-            return Err(IncorrectByteLength);
-        }
-
-        let number_of_trusts = trusts_offset / TRUST_LEN;
+        // TODO do match different formats and versions
+        let _format = &arr[0..1];
+        let _version = &arr[2..5];
+        let number_of_trusts = arr[2 + 4] as usize;
 
         if number_of_trusts < 2 {
             return Err(CertificateLengthError);
         }
-
-        // TODO do match different formats and versions
-        let _format = &arr[0..1];
-        let _version = &arr[2..5];
-
         let mut chain = Vec::with_capacity(number_of_trusts);
 
-        for i in 0..number_of_trusts {
-            let from = i * TRUST_LEN + 6;
-            let to = (i + 1) * TRUST_LEN + 6;
+        let mut  offset = 2 + 4 + 1;
+        for _ in 0..number_of_trusts {
+            let trust_len = arr[offset] as usize;
+            let from = offset + 1;
+            let to = from + trust_len;
             let slice = &arr[from..to];
             let t = Trust::decode(slice).map_err(DecodeError)?;
             chain.push(t);
+            offset += 1 + trust_len;
         }
 
         Ok(Self { chain })
@@ -253,7 +251,7 @@ impl FromStr for Certificate {
                 str_lines[i + 2],
                 str_lines[i + 3],
             )
-            .map_err(|e| DecodeTrustError(i, e))?;
+                .map_err(|e| DecodeTrustError(i, e))?;
 
             trusts.push(trust);
         }
@@ -297,7 +295,7 @@ mod tests {
             cur_time,
             cur_time,
         )
-        .unwrap();
+            .unwrap();
 
         let serialized = new_cert.to_string();
         let deserialized = Certificate::from_str(&serialized);
@@ -324,7 +322,7 @@ mod tests {
             cur_time,
             cur_time,
         )
-        .unwrap();
+            .unwrap();
 
         let serialized = new_cert.encode();
         let deserialized = Certificate::decode(serialized.as_slice());
@@ -427,7 +425,7 @@ mod tests {
             cur_time.checked_sub(one_minute()).unwrap(),
             cur_time,
         )
-        .unwrap();
+            .unwrap();
 
         assert!(Certificate::verify(&new_cert, &trusted_roots, cur_time).is_err());
     }
@@ -449,7 +447,7 @@ mod tests {
             cur_time,
             cur_time,
         )
-        .unwrap();
+            .unwrap();
         let new_cert = Certificate::issue(
             &third_kp,
             fourth_kp.public(),
@@ -487,7 +485,7 @@ mod tests {
             cur_time,
             cur_time,
         )
-        .unwrap();
+            .unwrap();
         let new_cert = Certificate::issue(
             &second_kp,
             fourth_kp.public(),

@@ -15,7 +15,6 @@
  */
 
 use crate::revoke::RevokeError::IncorrectSignature;
-use crate::trust::{EXPIRATION_LEN, PK_LEN};
 use fluence_identity::key_pair::KeyPair;
 use fluence_identity::public_key::PublicKey;
 use fluence_identity::signature::Signature;
@@ -69,8 +68,10 @@ impl Revoke {
     }
 
     fn signature_bytes(pk: &PublicKey, revoked_at: Duration) -> Vec<u8> {
-        let mut msg = Vec::with_capacity(PK_LEN + EXPIRATION_LEN);
-        msg.extend_from_slice(&pk.to_bytes());
+        let mut msg = Vec::new();
+        let pk_bytes = &pk.to_bytes();
+        msg.push(pk_bytes.len() as u8);
+        msg.extend(pk_bytes);
         msg.extend_from_slice(&(revoked_at.as_secs() as u64).to_le_bytes());
 
         msg

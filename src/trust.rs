@@ -15,7 +15,7 @@
  */
 
 use crate::trust::TrustError::{
-    Base58DecodeError, DecodePublicKeyError, IncorrectTrustLength, ParseError, SignatureError,
+    Base58DecodeError, DecodePublicKeyError, ParseError, SignatureError,
 };
 use derivative::Derivative;
 use fluence_identity::key_pair::KeyPair;
@@ -27,12 +27,8 @@ use std::time::Duration;
 use thiserror::Error as ThisError;
 use serde::{Deserialize, Serialize};
 
-pub const SIG_LEN: usize = 64 + 1;
-pub const PK_LEN: usize = 32;
 pub const EXPIRATION_LEN: usize = 8;
 pub const ISSUED_LEN: usize = 8;
-pub const METADATA_LEN: usize = PK_LEN + EXPIRATION_LEN + ISSUED_LEN;
-pub const TRUST_LEN: usize = SIG_LEN + PK_LEN + EXPIRATION_LEN + ISSUED_LEN;
 
 /// One element in chain of trust in a certificate.
 /// TODO delete pk from Trust (it is already in a trust node)
@@ -95,7 +91,7 @@ pub enum TrustError {
     ),
 
     #[error(
-        "Trust length should be 104: public key(32) + signature(64) + expiration date(8), was: {0}"
+    "Trust length should be 104: public key(32) + signature(64) + expiration date(8), was: {0}"
     )]
     IncorrectTrustLength(usize),
 }
@@ -124,7 +120,7 @@ impl Trust {
     ) -> Self {
         let msg = Self::metadata_bytes(&issued_for, expires_at, issued_at);
 
-        let signature = issued_by.sign(&msg).unwrap();
+        let signature = issued_by.sign(msg.as_slice()).unwrap();
 
         Self {
             issued_for,
@@ -152,17 +148,15 @@ impl Trust {
         Ok(())
     }
 
-    fn metadata_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> [u8; 48] {
+    fn metadata_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> Vec<u8> {
         let pk_encoded = pk.to_bytes();
         let expires_at_encoded: [u8; EXPIRATION_LEN] = (expires_at.as_secs() as u64).to_le_bytes();
         let issued_at_encoded: [u8; ISSUED_LEN] = (issued_at.as_secs() as u64).to_le_bytes();
-        let mut metadata = [0; METADATA_LEN];
+        let mut metadata = Vec::new();
 
-        metadata[..PK_LEN].clone_from_slice(&pk_encoded[..PK_LEN]);
-        metadata[PK_LEN..PK_LEN + EXPIRATION_LEN]
-            .clone_from_slice(&expires_at_encoded[0..EXPIRATION_LEN]);
-        metadata[PK_LEN + EXPIRATION_LEN..METADATA_LEN]
-            .clone_from_slice(&issued_at_encoded[0..ISSUED_LEN]);
+        metadata.extend(pk_encoded);
+        metadata.extend_from_slice(&expires_at_encoded[0..EXPIRATION_LEN]);
+        metadata.extend_from_slice(&issued_at_encoded[0..ISSUED_LEN]);
 
         metadata
     }
@@ -170,9 +164,13 @@ impl Trust {
     /// Encode the trust into a byte array
     #[allow(dead_code)]
     pub fn encode(&self) -> Vec<u8> {
-        let mut vec = Vec::with_capacity(TRUST_LEN);
-        vec.extend_from_slice(&self.issued_for.to_bytes());
-        vec.extend_from_slice(&self.signature.encode());
+        let mut vec = Vec::new();
+        let issued_for = &self.issued_for.to_bytes();
+        let signature = &self.signature.encode();
+        vec.push(issued_for.len() as u8);
+        vec.extend(issued_for);
+        vec.push(signature.len() as u8);
+        vec.extend(signature);
         vec.extend_from_slice(&(self.expires_at.as_secs() as u64).to_le_bytes());
         vec.extend_from_slice(&(self.issued_at.as_secs() as u64).to_le_bytes());
 
@@ -182,20 +180,23 @@ impl Trust {
     /// Decode a trust from a byte array as produced by `encode`.
     #[allow(dead_code)]
     pub fn decode(arr: &[u8]) -> Result<Self, TrustError> {
-        if arr.len() != TRUST_LEN {
-            return Err(IncorrectTrustLength(arr.len()));
-        }
+        let pk_len = arr[0] as usize;
+        let mut offset = 1;
+        let pk = PublicKey::from_bytes(&arr[offset..offset + pk_len])?;
+        offset += pk_len;
 
-        let pk = PublicKey::from_bytes(&arr[0..PK_LEN])?;
-
-        let signature = &arr[PK_LEN..PK_LEN + SIG_LEN];
+        let signature_len = arr[offset] as usize;
+        offset += 1;
+        let signature = &arr[offset..offset + signature_len];
         let signature = Signature::decode(signature)?;
+        offset += signature_len;
 
-        let expiration_bytes = &arr[PK_LEN + SIG_LEN..PK_LEN + SIG_LEN + EXPIRATION_LEN];
+        let expiration_bytes = &arr[offset..offset + EXPIRATION_LEN];
         let expiration_date = u64::from_le_bytes(expiration_bytes.try_into().unwrap());
         let expiration_date = Duration::from_secs(expiration_date);
+        offset += EXPIRATION_LEN;
 
-        let issued_bytes = &arr[PK_LEN + SIG_LEN + EXPIRATION_LEN..TRUST_LEN];
+        let issued_bytes = &arr[offset..];
         let issued_date = u64::from_le_bytes(issued_bytes.try_into().unwrap());
         let issued_date = Duration::from_secs(issued_date);
 
