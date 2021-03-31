@@ -112,3 +112,15 @@ impl KeyPair {
     }
 }
 
+impl From<libp2p_core::identity::Keypair> for KeyPair {
+    fn from(key: libp2p_core::identity::Keypair) -> Self {
+        use libp2p_core::identity::Keypair::*;
+
+        match key {
+            Ed25519(kp) => KeyPair::Ed25519(ed25519::Keypair::decode(&mut kp.encode()).unwrap()),
+            Rsa(kp) => KeyPair::Rsa(rsa::Keypair::from(unsafe { std::mem::transmute::<libp2p_core::identity::rsa::Keypair, rsa::Keypair>(kp) })),
+            Secp256k1(kp) => KeyPair::Secp256k1(secp256k1::Keypair::from(secp256k1::SecretKey::from_bytes(kp.secret().to_bytes()).unwrap())),
+        }
+    }
+}
+
