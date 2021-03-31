@@ -60,7 +60,7 @@ pub struct SigningError {
 
 /// An error during encoding of key material.
 impl SigningError {
-    pub(crate) fn new<S: ToString>(msg: S) -> Self {
+    pub fn new<S: ToString>(msg: S) -> Self {
         Self { msg: msg.to_string(), source: None }
     }
 
@@ -81,8 +81,8 @@ impl Error for SigningError {
     }
 }
 
-impl From<signature::Error> for SigningError {
-    fn from(_: signature::Error) -> SigningError {
-      SigningError::new("signature error".to_string())
+impl From<ed25519_dalek::ed25519::Error>  for SigningError {
+    fn from(err: ed25519_dalek::ed25519::Error) -> SigningError {
+        SigningError::new(err.to_string()).source(err)
     }
 }

@@ -19,15 +19,12 @@
 // DEALINGS IN THE SOFTWARE.
 
 //! Ed25519 keys.
-
+use crate::error::*;
 use ed25519_dalek::{self as ed25519, Signer as _, Verifier as _};
 use rand::RngCore;
 use std::convert::TryFrom;
-use super::error::DecodingError;
 use zeroize::Zeroize;
 use core::fmt;
-use crate::error::*;
-use ed25519_dalek::ed25519::signature;
 use serde::{Deserialize, Serialize};
 
 /// An Ed25519 keypair.
@@ -50,13 +47,16 @@ impl Keypair {
     /// zeroing the input on success.
     pub fn decode(kp: &mut [u8]) -> Result<Keypair, DecodingError> {
         ed25519::Keypair::from_bytes(kp)
-            .map(|k| { kp.zeroize(); Keypair(k) })
+            .map(|k| {
+                kp.zeroize();
+                Keypair(k)
+            })
             .map_err(|e| DecodingError::new("Ed25519 keypair").source(e))
     }
 
     /// Sign a message using the private key of this keypair.
-    pub fn sign(&self, msg: &[u8]) -> Vec<u8> {
-        self.0.sign(msg).to_bytes().to_vec()
+    pub fn sign(&self, msg: &[u8]) -> Result<Vec<u8>, SigningError> {
+        Ok(self.0.try_sign(msg)?.to_bytes().to_vec())
     }
 
     /// Get the public key of this keypair.
@@ -180,31 +180,8 @@ impl SecretKey {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
-pub struct Signature(ed25519_dalek::Signature);
-
-pub const SIGNATURE_LENGTH: usize = 64;
-
-impl Signature {
-    /// Create a new signature from a byte array
-    pub fn new(bytes: [u8; SIGNATURE_LENGTH]) -> Self {
-        Signature(ed25519::Signature::from(bytes))
-    }
-
-    /// Return the inner byte array
-    pub fn to_bytes(&self) -> [u8; SIGNATURE_LENGTH] {
-        self.0.to_bytes()
-    }
-
-    pub fn as_bytes(&self) -> &[u8] {
-        self.0.as_ref()
-    }
-
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SigningError> {
-        let sig = signature::Signature::from_bytes(bytes)?;
-        Ok(Signature(sig))
-    }
-}
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+pub struct Signature(pub Vec<u8>);
 
 #[cfg(test)]
 mod tests {
@@ -214,7 +191,7 @@ mod tests {
     fn eq_keypairs(kp1: &Keypair, kp2: &Keypair) -> bool {
         kp1.public() == kp2.public()
             &&
-        kp1.0.secret.as_bytes() == kp2.0.secret.as_bytes()
+            kp1.0.secret.as_bytes() == kp2.0.secret.as_bytes()
     }
 
     #[test]
@@ -225,7 +202,7 @@ mod tests {
             let kp2 = Keypair::decode(&mut kp1_enc).unwrap();
             eq_keypairs(&kp1, &kp2)
                 &&
-            kp1_enc.iter().all(|b| *b == 0)
+                kp1_enc.iter().all(|b| *b == 0)
         }
         QuickCheck::new().tests(10).quickcheck(prop as fn() -> _);
     }
@@ -238,7 +215,7 @@ mod tests {
             let kp2 = Keypair::from(SecretKey::from_bytes(&mut sk).unwrap());
             eq_keypairs(&kp1, &kp2)
                 &&
-            sk == [0u8; 32]
+                sk == [0u8; 32]
         }
         QuickCheck::new().tests(10).quickcheck(prop as fn() -> _);
     }
@@ -249,7 +226,7 @@ mod tests {
         let pk = kp.public();
 
         let msg = "hello world".as_bytes();
-        let sig = kp.sign(msg);
+        let sig = kp.sign(msg).unwrap();
         assert!(pk.verify(msg, &sig));
 
         let mut invalid_sig = sig.clone();

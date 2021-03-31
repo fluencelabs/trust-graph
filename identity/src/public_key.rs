@@ -49,7 +49,7 @@ impl PublicKey {
         }
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub fn encode(&self) -> Vec<u8> {
         use PublicKey::*;
         let mut result: Vec<u8> = Vec::new();
 
@@ -64,7 +64,7 @@ impl PublicKey {
         result
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, DecodingError> {
+    pub fn decode(bytes: Vec<u8>) -> Result<PublicKey, DecodingError> {
         match bytes[0] {
             0 => Ok(PublicKey::Ed25519(ed25519::PublicKey::decode(&bytes[1..])?)),
             1 => Ok(PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(&bytes[1..])?)),
@@ -85,7 +85,28 @@ impl PublicKey {
 
     pub fn from_base58(str: &str) -> Result<PublicKey, DecodingError> {
         let bytes = bs58::decode(str).into_vec().map_err(DecodingError::new)?;
-        Self::from_bytes(&bytes)
+        Self::decode(bytes)
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::KeyPair;
+
+    #[test]
+    fn public_key_encode_decode_ed25519() {
+        let kp = KeyPair::generate_ed25519();
+        let pk = kp.public();
+        let encoded_pk = pk.encode();
+        assert_eq!(pk, PublicKey::decode(encoded_pk).unwrap());
+    }
+
+    #[test]
+    fn public_key_encode_decode_secp256k1() {
+        let kp = KeyPair::generate_secp256k1();
+        let pk = kp.public();
+        let encoded_pk = pk.encode();
+        assert_eq!(pk, PublicKey::decode(encoded_pk).unwrap());
+    }
+}

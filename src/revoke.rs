@@ -69,7 +69,7 @@ impl Revoke {
 
     fn signature_bytes(pk: &PublicKey, revoked_at: Duration) -> Vec<u8> {
         let mut msg = Vec::new();
-        let pk_bytes = &pk.to_bytes();
+        let pk_bytes = &pk.encode();
         msg.push(pk_bytes.len() as u8);
         msg.extend(pk_bytes);
         msg.extend_from_slice(&(revoked_at.as_secs() as u64).to_le_bytes());

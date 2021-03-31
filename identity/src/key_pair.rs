@@ -19,13 +19,12 @@
 // DEALINGS IN THE SOFTWARE.
 
 //! A node's network identity keys.
-
-use crate::public_key::PublicKey;
-use crate::rsa;
-use crate::error::*;
 use crate::ed25519;
+use crate::rsa;
 use crate::secp256k1;
+use crate::public_key::PublicKey;
 use crate::signature::Signature;
+use crate::error::*;
 
 /// Identity keypair of a node.
 ///
@@ -89,7 +88,7 @@ impl KeyPair {
     pub fn sign(&self, msg: &[u8]) -> Result<Signature, SigningError> {
         use KeyPair::*;
         match self {
-            Ed25519(ref pair) => Ok(Signature::Ed25519(ed25519::Signature::from_bytes(pair.sign(msg).as_slice())?)),
+            Ed25519(ref pair) => Ok(Signature::Ed25519(ed25519::Signature(pair.sign(msg)?))),
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(ref pair) => Ok(Signature::Rsa(rsa::Signature(pair.sign(msg)?))),
             Secp256k1(ref pair) => Ok(Signature::Secp256k1(secp256k1::Signature(pair.secret().sign(msg)?)))
@@ -108,12 +107,8 @@ impl KeyPair {
     }
 
     /// Verify the signature on a message using the public key.
-    pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> Result<(), SigningError> {
-        if pk.verify(msg, signature) {
-            Ok(())
-        } else {
-            Err(SigningError::new(""))
-        }
+    pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> bool {
+        pk.verify(msg, signature)
     }
 }
 

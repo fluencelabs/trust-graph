@@ -172,7 +172,7 @@ impl Certificate {
     }
 
     /// Convert certificate to byte format
-    /// 2 format + 4 version + 1 trusts_number + (64 signature + 32 public key + 8 expiration) * number of trusts
+    /// 2 format + 4 version + 1 trusts number + ((1 trust size byte + trust) for each trust)
     #[allow(dead_code)]
     pub fn encode(&self) -> Vec<u8> {
         let mut encoded = Vec::new();
@@ -201,7 +201,7 @@ impl Certificate {
         }
         let mut chain = Vec::with_capacity(number_of_trusts);
 
-        let mut  offset = 2 + 4 + 1;
+        let mut offset = 2 + 4 + 1;
         for _ in 0..number_of_trusts {
             let trust_len = arr[offset] as usize;
             let from = offset + 1;
@@ -384,22 +384,7 @@ mod tests {
         );
         assert_eq!(new_cert.is_ok(), true);
         let new_cert = new_cert.unwrap();
-
-        // println!(
-        //     "root_kp:\n\tprivate: {}\n\tpublic: {}",
-        //     bs58::encode(root_kp.clone().secret()).into_string(),
-        //     bs58::encode(&root_kp.public().to_bytes().to_vec()).into_string()
-        // );
-        // println!(
-        //     "second_kp:\n\tprivate: {}\n\tpublic: {}",
-        //     bs58::encode(second_kp.clone().secret()).into_string(),
-        //     bs58::encode(&second_kp.public().to_bytes().to_vec()).into_string()
-        // );
-        // println!(
-        //     "third_kp:\n\tprivate: {}\n\tpublic: {}",
-        //     bs58::encode(third_kp.clone().secret()).into_string(),
-        //     bs58::encode(&third_kp.public().to_bytes().to_vec()).into_string()
-        // );
+        
         println!("cert is\n{}", new_cert.to_string());
 
         assert_eq!(new_cert.chain.len(), 3);

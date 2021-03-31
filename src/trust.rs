@@ -21,6 +21,7 @@ use derivative::Derivative;
 use fluence_identity::key_pair::KeyPair;
 use fluence_identity::public_key::PublicKey;
 use fluence_identity::signature::Signature;
+use fluence_identity::error::SigningError;
 use std::convert::TryInto;
 use std::num::ParseIntError;
 use std::time::Duration;
@@ -49,7 +50,7 @@ pub struct Trust {
 }
 
 fn show_pubkey(key: &PublicKey, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-    write!(f, "{}", bs58::encode(&key.to_bytes()).into_string())
+    write!(f, "{}", bs58::encode(&key.encode()).into_string())
 }
 
 fn show_sig(sig: &Signature, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
@@ -70,7 +71,7 @@ pub enum TrustError {
         fluence_identity::error::SigningError,
     ),
 
-    /// Errors occured on trust decoding from differrent formats
+    /// Errors occured on trust decoding from different formats
     #[error("Cannot decode the public key: {0} in the trust: {1}")]
     DecodePublicKeyError(String, #[source] fluence_identity::error::DecodingError),
 
@@ -80,20 +81,12 @@ pub enum TrustError {
     #[error("Cannot decode `{0}` from base58 format in the trust '{1}': {2}")]
     Base58DecodeError(String, String, #[source] bs58::decode::Error),
 
-    // #[error("Cannot decode a signature from bytes: {0}")]
-    // SignatureFromBytesError(#[from] fluence_identity::error::SigningError),
-
     #[error("{0}")]
     PublicKeyError(
         #[from]
         #[source]
         fluence_identity::error::DecodingError,
     ),
-
-    #[error(
-    "Trust length should be 104: public key(32) + signature(64) + expiration date(8), was: {0}"
-    )]
-    IncorrectTrustLength(usize),
 }
 
 impl Trust {
@@ -143,13 +136,15 @@ impl Trust {
         let msg: &[u8] =
             &Self::metadata_bytes(&trust.issued_for, trust.expires_at, trust.issued_at);
 
-        KeyPair::verify(issued_by, msg, &trust.signature).map_err(SignatureError)?;
-
-        Ok(())
+        if KeyPair::verify(issued_by, msg, &trust.signature) {
+            Ok(())
+        } else {
+            Err(SignatureError(SigningError::new("KeyPair::verify failed")))
+        }
     }
 
     fn metadata_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> Vec<u8> {
-        let pk_encoded = pk.to_bytes();
+        let pk_encoded = pk.encode();
         let expires_at_encoded: [u8; EXPIRATION_LEN] = (expires_at.as_secs() as u64).to_le_bytes();
         let issued_at_encoded: [u8; ISSUED_LEN] = (issued_at.as_secs() as u64).to_le_bytes();
         let mut metadata = Vec::new();
@@ -165,7 +160,7 @@ impl Trust {
     #[allow(dead_code)]
     pub fn encode(&self) -> Vec<u8> {
         let mut vec = Vec::new();
-        let issued_for = &self.issued_for.to_bytes();
+        let issued_for = &self.issued_for.encode();
         let signature = &self.signature.encode();
         vec.push(issued_for.len() as u8);
         vec.extend(issued_for);
@@ -182,13 +177,13 @@ impl Trust {
     pub fn decode(arr: &[u8]) -> Result<Self, TrustError> {
         let pk_len = arr[0] as usize;
         let mut offset = 1;
-        let pk = PublicKey::from_bytes(&arr[offset..offset + pk_len])?;
+        let pk = PublicKey::decode(arr[offset..offset + pk_len].to_vec())?;
         offset += pk_len;
 
         let signature_len = arr[offset] as usize;
         offset += 1;
         let signature = &arr[offset..offset + signature_len];
-        let signature = Signature::decode(signature)?;
+        let signature = Signature::decode(signature.to_vec())?;
         offset += signature_len;
 
         let expiration_bytes = &arr[offset..offset + EXPIRATION_LEN];
@@ -229,12 +224,12 @@ impl Trust {
     ) -> Result<Self, TrustError> {
         // PublicKey
         let issued_for_bytes = Self::bs58_str_to_vec(issued_for, "issued_for")?;
-        let issued_for = PublicKey::from_bytes(issued_for_bytes.as_slice())
+        let issued_for = PublicKey::decode(issued_for_bytes)
             .map_err(|e| DecodePublicKeyError(issued_for.to_string(), e))?;
 
         // 64 bytes signature
         let signature = Self::bs58_str_to_vec(signature, "signature")?;
-        let signature = Signature::decode(&signature)?;
+        let signature = Signature::decode(signature.to_vec())?;
 
         // Duration
         let expires_at = Self::str_to_duration(expires_at, "expires_at")?;
@@ -248,7 +243,7 @@ impl Trust {
 
 impl ToString for Trust {
     fn to_string(&self) -> String {
-        let issued_for = bs58::encode(self.issued_for.to_bytes()).into_string();
+        let issued_for = bs58::encode(self.issued_for.encode()).into_string();
         let signature = bs58::encode(self.signature.encode()).into_string();
         let expires_at = (self.expires_at.as_secs() as u64).to_string();
         let issued_at = (self.issued_at.as_secs() as u64).to_string();

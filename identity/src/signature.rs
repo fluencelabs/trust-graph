@@ -27,31 +27,6 @@ pub enum Signature {
 }
 
 impl Signature {
-    pub fn encode(&self) -> Vec<u8> {
-        use Signature::*;
-
-        let mut result: Vec<u8> = Vec::new();
-
-        result.push(self.get_prefix());
-        match self {
-            Ed25519(sig) => result.extend(sig.to_bytes().to_vec()),
-            Rsa(sig) => result.extend(sig.0.clone()),
-            Secp256k1(sig) => result.extend(sig.0.clone()),
-        }
-
-        result
-    }
-
-    pub fn to_bytes(&self) -> Vec<u8> {
-        use Signature::*;
-
-        match self {
-            Ed25519(sig) => sig.to_bytes().to_vec(),
-            Rsa(sig) => sig.0.to_vec(),
-            Secp256k1(sig) => sig.0.to_vec(),
-        }
-    }
-
     fn get_prefix(&self) -> u8 {
         use Signature::*;
         match self {
@@ -61,12 +36,54 @@ impl Signature {
         }
     }
 
-    pub fn decode(bytes: &[u8]) -> Result<Self, SigningError> {
+    pub fn encode(&self) -> Vec<u8> {
+        use Signature::*;
+
+        let mut result: Vec<u8> = Vec::new();
+
+        result.push(self.get_prefix());
+        match self {
+            Ed25519(sig) => result.extend(sig.0.clone()),
+            Rsa(sig) => result.extend(sig.0.clone()),
+            Secp256k1(sig) => result.extend(sig.0.clone()),
+        }
+
+        result
+    }
+
+    pub fn decode(bytes: Vec<u8>) -> Result<Self, SigningError> {
         match bytes[0] {
-            0 => Ok(Signature::Ed25519(ed25519::Signature::from_bytes(&bytes[1..])?)),
+            0 => Ok(Signature::Ed25519(ed25519::Signature(bytes[1..].to_vec()))),
             1 => Ok(Signature::Rsa(rsa::Signature(bytes[1..].to_vec()))),
             2 => Ok(Signature::Secp256k1(secp256k1::Signature(bytes[1..].to_vec()))),
             _ => Err(SigningError::new("invalid type byte".to_string())),
         }
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        use Signature::*;
+
+        match self {
+            Ed25519(sig) => sig.0.to_vec(),
+            Rsa(sig) => sig.0.to_vec(),
+            Secp256k1(sig) => sig.0.to_vec(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::*;
+
+    #[test]
+    fn signature_encode_decode() {
+        let bytes: Vec<u8> = (0..10).collect();
+        let ed25519_sig = Signature::Ed25519(crate::ed25519::Signature(bytes.clone()));
+        let secp256k1_sig = Signature::Secp256k1(crate::secp256k1::Signature(bytes.clone()));
+        let rsa_sig = Signature::Rsa(crate::rsa::Signature(bytes.clone()));
+
+        assert_eq!(Signature::decode(ed25519_sig.encode()).unwrap(), ed25519_sig);
+        assert_eq!(Signature::decode(secp256k1_sig.encode()).unwrap(), secp256k1_sig);
+        assert_eq!(Signature::decode(rsa_sig.encode()).unwrap(), rsa_sig);
     }
 }
