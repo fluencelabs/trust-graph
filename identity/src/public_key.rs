@@ -89,6 +89,18 @@ impl PublicKey {
     }
 }
 
+impl From<libp2p_core::PublicKey> for PublicKey {
+    fn from(key: libp2p_core::PublicKey) -> Self {
+        use libp2p_core::PublicKey::*;
+
+        match key {
+            Ed25519(key) => PublicKey::Ed25519(ed25519::PublicKey::decode(key.encode().to_vec().as_slice()).unwrap()),
+            Rsa(key) => PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(key.encode_pkcs1().as_slice()).unwrap()),
+            Secp256k1(key) => PublicKey::Secp256k1(secp256k1::PublicKey::decode(key.encode().to_vec().as_slice()).unwrap()),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
