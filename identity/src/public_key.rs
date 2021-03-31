@@ -89,9 +89,9 @@ impl PublicKey {
     }
 }
 
-impl From<libp2p_core::PublicKey> for PublicKey {
-    fn from(key: libp2p_core::PublicKey) -> Self {
-        use libp2p_core::PublicKey::*;
+impl From<libp2p_core::identity::PublicKey> for PublicKey {
+    fn from(key: libp2p_core::identity::PublicKey) -> Self {
+        use libp2p_core::identity::PublicKey::*;
 
         match key {
             Ed25519(key) => PublicKey::Ed25519(ed25519::PublicKey::decode(key.encode().to_vec().as_slice()).unwrap()),
