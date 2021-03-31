@@ -87,6 +87,10 @@ impl PublicKey {
         let bytes = bs58::decode(str).into_vec().map_err(DecodingError::new)?;
         Self::decode(bytes)
     }
+
+    pub fn from_libp2p(key: libp2p_core::identity::PublicKey) -> Self {
+        key.into()
+    }
 }
 
 impl From<libp2p_core::identity::PublicKey> for PublicKey {
