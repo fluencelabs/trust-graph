@@ -110,6 +110,16 @@ impl KeyPair {
     pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> bool {
         pk.verify(msg, signature)
     }
+
+    pub fn encode(&self) -> Vec<u8> {
+        use KeyPair::*;
+        match self {
+            Ed25519(kp) => kp.encode().to_vec(),
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(_) => Vec::new(),
+            Secp256k1(kp) => kp.secret().to_bytes().to_vec(),
+        }
+    }
 }
 
 impl From<libp2p_core::identity::Keypair> for KeyPair {
