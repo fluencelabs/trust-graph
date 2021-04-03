@@ -120,6 +120,16 @@ impl KeyPair {
             Secp256k1(kp) => kp.secret().to_bytes().to_vec(),
         }
     }
+
+    pub fn decode(bytes: Vec<u8>, format: String) -> Result<Self, DecodingError> {
+        use KeyPair::*;
+
+        match format.as_str() {
+            "ed25519" => Ok(Ed25519(ed25519::Keypair::decode(&mut bytes.clone())?)),
+            "secp256k1" => Ok(Secp256k1(secp256k1::SecretKey::from_bytes(bytes.clone())?.into())),
+            _ => Err(DecodingError::new(format!("invalid keypair format {0}", format)))
+        }
+    }
 }
 
 impl From<libp2p_core::identity::Keypair> for KeyPair {
