@@ -87,6 +87,16 @@ impl PublicKey {
         let bytes = bs58::decode(str).into_vec().map_err(DecodingError::new)?;
         Self::decode(bytes)
     }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        use PublicKey::*;
+
+        match self {
+            Ed25519(pk) => pk.encode().to_vec(),
+            Rsa(pk) => pk.encode_pkcs1().to_vec(),
+            Secp256k1(pk) => pk.encode().to_vec(),
+        }
+    }
 }
 
 impl From<libp2p_core::identity::PublicKey> for PublicKey {
