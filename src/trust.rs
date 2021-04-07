@@ -80,6 +80,13 @@ pub enum TrustError {
 
     #[error("Cannot decode `{0}` from base58 format in the trust '{1}': {2}")]
     Base58DecodeError(String, String, #[source] bs58::decode::Error),
+
+    #[error("{0}")]
+    PublicKeyError(
+        #[from]
+        #[source]
+        fluence_identity::error::DecodingError,
+    ),
 }
 
 impl Trust {
