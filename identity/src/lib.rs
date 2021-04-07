@@ -37,4 +37,3 @@ pub mod signature;
 pub use key_pair::KeyPair;
 pub use crate::public_key::PublicKey;
 pub use crate::signature::Signature;
-

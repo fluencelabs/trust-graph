@@ -26,7 +26,7 @@ use std::fmt;
 #[derive(Debug)]
 pub struct DecodingError {
     msg: String,
-    source: Option<Box<dyn Error + Send + Sync>>
+    source: Option<Box<dyn Error + Send + Sync>>,
 }
 
 impl DecodingError {
@@ -35,7 +35,7 @@ impl DecodingError {
     }
 
     pub(crate) fn source(self, source: impl Error + Send + Sync + 'static) -> Self {
-        Self { source: Some(Box::new(source)), .. self }
+        Self { source: Some(Box::new(source)), ..self }
     }
 }
 
@@ -55,7 +55,7 @@ impl Error for DecodingError {
 #[derive(Debug)]
 pub struct SigningError {
     msg: String,
-    source: Option<Box<dyn Error + Send + Sync>>
+    source: Option<Box<dyn Error + Send + Sync>>,
 }
 
 /// An error during encoding of key material.
@@ -65,7 +65,7 @@ impl SigningError {
     }
 
     pub(crate) fn source(self, source: impl Error + Send + Sync + 'static) -> Self {
-        Self { source: Some(Box::new(source)), .. self }
+        Self { source: Some(Box::new(source)), ..self }
     }
 }
 
@@ -81,7 +81,7 @@ impl Error for SigningError {
     }
 }
 
-impl From<ed25519_dalek::ed25519::Error>  for SigningError {
+impl From<ed25519_dalek::ed25519::Error> for SigningError {
     fn from(err: ed25519_dalek::ed25519::Error) -> SigningError {
         SigningError::new(err.to_string()).source(err)
     }

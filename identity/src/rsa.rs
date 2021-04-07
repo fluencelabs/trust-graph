@@ -276,4 +276,3 @@ mod tests {
         QuickCheck::new().tests(10).quickcheck(prop as fn(_, _) -> _);
     }
 }
-
