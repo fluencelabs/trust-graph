@@ -116,7 +116,7 @@ impl KeyPair {
         match self {
             Ed25519(kp) => kp.encode().to_vec(),
             #[cfg(not(target_arch = "wasm32"))]
-            Rsa(_) => panic!("rsa encoding is not supported yet!"),
+            Rsa(_) => todo!("rsa encoding is not supported yet!"),
             Secp256k1(kp) => kp.secret().to_bytes().to_vec(),
         }
     }
