@@ -146,7 +146,7 @@ impl SecretKey {
 
     /// Sign a raw message of length 256 bits with this secret key, produces a DER-encoded
     /// ECDSA signature.
-    pub fn sign_hash(&self, msg: &[u8]) -> Result<Vec<u8>, SigningError> {
+    pub fn sign_hashed(&self, msg: &[u8]) -> Result<Vec<u8>, SigningError> {
         let m = Message::parse_slice(msg)
             .map_err(|_| SigningError::new("failed to parse secp256k1 digest"))?;
         Ok(secp256k1::sign(&m, &self.0).0.serialize_der().as_ref().into())
