@@ -198,9 +198,9 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06d4a9551359071d1890820e3571252b91229e0712e7c36b08940e603c5a8fc"
+checksum = "e9d6ddad5866bb2170686ed03f6839d31a76e5407d80b1c334a2c24618543ffa"
 dependencies = [
  "darling_core",
  "darling_macro",
@@ -208,9 +208,9 @@ dependencies = [
 
 [[package]]
 name = "darling_core"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b443e5fb0ddd56e0c9bfa47dc060c5306ee500cb731f2b91432dd65589a77684"
+checksum = "a9ced1fd13dc386d5a8315899de465708cf34ee2a6d9394654515214e67bb846"
 dependencies = [
  "fnv",
  "ident_case",
@@ -222,9 +222,9 @@ dependencies = [
 
 [[package]]
 name = "darling_macro"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0220073ce504f12a70efc4e7cdaea9e9b1b324872e7ad96a208056d7a638b81"
+checksum = "0a7a1445d54b2f9792e3b31a3e715feabbace393f38dc4ffd49d94ee9bc487d5"
 dependencies = [
  "darling_core",
  "quote",
@@ -344,49 +344,14 @@ checksum = "37ab347416e802de484e4d03c7316c48f1ecb56574dfd4a46a80f173ce1de04d"
 [[package]]
 name = "fluence-fork-libp2p-core"
 version = "0.27.1"
-source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#11922f49edcff30542be6e3466f9215f35cf45f1"
+source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#2d785558cfc9908cbfe54c0750e660c001cb2c3b"
 dependencies = [
  "asn1_der",
  "bs58 0.4.0",
  "ed25519-dalek",
  "either",
- "fluence-fork-multistream-select 0.10.2 (git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework)",
- "fluence-fork-parity-multiaddr 0.11.1 (git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework)",
- "fnv",
- "futures",
- "futures-timer",
- "lazy_static",
- "libsecp256k1",
- "log",
- "multihash",
- "parking_lot",
- "pin-project 1.0.6",
- "prost",
- "prost-build",
- "rand 0.7.3",
- "ring",
- "rw-stream-sink",
- "serde",
- "sha2 0.9.3",
- "smallvec",
- "thiserror",
- "unsigned-varint 0.7.0",
- "void",
- "zeroize",
-]
-
-[[package]]
-name = "fluence-fork-libp2p-core"
-version = "0.27.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "735c96afd9c133fead34204dff9df0b9f0a86e1bb8e6c32faf8b9f60427ce0cd"
-dependencies = [
- "asn1_der",
- "bs58 0.4.0",
- "ed25519-dalek",
- "either",
- "fluence-fork-multistream-select 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "fluence-fork-parity-multiaddr 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fluence-fork-multistream-select",
+ "fluence-fork-parity-multiaddr",
  "fnv",
  "futures",
  "futures-timer",
@@ -413,21 +378,7 @@ dependencies = [
 [[package]]
 name = "fluence-fork-multistream-select"
 version = "0.10.2"
-source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#11922f49edcff30542be6e3466f9215f35cf45f1"
-dependencies = [
- "bytes",
- "futures",
- "log",
- "pin-project 1.0.6",
- "smallvec",
- "unsigned-varint 0.7.0",
-]
-
-[[package]]
-name = "fluence-fork-multistream-select"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08cb5798accfd52dc9a104d7928f379e93d8432ac03201f5a16ed6dc2af1520d"
+source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#2d785558cfc9908cbfe54c0750e660c001cb2c3b"
 dependencies = [
  "bytes",
  "futures",
@@ -440,25 +391,7 @@ dependencies = [
 [[package]]
 name = "fluence-fork-parity-multiaddr"
 version = "0.11.1"
-source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#11922f49edcff30542be6e3466f9215f35cf45f1"
-dependencies = [
- "arrayref",
- "bs58 0.4.0",
- "byteorder",
- "data-encoding",
- "multihash",
- "percent-encoding",
- "serde",
- "static_assertions",
- "unsigned-varint 0.7.0",
- "url",
-]
-
-[[package]]
-name = "fluence-fork-parity-multiaddr"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e42d11a2d1e7b50e91c947f1a480004ed5f207bb6c8f8a69dbc083588f8419c1"
+source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#2d785558cfc9908cbfe54c0750e660c001cb2c3b"
 dependencies = [
  "arrayref",
  "bs58 0.4.0",
@@ -475,36 +408,12 @@ dependencies = [
 [[package]]
 name = "fluence-identity"
 version = "0.2.7"
-source = "git+https://github.com/fluencelabs/trust-graph.git?branch=identity_rework#7e6ff9e8140ea6f0c4d85eb1c873e1e11dc641c1"
 dependencies = [
  "asn1_der",
  "bs58 0.3.1",
  "ed25519",
  "ed25519-dalek",
- "fluence-fork-libp2p-core 0.27.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static",
- "libsecp256k1",
- "rand 0.7.3",
- "ring",
- "serde",
- "serde_bytes",
- "serde_json",
- "serde_with",
- "sha2 0.9.3",
- "signature",
- "thiserror",
- "zeroize",
-]
-
-[[package]]
-name = "fluence-identity"
-version = "0.2.7"
-dependencies = [
- "asn1_der",
- "bs58 0.3.1",
- "ed25519",
- "ed25519-dalek",
- "fluence-fork-libp2p-core 0.27.1 (git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework)",
+ "fluence-fork-libp2p-core",
  "lazy_static",
  "libsecp256k1",
  "quickcheck",
@@ -795,9 +704,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.92"
+version = "0.2.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56d855069fafbb9b344c0f962150cd2c1187975cb1c22c1522c240d8c4986714"
+checksum = "9385f66bf6105b241aa65a61cb923ef20efc665cb9f9bb50ac2f0c4b7f378d41"
 
 [[package]]
 name = "libsecp256k1"
@@ -817,9 +726,9 @@ dependencies = [
 
 [[package]]
 name = "lock_api"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd96ffd135b2fd7b973ac026d28085defbe8983df057ced3eb4f2130b0831312"
+checksum = "5a3c91c24eae6777794bb1997ad98bbb87daf92890acab859f7eaa4320333176"
 dependencies = [
  "scopeguard",
 ]
@@ -1464,9 +1373,9 @@ checksum = "1e81da0851ada1f3e9d4312c704aa4f8806f0f9d69faaf8df2f3464b4a9437c2"
 
 [[package]]
 name = "syn"
-version = "1.0.68"
+version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ce15dd3ed8aa2f8eeac4716d6ef5ab58b6b9256db41d7e1a0224c2788e8fd87"
+checksum = "48fe99c6bd8b1cc636890bcc071842de909d902c81ac7dab53ba33c421ab8ffb"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1521,9 +1430,9 @@ dependencies = [
 
 [[package]]
 name = "tinyvec"
-version = "1.1.1"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "317cca572a0e89c3ce0ca1f1bdc9369547fe318a683418e42ac8f59d14701023"
+checksum = "5b5220f05bb7de7f3f53c7c065e1199b3172696fe2db9f9c4d8ad9b4ee74c342"
 dependencies = [
  "tinyvec_macros",
 ]
@@ -1551,8 +1460,8 @@ dependencies = [
  "derivative",
  "ed25519-dalek",
  "failure",
- "fluence-fork-libp2p-core 0.27.1 (git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework)",
- "fluence-identity 0.2.7 (git+https://github.com/fluencelabs/trust-graph.git?branch=identity_rework)",
+ "fluence-fork-libp2p-core",
+ "fluence-identity",
  "libsecp256k1",
  "log",
  "rand 0.7.3",
@@ -1573,9 +1482,9 @@ checksum = "879f6906492a7cd215bfa4cf595b600146ccfac0c79bcbd1f3000162af5e8b06"
 
 [[package]]
 name = "unicode-bidi"
-version = "0.3.4"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49f2bd0c6468a8230e1db229cff8029217cf623c767ea5d60bfbd42729ea54d5"
+checksum = "eeb8be209bb1c96b7c177c7420d26e04eccacb0eeae6b980e35fcb74678107e0"
 dependencies = [
  "matches",
 ]

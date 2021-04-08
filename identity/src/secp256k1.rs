@@ -136,7 +136,7 @@ impl SecretKey {
     ///
     /// [RFC3278]: https://tools.ietf.org/html/rfc3278#section-8.2
     pub fn sign(&self, msg: &[u8]) -> Result<Vec<u8>, SigningError> {
-        self.sign_hash(Sha256::digest(msg).as_ref())
+        self.sign_hashed(Sha256::digest(msg).as_ref())
     }
 
     /// Returns the raw bytes of the secret key.

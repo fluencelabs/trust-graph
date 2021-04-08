@@ -22,7 +22,6 @@ use crate::signature::Signature;
 use serde::{Deserialize, Serialize};
 
 /// The public key of a node's identity keypair.
-#[repr(u8)]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PublicKey {
     /// A public Ed25519 key.
@@ -57,7 +56,7 @@ impl PublicKey {
         match self {
             Ed25519(pk) => result.extend(pk.encode().to_vec()),
             #[cfg(not(target_arch = "wasm32"))]
-            Rsa(pk) => result.extend(pk.encode_pkcs1().to_vec()),
+            Rsa(pk) => result.extend(pk.encode_pkcs1()),
             Secp256k1(pk) => result.extend(pk.encode().to_vec()),
         };
 
@@ -93,7 +92,7 @@ impl PublicKey {
 
         match self {
             Ed25519(pk) => pk.encode().to_vec(),
-            Rsa(pk) => pk.encode_pkcs1().to_vec(),
+            Rsa(pk) => pk.encode_pkcs1(),
             Secp256k1(pk) => pk.encode().to_vec(),
         }
     }
@@ -104,9 +103,9 @@ impl From<libp2p_core::identity::PublicKey> for PublicKey {
         use libp2p_core::identity::PublicKey::*;
 
         match key {
-            Ed25519(key) => PublicKey::Ed25519(ed25519::PublicKey::decode(key.encode().to_vec().as_slice()).unwrap()),
+            Ed25519(key) => PublicKey::Ed25519(ed25519::PublicKey::decode(&key.encode()).unwrap()),
             Rsa(key) => PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(key.encode_pkcs1().as_slice()).unwrap()),
-            Secp256k1(key) => PublicKey::Secp256k1(secp256k1::PublicKey::decode(key.encode().to_vec().as_slice()).unwrap()),
+            Secp256k1(key) => PublicKey::Secp256k1(secp256k1::PublicKey::decode(&key.encode()).unwrap()),
         }
     }
 }
