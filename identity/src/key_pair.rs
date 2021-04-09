@@ -20,6 +20,7 @@
 
 //! A node's network identity keys.
 use crate::ed25519;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::rsa;
 use crate::secp256k1;
 use crate::public_key::PublicKey;
@@ -138,7 +139,8 @@ impl From<libp2p_core::identity::Keypair> for KeyPair {
 
         match key {
             Ed25519(kp) => KeyPair::Ed25519(ed25519::Keypair::decode(&mut kp.encode()).unwrap()),
-            // safety: these Keypair structures are identitcal
+            #[cfg(not(target_arch = "wasm32"))]
+            // safety: these Keypair structures are identical
             Rsa(kp) => KeyPair::Rsa(rsa::Keypair::from(unsafe { std::mem::transmute::<libp2p_core::identity::rsa::Keypair, rsa::Keypair>(kp) })),
             Secp256k1(kp) => KeyPair::Secp256k1(secp256k1::Keypair::from(secp256k1::SecretKey::from_bytes(kp.secret().to_bytes()).unwrap())),
         }
@@ -153,6 +155,7 @@ impl From<KeyPair> for libp2p_core::identity::Keypair {
 
         match key {
             Ed25519(kp) => Keypair::Ed25519(identity::ed25519::Keypair::decode( kp.encode().to_vec().as_mut_slice()).unwrap()),
+            #[cfg(not(target_arch = "wasm32"))]
             Rsa(kp) => Keypair::Rsa(identity::rsa::Keypair::from(unsafe { std::mem::transmute::<rsa::Keypair, libp2p_core::identity::rsa::Keypair>(kp) })),
             Secp256k1(kp) => Keypair::Secp256k1(identity::secp256k1::Keypair::from(identity::secp256k1::SecretKey::from_bytes(kp.secret().to_bytes()).unwrap())),
         }

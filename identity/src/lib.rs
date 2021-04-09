@@ -28,6 +28,7 @@
 
 mod secp256k1;
 mod ed25519;
+#[cfg(not(target_arch = "wasm32"))]
 mod rsa;
 pub mod key_pair;
 pub mod error;

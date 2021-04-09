@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 use crate::ed25519;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::rsa;
 use crate::secp256k1;
 use crate::error::{DecodingError, SigningError};
@@ -66,6 +67,7 @@ impl PublicKey {
     pub fn decode(bytes: Vec<u8>) -> Result<PublicKey, DecodingError> {
         match bytes[0] {
             0 => Ok(PublicKey::Ed25519(ed25519::PublicKey::decode(bytes[1..].to_owned())?)),
+            #[cfg(not(target_arch = "wasm32"))]
             1 => Ok(PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(bytes[1..].to_owned())?)),
             2 => Ok(PublicKey::Secp256k1(secp256k1::PublicKey::decode(bytes[1..].to_owned())?)),
             _ => Err(DecodingError::InvalidTypeByte),
@@ -92,6 +94,7 @@ impl PublicKey {
 
         match self {
             Ed25519(pk) => pk.encode().to_vec(),
+            #[cfg(not(target_arch = "wasm32"))]
             Rsa(pk) => pk.encode_pkcs1(),
             Secp256k1(pk) => pk.encode().to_vec(),
         }
@@ -104,6 +107,7 @@ impl From<libp2p_core::identity::PublicKey> for PublicKey {
 
         match key {
             Ed25519(key) => PublicKey::Ed25519(ed25519::PublicKey::decode( Vec::from(key.encode())).unwrap()),
+            #[cfg(not(target_arch = "wasm32"))]
             Rsa(key) => PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(key.encode_pkcs1()).unwrap()),
             Secp256k1(key) => PublicKey::Secp256k1(secp256k1::PublicKey::decode(Vec::from(key.encode())).unwrap()),
         }
