@@ -24,7 +24,7 @@ use thiserror::Error as ThisError;
 
 #[derive(ThisError, Debug)]
 pub enum RevokeError {
-    #[error("Signature is incorrect")]
+    #[error("Signature is incorrect: {0}")]
     IncorrectSignature(
         #[from]
         #[source]
