@@ -27,6 +27,7 @@ use crate::public_key::PublicKey;
 use crate::signature::Signature;
 use crate::error::{Error, DecodingError, SigningError};
 use std::str::FromStr;
+use std::convert::TryFrom;
 
 /// Identity keypair of a node.
 ///
@@ -52,7 +53,7 @@ pub enum KeyFormat {
     Rsa,
     Secp256k1,
 }
-// and implement FromStr for it
+
 impl FromStr for KeyFormat {
     type Err = Error;
 
@@ -63,6 +64,29 @@ impl FromStr for KeyFormat {
             "secp256k1" => Ok(KeyFormat::Secp256k1),
             "rsa" => Ok(KeyFormat::Rsa),
             _ => Err(Error::InvalidKeyFormat(s.to_string()))
+        }
+    }
+}
+
+impl TryFrom<u8> for KeyFormat {
+    type Error = DecodingError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(KeyFormat::Ed25519),
+            1 => Ok(KeyFormat::Rsa),
+            2 => Ok(KeyFormat::Secp256k1),
+            _ => Err(DecodingError::InvalidTypeByte)
+        }
+    }
+}
+
+impl From<KeyFormat> for u8 {
+    fn from(kf: KeyFormat) -> Self {
+        match kf {
+            KeyFormat::Ed25519 => 0,
+            KeyFormat::Rsa => 1,
+            KeyFormat::Secp256k1 => 2,
         }
     }
 }
@@ -177,7 +201,7 @@ impl From<KeyPair> for libp2p_core::identity::Keypair {
         use libp2p_core::identity;
 
         match key {
-            Ed25519(kp) => Keypair::Ed25519(identity::ed25519::Keypair::decode( kp.encode().to_vec().as_mut_slice()).unwrap()),
+            Ed25519(kp) => Keypair::Ed25519(identity::ed25519::Keypair::decode(kp.encode().to_vec().as_mut_slice()).unwrap()),
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(kp) => Keypair::Rsa(identity::rsa::Keypair::from(unsafe { std::mem::transmute::<rsa::Keypair, libp2p_core::identity::rsa::Keypair>(kp) })),
             Secp256k1(kp) => Keypair::Secp256k1(identity::secp256k1::Keypair::from(identity::secp256k1::SecretKey::from_bytes(kp.secret().to_bytes()).unwrap())),

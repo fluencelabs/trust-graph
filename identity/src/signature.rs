@@ -19,6 +19,8 @@ use crate::secp256k1;
 use crate::rsa;
 use crate::error::DecodingError;
 use serde::{Deserialize, Serialize};
+use crate::key_pair::KeyFormat;
+use std::convert::TryFrom;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Signature {
@@ -32,9 +34,10 @@ impl Signature {
     fn get_prefix(&self) -> u8 {
         use Signature::*;
         match self {
-            Ed25519(_) => 0,
-            Rsa(_) => 1,
-            Secp256k1(_) => 2
+            Ed25519(_) => KeyFormat::Ed25519.into(),
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(_) => KeyFormat::Rsa.into(),
+            Secp256k1(_) => KeyFormat::Secp256k1.into()
         }
     }
 
@@ -55,12 +58,12 @@ impl Signature {
     }
 
     pub fn decode(bytes: Vec<u8>) -> Result<Self, DecodingError> {
-        match bytes[0] {
-            0 => Ok(Signature::Ed25519(ed25519::Signature(bytes[1..].to_vec()))),
+        match KeyFormat::try_from(bytes[0])? {
+            KeyFormat::Ed25519 => Ok(Signature::Ed25519(ed25519::Signature(bytes[1..].to_vec()))),
             #[cfg(not(target_arch = "wasm32"))]
-            1 => Ok(Signature::Rsa(rsa::Signature(bytes[1..].to_vec()))),
-            2 => Ok(Signature::Secp256k1(secp256k1::Signature(bytes[1..].to_vec()))),
-            _ => Err(DecodingError::InvalidTypeByte),
+            KeyFormat::Rsa => Ok(Signature::Rsa(rsa::Signature(bytes[1..].to_vec()))),
+            KeyFormat::Secp256k1 => Ok(Signature::Secp256k1(secp256k1::Signature(bytes[1..].to_vec()))),
+
         }
     }
 

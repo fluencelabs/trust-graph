@@ -21,6 +21,8 @@ use crate::error::{DecodingError, SigningError};
 use crate::signature::Signature;
 
 use serde::{Deserialize, Serialize};
+use crate::key_pair::KeyFormat;
+use std::convert::TryFrom;
 
 /// The public key of a node's identity keypair.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -31,7 +33,7 @@ pub enum PublicKey {
     /// A public RSA key.
     Rsa(rsa::PublicKey),
     /// A public Secp256k1 key.
-    Secp256k1(secp256k1::PublicKey)
+    Secp256k1(secp256k1::PublicKey),
 }
 
 impl PublicKey {
@@ -65,22 +67,21 @@ impl PublicKey {
     }
 
     pub fn decode(bytes: Vec<u8>) -> Result<PublicKey, DecodingError> {
-        match bytes[0] {
-            0 => Ok(PublicKey::Ed25519(ed25519::PublicKey::decode(bytes[1..].to_owned())?)),
+        match KeyFormat::try_from(bytes[0])? {
+            KeyFormat::Ed25519 => Ok(PublicKey::Ed25519(ed25519::PublicKey::decode(bytes[1..].to_owned())?)),
             #[cfg(not(target_arch = "wasm32"))]
-            1 => Ok(PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(bytes[1..].to_owned())?)),
-            2 => Ok(PublicKey::Secp256k1(secp256k1::PublicKey::decode(bytes[1..].to_owned())?)),
-            _ => Err(DecodingError::InvalidTypeByte),
+            KeyFormat::Rsa => Ok(PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(bytes[1..].to_owned())?)),
+            KeyFormat::Secp256k1 => Ok(PublicKey::Secp256k1(secp256k1::PublicKey::decode(bytes[1..].to_owned())?)),
         }
     }
 
     fn get_prefix(&self) -> u8 {
         use PublicKey::*;
         match self {
-            Ed25519(_) => 0,
+            Ed25519(_) => KeyFormat::Ed25519.into(),
             #[cfg(not(target_arch = "wasm32"))]
-            Rsa(_) => 1,
-            Secp256k1(_) => 2
+            Rsa(_) => KeyFormat::Rsa.into(),
+            Secp256k1(_) => KeyFormat::Secp256k1.into()
         }
     }
 
@@ -106,7 +107,7 @@ impl From<libp2p_core::identity::PublicKey> for PublicKey {
         use libp2p_core::identity::PublicKey::*;
 
         match key {
-            Ed25519(key) => PublicKey::Ed25519(ed25519::PublicKey::decode( Vec::from(key.encode())).unwrap()),
+            Ed25519(key) => PublicKey::Ed25519(ed25519::PublicKey::decode(Vec::from(key.encode())).unwrap()),
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(key) => PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(key.encode_pkcs1()).unwrap()),
             Secp256k1(key) => PublicKey::Secp256k1(secp256k1::PublicKey::decode(Vec::from(key.encode())).unwrap()),
