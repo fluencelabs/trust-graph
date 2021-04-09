@@ -50,6 +50,7 @@ use std::convert::TryFrom;
 
 pub enum KeyFormat {
     Ed25519,
+    #[cfg(not(target_arch = "wasm32"))]
     Rsa,
     Secp256k1,
 }
@@ -62,6 +63,7 @@ impl FromStr for KeyFormat {
         match s {
             "ed25519" => Ok(KeyFormat::Ed25519),
             "secp256k1" => Ok(KeyFormat::Secp256k1),
+            #[cfg(not(target_arch = "wasm32"))]
             "rsa" => Ok(KeyFormat::Rsa),
             _ => Err(Error::InvalidKeyFormat(s.to_string()))
         }
@@ -74,6 +76,7 @@ impl TryFrom<u8> for KeyFormat {
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(KeyFormat::Ed25519),
+            #[cfg(not(target_arch = "wasm32"))]
             1 => Ok(KeyFormat::Rsa),
             2 => Ok(KeyFormat::Secp256k1),
             _ => Err(DecodingError::InvalidTypeByte)
@@ -85,6 +88,7 @@ impl From<KeyFormat> for u8 {
     fn from(kf: KeyFormat) -> Self {
         match kf {
             KeyFormat::Ed25519 => 0,
+            #[cfg(not(target_arch = "wasm32"))]
             KeyFormat::Rsa => 1,
             KeyFormat::Secp256k1 => 2,
         }
@@ -103,6 +107,15 @@ pub enum KeyPair {
 }
 
 impl KeyPair {
+    pub fn generate(format: KeyFormat) -> KeyPair {
+        match format {
+            KeyFormat::Ed25519 => KeyPair::generate_ed25519(),
+            KeyFormat::Secp256k1 => KeyPair::generate_secp256k1(),
+            #[cfg(not(target_arch = "wasm32"))]
+            KeyFormat::Rsa => todo!("rsa generation is not supported yet!"),
+        }
+    }
+
     /// Generate a new Ed25519 keypair.
     pub fn generate_ed25519() -> KeyPair {
         KeyPair::Ed25519(ed25519::Keypair::generate())
@@ -175,7 +188,8 @@ impl KeyPair {
         match format {
             KeyFormat::Ed25519 => Ok(Ed25519(ed25519::Keypair::decode(&mut bytes.clone())?)),
             KeyFormat::Secp256k1 => Ok(Secp256k1(secp256k1::SecretKey::from_bytes(bytes.clone())?.into())),
-            _ => Err(DecodingError::KeypairDecodingIsNotSupported)
+            #[cfg(not(target_arch = "wasm32"))]
+            KeyFormat::Rsa => Err(DecodingError::KeypairDecodingIsNotSupported)
         }
     }
 }
