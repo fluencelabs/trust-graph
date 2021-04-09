@@ -16,7 +16,7 @@
 use crate::ed25519;
 use crate::rsa;
 use crate::secp256k1;
-use crate::error::*;
+use crate::error::DecodingError;
 use crate::signature::Signature;
 
 use serde::{Deserialize, Serialize};
@@ -65,9 +65,9 @@ impl PublicKey {
 
     pub fn decode(bytes: Vec<u8>) -> Result<PublicKey, DecodingError> {
         match bytes[0] {
-            0 => Ok(PublicKey::Ed25519(ed25519::PublicKey::decode(&bytes[1..])?)),
-            1 => Ok(PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(&bytes[1..])?)),
-            2 => Ok(PublicKey::Secp256k1(secp256k1::PublicKey::decode(&bytes[1..])?)),
+            0 => Ok(PublicKey::Ed25519(ed25519::PublicKey::decode(bytes[1..].to_owned())?)),
+            1 => Ok(PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(bytes[1..].to_owned())?)),
+            2 => Ok(PublicKey::Secp256k1(secp256k1::PublicKey::decode(bytes[1..].to_owned())?)),
             _ => Err(DecodingError::new("invalid type byte".to_string())),
         }
     }
@@ -103,9 +103,9 @@ impl From<libp2p_core::identity::PublicKey> for PublicKey {
         use libp2p_core::identity::PublicKey::*;
 
         match key {
-            Ed25519(key) => PublicKey::Ed25519(ed25519::PublicKey::decode(&key.encode()).unwrap()),
-            Rsa(key) => PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(key.encode_pkcs1().as_slice()).unwrap()),
-            Secp256k1(key) => PublicKey::Secp256k1(secp256k1::PublicKey::decode(&key.encode()).unwrap()),
+            Ed25519(key) => PublicKey::Ed25519(ed25519::PublicKey::decode( Vec::from(key.encode())).unwrap()),
+            Rsa(key) => PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(key.encode_pkcs1()).unwrap()),
+            Secp256k1(key) => PublicKey::Secp256k1(secp256k1::PublicKey::decode(Vec::from(key.encode())).unwrap()),
         }
     }
 }

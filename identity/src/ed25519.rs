@@ -19,7 +19,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 //! Ed25519 keys.
-use crate::error::*;
+use crate::error::{DecodingError, SigningError};
 use ed25519_dalek::{self as ed25519, Signer as _, Verifier as _};
 use rand::RngCore;
 use std::convert::TryFrom;
@@ -128,10 +128,14 @@ impl PublicKey {
     }
 
     /// Decode a public key from a byte array as produced by `encode`.
-    pub fn decode(k: &[u8]) -> Result<PublicKey, DecodingError> {
-        ed25519::PublicKey::from_bytes(k)
+    pub fn decode(mut bytes: Vec<u8>) -> Result<PublicKey, DecodingError> {
+        let pk = ed25519::PublicKey::from_bytes(&bytes)
             .map_err(|e| DecodingError::new("Ed25519 public key").source(e))
-            .map(PublicKey)
+            .map(PublicKey);
+
+        bytes.zeroize();
+
+        return pk;
     }
 }
 

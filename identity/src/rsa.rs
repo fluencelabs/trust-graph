@@ -19,10 +19,10 @@
 // DEALINGS IN THE SOFTWARE.
 
 //! RSA keys.
+use crate::error::{DecodingError, SigningError};
 
 use asn1_der::{Asn1Der, FromDerObject, IntoDerObject, DerObject, DerTag, DerValue, Asn1DerError};
 use lazy_static::lazy_static;
-use crate::error::*;
 use ring::rand::SystemRandom;
 use ring::signature::{self, RsaKeyPair, RSA_PKCS1_SHA256, RSA_PKCS1_2048_8192_SHA256};
 use ring::signature::KeyPair;
@@ -57,7 +57,7 @@ impl Keypair {
         let rng = SystemRandom::new();
         match self.0.sign(&RSA_PKCS1_SHA256, &rng, &data, &mut signature) {
             Ok(()) => Ok(signature),
-            Err(e) => Err(SigningError::new("RSA").source(e))
+            Err(_) => Err(SigningError::new("RSA"))
         }
     }
 }
@@ -82,8 +82,8 @@ impl PublicKey {
         self.0.clone()
     }
 
-    pub fn decode_pkcs1(pk: &[u8]) -> Result<PublicKey, DecodingError> {
-        Ok(PublicKey(pk.to_vec()))
+    pub fn decode_pkcs1(pk: Vec<u8>) -> Result<PublicKey, DecodingError> {
+        Ok(PublicKey(pk))
     }
 
     /// Encode the RSA public key in DER as a X.509 SubjectPublicKeyInfo structure,

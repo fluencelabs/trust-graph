@@ -24,7 +24,7 @@ use crate::rsa;
 use crate::secp256k1;
 use crate::public_key::PublicKey;
 use crate::signature::Signature;
-use crate::error::*;
+use crate::error::{DecodingError, SigningError};
 
 /// Identity keypair of a node.
 ///
@@ -111,7 +111,7 @@ impl KeyPair {
         pk.verify(msg, signature)
     }
 
-    pub fn encode(&self) -> Vec<u8> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         use KeyPair::*;
         match self {
             Ed25519(kp) => kp.encode().to_vec(),
@@ -121,7 +121,7 @@ impl KeyPair {
         }
     }
 
-    pub fn decode(bytes: Vec<u8>, format: String) -> Result<Self, DecodingError> {
+    pub fn from_bytes(bytes: Vec<u8>, format: String) -> Result<Self, DecodingError> {
         use KeyPair::*;
 
         match format.as_str() {

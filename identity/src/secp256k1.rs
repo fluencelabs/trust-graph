@@ -19,12 +19,12 @@
 // DEALINGS IN THE SOFTWARE.
 
 //! Secp256k1 keys.
+use crate::error::{DecodingError, SigningError};
 
 use asn1_der::{FromDerObject, DerObject};
 use rand::RngCore;
 use sha2::{Digest as ShaDigestTrait, Sha256};
 use secp256k1::Message;
-use super::error::{DecodingError, SigningError};
 use zeroize::Zeroize;
 use core::fmt;
 use serde::{Deserialize, Serialize, Serializer, Deserializer};
@@ -148,7 +148,7 @@ impl SecretKey {
     /// ECDSA signature.
     pub fn sign_hashed(&self, msg: &[u8]) -> Result<Vec<u8>, SigningError> {
         let m = Message::parse_slice(msg)
-            .map_err(|_| SigningError::new("failed to parse secp256k1 digest"))?;
+            .map_err(|e| SigningError::new("failed to parse secp256k1 digest").source(e))?;
         Ok(secp256k1::sign(&m, &self.0).0.serialize_der().as_ref().into())
     }
 }
@@ -160,11 +160,11 @@ pub struct PublicKey(secp256k1::PublicKey);
 impl PublicKey {
     /// Verify the Secp256k1 signature on a message using the public key.
     pub fn verify(&self, msg: &[u8], sig: &[u8]) -> bool {
-        self.verify_hash(Sha256::digest(msg).as_ref(), sig)
+        self.verify_hashed(Sha256::digest(msg).as_ref(), sig)
     }
 
     /// Verify the Secp256k1 DER-encoded signature on a raw 256-bit message using the public key.
-    pub fn verify_hash(&self, msg: &[u8], sig: &[u8]) -> bool {
+    pub fn verify_hashed(&self, msg: &[u8], sig: &[u8]) -> bool {
         Message::parse_slice(msg)
             .and_then(|m| secp256k1::Signature::parse_der(sig).map(|s| secp256k1::verify(&m, &s, &self.0)))
             .unwrap_or(false)
@@ -183,10 +183,13 @@ impl PublicKey {
 
     /// Decode a public key from a byte slice in the the format produced
     /// by `encode`.
-    pub fn decode(k: &[u8]) -> Result<PublicKey, DecodingError> {
-        secp256k1::PublicKey::parse_slice(k, Some(secp256k1::PublicKeyFormat::Compressed))
+    pub fn decode(mut bytes: Vec<u8>) -> Result<PublicKey, DecodingError> {
+        let pk = secp256k1::PublicKey::parse_slice(&bytes, Some(secp256k1::PublicKeyFormat::Compressed))
             .map_err(|_| DecodingError::new("failed to parse secp256k1 public key"))
-            .map(PublicKey)
+            .map(PublicKey);
+
+        bytes.zeroize();
+        return pk;
     }
 }
 
@@ -206,7 +209,7 @@ impl<'d> Deserialize<'d> for PublicKey {
             D: Deserializer<'d>,
     {
         let bytes = <SerdeByteBuf>::deserialize(deserializer)?;
-        PublicKey::decode(bytes.as_ref()).map_err(SerdeError::custom)
+        PublicKey::decode(bytes.into_vec()).map_err(SerdeError::custom)
     }
 }
 
