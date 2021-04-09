@@ -43,7 +43,7 @@ pub enum DecodingError {
     Secp256k1,
     #[error("RSA keypair decoding is not supported yet")]
     KeypairDecodingIsNotSupported,
-    #[error("Invalid type byte")]
+    #[error("Invalid type prefix")]
     InvalidTypeByte,
     #[error("Cannot decode from base58 :{0}")]
     Base58DecodeError(#[source] bs58::decode::Error),
@@ -67,4 +67,3 @@ pub enum SigningError {
         secp256k1::Error
     ),
 }
-
