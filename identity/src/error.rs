@@ -45,7 +45,7 @@ pub enum DecodingError {
     KeypairDecodingIsNotSupported,
     #[error("Invalid type prefix")]
     InvalidTypeByte,
-    #[error("Cannot decode from base58 :{0}")]
+    #[error("Cannot decode public key from base58 :{0}")]
     Base58DecodeError(#[source] bs58::decode::Error),
 }
 
