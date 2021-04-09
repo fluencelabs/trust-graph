@@ -23,6 +23,13 @@ use thiserror::Error as ThisError;
 
 /// An error during decoding of key material.
 #[derive(ThisError, Debug)]
+pub enum Error {
+    #[error("{0} Key format is not supported")]
+    InvalidKeyFormat(String),
+}
+
+/// An error during decoding of key material.
+#[derive(ThisError, Debug)]
 pub enum DecodingError {
     #[error("Failed to decode with ed25519: {0}")]
     Ed25519(
@@ -41,7 +48,6 @@ pub enum DecodingError {
     #[error("Cannot decode from base58 :{0}")]
     Base58DecodeError(#[source] bs58::decode::Error),
 }
-
 
 /// An error during signing of a message.
 #[derive(ThisError, Debug)]

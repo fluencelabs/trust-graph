@@ -25,7 +25,8 @@ use crate::rsa;
 use crate::secp256k1;
 use crate::public_key::PublicKey;
 use crate::signature::Signature;
-use crate::error::{DecodingError, SigningError};
+use crate::error::{Error, DecodingError, SigningError};
+use std::str::FromStr;
 
 /// Identity keypair of a node.
 ///
@@ -44,6 +45,28 @@ use crate::error::{DecodingError, SigningError};
 /// let keypair = Keypair::rsa_from_pkcs8(&mut bytes);
 /// ```
 ///
+
+
+pub enum KeyFormat {
+    Ed25519,
+    Rsa,
+    Secp256k1,
+}
+// and implement FromStr for it
+impl FromStr for KeyFormat {
+    type Err = Error;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ed25519" => Ok(KeyFormat::Ed25519),
+            "secp256k1" => Ok(KeyFormat::Secp256k1),
+            "rsa" => Ok(KeyFormat::Rsa),
+            _ => Err(Error::InvalidKeyFormat(s.to_string()))
+        }
+    }
+}
+
 #[derive(Clone)]
 pub enum KeyPair {
     /// An Ed25519 keypair.
@@ -122,12 +145,12 @@ impl KeyPair {
         }
     }
 
-    pub fn from_bytes(bytes: Vec<u8>, format: String) -> Result<Self, DecodingError> {
+    pub fn from_bytes(bytes: Vec<u8>, format: KeyFormat) -> Result<Self, DecodingError> {
         use KeyPair::*;
 
-        match format.as_str() {
-            "ed25519" => Ok(Ed25519(ed25519::Keypair::decode(&mut bytes.clone())?)),
-            "secp256k1" => Ok(Secp256k1(secp256k1::SecretKey::from_bytes(bytes.clone())?.into())),
+        match format {
+            KeyFormat::Ed25519 => Ok(Ed25519(ed25519::Keypair::decode(&mut bytes.clone())?)),
+            KeyFormat::Secp256k1 => Ok(Secp256k1(secp256k1::SecretKey::from_bytes(bytes.clone())?.into())),
             _ => Err(DecodingError::KeypairDecodingIsNotSupported)
         }
     }
