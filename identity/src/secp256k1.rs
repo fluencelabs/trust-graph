@@ -35,7 +35,7 @@ use serde_bytes::{Bytes as SerdeBytes, ByteBuf as SerdeByteBuf};
 #[derive(Clone)]
 pub struct Keypair {
     secret: SecretKey,
-    public: PublicKey
+    public: PublicKey,
 }
 
 impl Keypair {
@@ -96,7 +96,7 @@ impl SecretKey {
         loop {
             r.fill_bytes(&mut b);
             if let Ok(k) = secp256k1::SecretKey::parse(&b) {
-                return SecretKey(k)
+                return SecretKey(k);
             }
         }
     }
@@ -107,7 +107,7 @@ impl SecretKey {
     pub fn from_bytes(mut sk: impl AsMut<[u8]>) -> Result<SecretKey, DecodingError> {
         let sk_bytes = sk.as_mut();
         let secret = secp256k1::SecretKey::parse_slice(&*sk_bytes)
-            .map_err(|_| DecodingError::new("failed to parse secp256k1 secret key"))?;
+            .map_err(|_| DecodingError::Secp256k1)?;
         sk_bytes.zeroize();
         Ok(SecretKey(secret))
     }
@@ -120,12 +120,12 @@ impl SecretKey {
         // TODO: Stricter parsing.
         let der_obj = der.as_mut();
         let obj: Vec<DerObject> = FromDerObject::deserialize((&*der_obj).iter())
-            .map_err(|e| DecodingError::new("Secp256k1 DER ECPrivateKey").source(e))?;
+            .map_err(|_| DecodingError::Secp256k1)?;
         der_obj.zeroize();
         let sk_obj = obj.into_iter().nth(1)
-            .ok_or_else(|| DecodingError::new("Not enough elements in DER"))?;
+            .ok_or_else(|| DecodingError::Secp256k1)?;
         let mut sk_bytes: Vec<u8> = FromDerObject::from_der_object(sk_obj)
-            .map_err(DecodingError::new)?;
+            .map_err(|_| DecodingError::Secp256k1)?;
         let sk = SecretKey::from_bytes(&mut sk_bytes)?;
         sk_bytes.zeroize();
         Ok(sk)
@@ -148,7 +148,7 @@ impl SecretKey {
     /// ECDSA signature.
     pub fn sign_hashed(&self, msg: &[u8]) -> Result<Vec<u8>, SigningError> {
         let m = Message::parse_slice(msg)
-            .map_err(|e| SigningError::new("failed to parse secp256k1 digest").source(e))?;
+            .map_err(|e| SigningError::Secp256k1(e))?;
         Ok(secp256k1::sign(&m, &self.0).0.serialize_der().as_ref().into())
     }
 }
@@ -159,15 +159,15 @@ pub struct PublicKey(secp256k1::PublicKey);
 
 impl PublicKey {
     /// Verify the Secp256k1 signature on a message using the public key.
-    pub fn verify(&self, msg: &[u8], sig: &[u8]) -> bool {
+    pub fn verify(&self, msg: &[u8], sig: &[u8]) -> Result<(), SigningError> {
         self.verify_hashed(Sha256::digest(msg).as_ref(), sig)
     }
 
     /// Verify the Secp256k1 DER-encoded signature on a raw 256-bit message using the public key.
-    pub fn verify_hashed(&self, msg: &[u8], sig: &[u8]) -> bool {
+    pub fn verify_hashed(&self, msg: &[u8], sig: &[u8]) -> Result<(), SigningError> {
         Message::parse_slice(msg)
             .and_then(|m| secp256k1::Signature::parse_der(sig).map(|s| secp256k1::verify(&m, &s, &self.0)))
-            .unwrap_or(false)
+            .map_err(|e| SigningError::Secp256k1(e)).map(|_| ())
     }
 
     /// Encode the public key in compressed form, i.e. with one coordinate
@@ -185,7 +185,7 @@ impl PublicKey {
     /// by `encode`.
     pub fn decode(mut bytes: Vec<u8>) -> Result<PublicKey, DecodingError> {
         let pk = secp256k1::PublicKey::parse_slice(&bytes, Some(secp256k1::PublicKeyFormat::Compressed))
-            .map_err(|_| DecodingError::new("failed to parse secp256k1 public key"))
+            .map_err(|_| DecodingError::Secp256k1)
             .map(PublicKey);
 
         bytes.zeroize();

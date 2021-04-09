@@ -41,7 +41,7 @@ impl Keypair {
     /// [RFC5208]: https://tools.ietf.org/html/rfc5208#section-5
     pub fn from_pkcs8(der: &mut [u8]) -> Result<Keypair, DecodingError> {
         let kp = RsaKeyPair::from_pkcs8(&der)
-            .map_err(|e| DecodingError::new("RSA PKCS#8 PrivateKeyInfo").source(e))?;
+            .map_err(|_| DecodingError::Rsa)?;
         der.zeroize();
         Ok(Keypair(Arc::new(kp)))
     }
@@ -57,7 +57,7 @@ impl Keypair {
         let rng = SystemRandom::new();
         match self.0.sign(&RSA_PKCS1_SHA256, &rng, &data, &mut signature) {
             Ok(()) => Ok(signature),
-            Err(_) => Err(SigningError::new("RSA"))
+            Err(_) => Err(SigningError::Rsa)
         }
     }
 }
@@ -68,9 +68,9 @@ pub struct PublicKey(Vec<u8>);
 
 impl PublicKey {
     /// Verify an RSA signature on a message using the public key.
-    pub fn verify(&self, msg: &[u8], sig: &[u8]) -> bool {
+    pub fn verify(&self, msg: &[u8], sig: &[u8]) -> Result<(), SigningError> {
         let key = signature::UnparsedPublicKey::new(&RSA_PKCS1_2048_8192_SHA256, &self.0);
-        key.verify(msg, sig).is_ok()
+        key.verify(msg, sig).map_err(|_| SigningError::Rsa)
     }
 
     /// Encode the RSA public key in DER as a PKCS#1 RSAPublicKey structure,
@@ -107,7 +107,7 @@ impl PublicKey {
     /// structure. See also `encode_x509`.
     pub fn decode_x509(pk: &[u8]) -> Result<PublicKey, DecodingError> {
         Asn1SubjectPublicKeyInfo::deserialize(pk.iter())
-            .map_err(|e| DecodingError::new("RSA X.509").source(e))
+            .map_err(|_| DecodingError::Rsa)
             .map(|spki| spki.subjectPublicKey.0)
     }
 }
@@ -271,7 +271,7 @@ mod tests {
     #[test]
     fn rsa_sign_verify() {
         fn prop(SomeKeypair(kp): SomeKeypair, msg: Vec<u8>) -> Result<bool, SigningError> {
-            kp.sign(&msg).map(|s| kp.public().verify(&msg, &s))
+            kp.sign(&msg).map(|s| kp.public().verify(&msg, &s).is_ok())
         }
         QuickCheck::new().tests(10).quickcheck(prop as fn(_, _) -> _);
     }

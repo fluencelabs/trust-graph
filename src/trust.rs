@@ -21,7 +21,6 @@ use derivative::Derivative;
 use fluence_identity::key_pair::KeyPair;
 use fluence_identity::public_key::PublicKey;
 use fluence_identity::signature::Signature;
-use fluence_identity::error::SigningError;
 use std::convert::TryInto;
 use std::num::ParseIntError;
 use std::time::Duration;
@@ -63,7 +62,7 @@ pub enum TrustError {
     #[error("Trust is expired at: '{0:?}', current time: '{1:?}'")]
     Expired(Duration, Duration),
 
-    /// Errors occured on signature verification
+    /// Errors occurred on signature verification
     #[error("{0}")]
     SignatureError(
         #[from]
@@ -71,7 +70,7 @@ pub enum TrustError {
         fluence_identity::error::SigningError,
     ),
 
-    /// Errors occured on trust decoding from different formats
+    /// Errors occurred on trust decoding from different formats
     #[error("Cannot decode the public key: {0} in the trust: {1}")]
     DecodePublicKeyError(String, #[source] fluence_identity::error::DecodingError),
 
@@ -136,11 +135,7 @@ impl Trust {
         let msg: &[u8] =
             &Self::metadata_bytes(&trust.issued_for, trust.expires_at, trust.issued_at);
 
-        if KeyPair::verify(issued_by, msg, &trust.signature) {
-            Ok(())
-        } else {
-            Err(SignatureError(SigningError::new("KeyPair::verify failed")))
-        }
+        KeyPair::verify(issued_by, msg, &trust.signature).map_err(|e| SignatureError(e))
     }
 
     fn metadata_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> Vec<u8> {

@@ -16,7 +16,7 @@
 use crate::ed25519;
 use crate::rsa;
 use crate::secp256k1;
-use crate::error::DecodingError;
+use crate::error::{DecodingError, SigningError};
 use crate::signature::Signature;
 
 use serde::{Deserialize, Serialize};
@@ -38,7 +38,7 @@ impl PublicKey {
     /// that the signature has been produced by the corresponding
     /// private key (authenticity), and that the message has not been
     /// tampered with (integrity).
-    pub fn verify(&self, msg: &[u8], sig: &Signature) -> bool {
+    pub fn verify(&self, msg: &[u8], sig: &Signature) -> Result<(), SigningError> {
         use PublicKey::*;
         match self {
             Ed25519(pk) => pk.verify(msg, sig.to_bytes().as_slice()),
@@ -68,7 +68,7 @@ impl PublicKey {
             0 => Ok(PublicKey::Ed25519(ed25519::PublicKey::decode(bytes[1..].to_owned())?)),
             1 => Ok(PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(bytes[1..].to_owned())?)),
             2 => Ok(PublicKey::Secp256k1(secp256k1::PublicKey::decode(bytes[1..].to_owned())?)),
-            _ => Err(DecodingError::new("invalid type byte".to_string())),
+            _ => Err(DecodingError::InvalidTypeByte),
         }
     }
 
@@ -83,7 +83,7 @@ impl PublicKey {
     }
 
     pub fn from_base58(str: &str) -> Result<PublicKey, DecodingError> {
-        let bytes = bs58::decode(str).into_vec().map_err(DecodingError::new)?;
+        let bytes = bs58::decode(str).into_vec().map_err(DecodingError::Base58DecodeError)?;
         Self::decode(bytes)
     }
 

@@ -19,70 +19,46 @@
 // DEALINGS IN THE SOFTWARE.
 
 //! Errors during identity key operations.
-use std::error::Error;
-use std::fmt;
+use thiserror::Error as ThisError;
 
 /// An error during decoding of key material.
-#[derive(Debug)]
-pub struct DecodingError {
-    msg: String,
-    source: Option<Box<dyn Error + Send + Sync>>,
+#[derive(ThisError, Debug)]
+pub enum DecodingError {
+    #[error("Failed to decode with ed25519: {0}")]
+    Ed25519(
+        #[from]
+        #[source]
+        ed25519_dalek::ed25519::Error
+    ),
+    #[error("Failed to decode with RSA")]
+    Rsa,
+    #[error("Failed to decode with secp256k1")]
+    Secp256k1,
+    #[error("RSA keypair decoding is not supported yet")]
+    KeypairDecodingIsNotSupported,
+    #[error("Invalid type byte")]
+    InvalidTypeByte,
+    #[error("Cannot decode from base58 :{0}")]
+    Base58DecodeError(#[source] bs58::decode::Error),
 }
 
-impl DecodingError {
-    pub(crate) fn new<S: ToString>(msg: S) -> Self {
-        Self { msg: msg.to_string(), source: None }
-    }
-
-    pub(crate) fn source(self, source: impl Error + Send + Sync + 'static) -> Self {
-        Self { source: Some(Box::new(source)), ..self }
-    }
-}
-
-impl fmt::Display for DecodingError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Key decoding error: {}", self.msg)
-    }
-}
-
-impl Error for DecodingError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        self.source.as_ref().map(|s| &**s as &dyn Error)
-    }
-}
 
 /// An error during signing of a message.
-#[derive(Debug)]
-pub struct SigningError {
-    msg: String,
-    source: Option<Box<dyn Error + Send + Sync>>,
+#[derive(ThisError, Debug)]
+pub enum SigningError {
+    #[error("Failed to sign with ed25519: {0}")]
+    Ed25519(
+        #[from]
+        #[source]
+        ed25519_dalek::ed25519::Error
+    ),
+    #[error("Failed to sign with RSA")]
+    Rsa,
+    #[error("Failed to sign with secp256k1: {0}")]
+    Secp256k1(
+        #[from]
+        #[source]
+        secp256k1::Error
+    ),
 }
 
-/// An error during encoding of key material.
-impl SigningError {
-    pub fn new<S: ToString>(msg: S) -> Self {
-        Self { msg: msg.to_string(), source: None }
-    }
-
-    pub(crate) fn source(self, source: impl Error + Send + Sync + 'static) -> Self {
-        Self { source: Some(Box::new(source)), ..self }
-    }
-}
-
-impl fmt::Display for SigningError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Key signing error: {}", self.msg)
-    }
-}
-
-impl Error for SigningError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        self.source.as_ref().map(|s| &**s as &dyn Error)
-    }
-}
-
-impl From<ed25519_dalek::ed25519::Error> for SigningError {
-    fn from(err: ed25519_dalek::ed25519::Error) -> SigningError {
-        SigningError::new(err.to_string()).source(err)
-    }
-}

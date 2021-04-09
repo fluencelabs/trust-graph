@@ -16,7 +16,7 @@
 use crate::ed25519;
 use crate::secp256k1;
 use crate::rsa;
-use crate::error::SigningError;
+use crate::error::DecodingError;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -51,12 +51,12 @@ impl Signature {
         result
     }
 
-    pub fn decode(bytes: Vec<u8>) -> Result<Self, SigningError> {
+    pub fn decode(bytes: Vec<u8>) -> Result<Self, DecodingError> {
         match bytes[0] {
             0 => Ok(Signature::Ed25519(ed25519::Signature(bytes[1..].to_vec()))),
             1 => Ok(Signature::Rsa(rsa::Signature(bytes[1..].to_vec()))),
             2 => Ok(Signature::Secp256k1(secp256k1::Signature(bytes[1..].to_vec()))),
-            _ => Err(SigningError::new("invalid type byte".to_string())),
+            _ => Err(DecodingError::InvalidTypeByte),
         }
     }
 

@@ -25,7 +25,11 @@ use thiserror::Error as ThisError;
 #[derive(ThisError, Debug)]
 pub enum RevokeError {
     #[error("Signature is incorrect")]
-    IncorrectSignature(),
+    IncorrectSignature(
+        #[from]
+        #[source]
+        fluence_identity::error::SigningError
+    ),
 }
 
 /// "A document" that cancels trust created before.
@@ -81,20 +85,14 @@ impl Revoke {
     pub fn verify(revoke: &Revoke) -> Result<(), RevokeError> {
         let msg = Revoke::signature_bytes(&revoke.pk, revoke.revoked_at);
 
-       if revoke
+        revoke
             .revoked_by
-            .verify(msg.as_slice(), &revoke.signature)
-       {
-           Ok(())
-       } else {
-           Err(IncorrectSignature())
-       }
+            .verify(msg.as_slice(), &revoke.signature).map_err(|e| IncorrectSignature(e))
     }
 }
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]

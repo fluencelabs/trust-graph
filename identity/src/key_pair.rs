@@ -107,7 +107,7 @@ impl KeyPair {
     }
 
     /// Verify the signature on a message using the public key.
-    pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> bool {
+    pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> Result<(), SigningError> {
         pk.verify(msg, signature)
     }
 
@@ -127,7 +127,7 @@ impl KeyPair {
         match format.as_str() {
             "ed25519" => Ok(Ed25519(ed25519::Keypair::decode(&mut bytes.clone())?)),
             "secp256k1" => Ok(Secp256k1(secp256k1::SecretKey::from_bytes(bytes.clone())?.into())),
-            _ => Err(DecodingError::new(format!("invalid keypair format {0}", format)))
+            _ => Err(DecodingError::KeypairDecodingIsNotSupported)
         }
     }
 }
