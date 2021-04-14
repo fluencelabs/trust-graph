@@ -39,7 +39,7 @@ impl Keypair {
     /// format (i.e. unencrypted) as defined in [RFC5208].
     ///
     /// [RFC5208]: https://tools.ietf.org/html/rfc5208#section-5
-    pub fn from_pkcs8(der: &mut [u8]) -> Result<Keypair, DecodingError> {
+    pub fn from_pkcs8(der: &mut [u8]) -> Result<Self, DecodingError> {
         let kp = RsaKeyPair::from_pkcs8(&der)
             .map_err(|_| DecodingError::Rsa)?;
         der.zeroize();
@@ -77,12 +77,12 @@ impl PublicKey {
     /// as defined in [RFC3447].
     ///
     /// [RFC3447]: https://tools.ietf.org/html/rfc3447#appendix-A.1.1
-    pub fn encode_pkcs1(&self) -> Vec<u8> {
+    pub fn to_pkcs1(&self) -> &[u8] {
         // This is the encoding currently used in-memory, so it is trivial.
-        self.0.clone()
+        &self.0
     }
 
-    pub fn decode_pkcs1(pk: Vec<u8>) -> Result<PublicKey, DecodingError> {
+    pub fn from_pkcs1(pk: Vec<u8>) -> Result<Self, DecodingError> {
         Ok(PublicKey(pk))
     }
 
@@ -105,7 +105,7 @@ impl PublicKey {
 
     /// Decode an RSA public key from a DER-encoded X.509 SubjectPublicKeyInfo
     /// structure. See also `encode_x509`.
-    pub fn decode_x509(pk: &[u8]) -> Result<PublicKey, DecodingError> {
+    pub fn decode_x509(pk: &[u8]) -> Result<Self, DecodingError> {
         Asn1SubjectPublicKeyInfo::deserialize(pk.iter())
             .map_err(|_| DecodingError::Rsa)
             .map(|spki| spki.subjectPublicKey.0)

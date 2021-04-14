@@ -172,7 +172,7 @@ impl KeyPair {
         pk.verify(msg, signature)
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub fn to_vec(&self) -> Vec<u8> {
         use KeyPair::*;
         match self {
             Ed25519(kp) => kp.encode().to_vec(),
@@ -182,7 +182,7 @@ impl KeyPair {
         }
     }
 
-    pub fn from_bytes(bytes: Vec<u8>, format: KeyFormat) -> Result<Self, DecodingError> {
+    pub fn from_vec(bytes: Vec<u8>, format: KeyFormat) -> Result<Self, DecodingError> {
         use KeyPair::*;
 
         match format {

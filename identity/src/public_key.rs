@@ -44,10 +44,10 @@ impl PublicKey {
     pub fn verify(&self, msg: &[u8], sig: &Signature) -> Result<(), SigningError> {
         use PublicKey::*;
         match self {
-            Ed25519(pk) => pk.verify(msg, sig.to_bytes().as_slice()),
+            Ed25519(pk) => pk.verify(msg, sig.to_vec()),
             #[cfg(not(target_arch = "wasm32"))]
-            Rsa(pk) => pk.verify(msg, sig.to_bytes().as_slice()),
-            Secp256k1(pk) => pk.verify(msg, sig.to_bytes().as_slice())
+            Rsa(pk) => pk.verify(msg, sig.to_vec()),
+            Secp256k1(pk) => pk.verify(msg, sig.to_vec())
         }
     }
 
@@ -59,7 +59,7 @@ impl PublicKey {
         match self {
             Ed25519(pk) => result.extend(pk.encode().to_vec()),
             #[cfg(not(target_arch = "wasm32"))]
-            Rsa(pk) => result.extend(pk.encode_pkcs1()),
+            Rsa(pk) => result.extend(pk.to_pkcs1()),
             Secp256k1(pk) => result.extend(pk.encode().to_vec()),
         };
 
@@ -68,10 +68,10 @@ impl PublicKey {
 
     pub fn decode(bytes: Vec<u8>) -> Result<PublicKey, DecodingError> {
         match KeyFormat::try_from(bytes[0])? {
-            KeyFormat::Ed25519 => Ok(PublicKey::Ed25519(ed25519::PublicKey::decode(bytes[1..].to_owned())?)),
+            KeyFormat::Ed25519 => Ok(PublicKey::Ed25519(ed25519::PublicKey::decode(&bytes[1..])?)),
             #[cfg(not(target_arch = "wasm32"))]
-            KeyFormat::Rsa => Ok(PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(bytes[1..].to_owned())?)),
-            KeyFormat::Secp256k1 => Ok(PublicKey::Secp256k1(secp256k1::PublicKey::decode(bytes[1..].to_owned())?)),
+            KeyFormat::Rsa => Ok(PublicKey::Rsa(rsa::PublicKey::from_pkcs1(bytes[1..].to_owned())?)),
+            KeyFormat::Secp256k1 => Ok(PublicKey::Secp256k1(secp256k1::PublicKey::decode(&bytes[1..])?)),
         }
     }
 
@@ -90,13 +90,13 @@ impl PublicKey {
         Self::decode(bytes)
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub fn to_vec(&self) -> Vec<u8> {
         use PublicKey::*;
 
         match self {
             Ed25519(pk) => pk.encode().to_vec(),
             #[cfg(not(target_arch = "wasm32"))]
-            Rsa(pk) => pk.encode_pkcs1(),
+            Rsa(pk) => pk.to_pkcs1().to_vec(),
             Secp256k1(pk) => pk.encode().to_vec(),
         }
     }
@@ -107,10 +107,10 @@ impl From<libp2p_core::identity::PublicKey> for PublicKey {
         use libp2p_core::identity::PublicKey::*;
 
         match key {
-            Ed25519(key) => PublicKey::Ed25519(ed25519::PublicKey::decode(Vec::from(key.encode())).unwrap()),
+            Ed25519(key) => PublicKey::Ed25519(ed25519::PublicKey::decode(&key.encode()[..]).unwrap()),
             #[cfg(not(target_arch = "wasm32"))]
-            Rsa(key) => PublicKey::Rsa(rsa::PublicKey::decode_pkcs1(key.encode_pkcs1()).unwrap()),
-            Secp256k1(key) => PublicKey::Secp256k1(secp256k1::PublicKey::decode(Vec::from(key.encode())).unwrap()),
+            Rsa(key) => PublicKey::Rsa(rsa::PublicKey::from_pkcs1(key.encode_pkcs1()).unwrap()),
+            Secp256k1(key) => PublicKey::Secp256k1(secp256k1::PublicKey::decode(&key.encode()[..]).unwrap()),
         }
     }
 }

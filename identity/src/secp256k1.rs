@@ -40,7 +40,7 @@ pub struct Keypair {
 
 impl Keypair {
     /// Generate a new sec256k1 `Keypair`.
-    pub fn generate() -> Keypair {
+    pub fn generate() -> Self {
         Keypair::from(SecretKey::generate())
     }
 
@@ -63,7 +63,7 @@ impl fmt::Debug for Keypair {
 
 /// Promote a Secp256k1 secret key into a keypair.
 impl From<SecretKey> for Keypair {
-    fn from(secret: SecretKey) -> Keypair {
+    fn from(secret: SecretKey) -> Self {
         let public = PublicKey(secp256k1::PublicKey::from_secret_key(&secret.0));
         Keypair { secret, public }
     }
@@ -71,7 +71,7 @@ impl From<SecretKey> for Keypair {
 
 /// Demote a Secp256k1 keypair into a secret key.
 impl From<Keypair> for SecretKey {
-    fn from(kp: Keypair) -> SecretKey {
+    fn from(kp: Keypair) -> Self {
         kp.secret
     }
 }
@@ -88,7 +88,7 @@ impl fmt::Debug for SecretKey {
 
 impl SecretKey {
     /// Generate a new Secp256k1 secret key.
-    pub fn generate() -> SecretKey {
+    pub fn generate() -> Self {
         let mut r = rand::thread_rng();
         let mut b = [0; secp256k1::util::SECRET_KEY_SIZE];
         // This is how it is done in `secp256k1::SecretKey::random` which
@@ -104,7 +104,7 @@ impl SecretKey {
     /// Create a secret key from a byte slice, zeroing the slice on success.
     /// If the bytes do not constitute a valid Secp256k1 secret key, an
     /// error is returned.
-    pub fn from_bytes(mut sk: impl AsMut<[u8]>) -> Result<SecretKey, DecodingError> {
+    pub fn from_bytes(mut sk: impl AsMut<[u8]>) -> Result<Self, DecodingError> {
         let sk_bytes = sk.as_mut();
         let secret = secp256k1::SecretKey::parse_slice(&*sk_bytes)
             .map_err(|_| DecodingError::Secp256k1)?;
@@ -183,13 +183,10 @@ impl PublicKey {
 
     /// Decode a public key from a byte slice in the the format produced
     /// by `encode`.
-    pub fn decode(mut bytes: Vec<u8>) -> Result<PublicKey, DecodingError> {
-        let pk = secp256k1::PublicKey::parse_slice(&bytes, Some(secp256k1::PublicKeyFormat::Compressed))
+    pub fn decode(bytes: &[u8]) -> Result<Self, DecodingError> {
+        secp256k1::PublicKey::parse_slice(bytes, Some(secp256k1::PublicKeyFormat::Compressed))
             .map_err(|_| DecodingError::Secp256k1)
-            .map(PublicKey);
-
-        bytes.zeroize();
-        return pk;
+            .map(PublicKey)
     }
 }
 
@@ -209,7 +206,7 @@ impl<'d> Deserialize<'d> for PublicKey {
             D: Deserializer<'d>,
     {
         let bytes = <SerdeByteBuf>::deserialize(deserializer)?;
-        PublicKey::decode(bytes.into_vec()).map_err(SerdeError::custom)
+        PublicKey::decode(bytes.as_slice()).map_err(SerdeError::custom)
     }
 }
 

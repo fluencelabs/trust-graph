@@ -67,14 +67,14 @@ impl Signature {
         }
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub fn to_vec(&self) -> &[u8] {
         use Signature::*;
 
         match self {
-            Ed25519(sig) => sig.0.to_vec(),
+            Ed25519(sig) => &sig.0,
             #[cfg(not(target_arch = "wasm32"))]
-            Rsa(sig) => sig.0.to_vec(),
-            Secp256k1(sig) => sig.0.to_vec(),
+            Rsa(sig) => &sig.0,
+            Secp256k1(sig) => &sig.0,
         }
     }
 }
