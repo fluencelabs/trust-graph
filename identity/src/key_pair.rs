@@ -182,12 +182,12 @@ impl KeyPair {
         }
     }
 
-    pub fn from_vec(bytes: Vec<u8>, format: KeyFormat) -> Result<Self, DecodingError> {
+    pub fn from_vec(mut bytes: Vec<u8>, format: KeyFormat) -> Result<Self, DecodingError> {
         use KeyPair::*;
 
         match format {
-            KeyFormat::Ed25519 => Ok(Ed25519(ed25519::Keypair::decode(&mut bytes.clone())?)),
-            KeyFormat::Secp256k1 => Ok(Secp256k1(secp256k1::SecretKey::from_bytes(bytes.clone())?.into())),
+            KeyFormat::Ed25519 => Ok(Ed25519(ed25519::Keypair::decode(&mut bytes)?)),
+            KeyFormat::Secp256k1 => Ok(Secp256k1(secp256k1::SecretKey::from_bytes(bytes)?.into())),
             #[cfg(not(target_arch = "wasm32"))]
             KeyFormat::Rsa => Err(DecodingError::KeypairDecodingIsNotSupported)
         }
@@ -202,7 +202,7 @@ impl From<libp2p_core::identity::Keypair> for KeyPair {
             Ed25519(kp) => KeyPair::Ed25519(ed25519::Keypair::decode(&mut kp.encode()).unwrap()),
             #[cfg(not(target_arch = "wasm32"))]
             // safety: these Keypair structures are identical
-            Rsa(kp) => KeyPair::Rsa(rsa::Keypair::from(unsafe { std::mem::transmute::<libp2p_core::identity::rsa::Keypair, rsa::Keypair>(kp) })),
+            Rsa(kp) => KeyPair::Rsa(unsafe { std::mem::transmute::<libp2p_core::identity::rsa::Keypair, rsa::Keypair>(kp) }),
             Secp256k1(kp) => KeyPair::Secp256k1(secp256k1::Keypair::from(secp256k1::SecretKey::from_bytes(kp.secret().to_bytes()).unwrap())),
         }
     }
@@ -217,7 +217,7 @@ impl From<KeyPair> for libp2p_core::identity::Keypair {
         match key {
             Ed25519(kp) => Keypair::Ed25519(identity::ed25519::Keypair::decode(kp.encode().to_vec().as_mut_slice()).unwrap()),
             #[cfg(not(target_arch = "wasm32"))]
-            Rsa(kp) => Keypair::Rsa(identity::rsa::Keypair::from(unsafe { std::mem::transmute::<rsa::Keypair, libp2p_core::identity::rsa::Keypair>(kp) })),
+            Rsa(kp) => Keypair::Rsa(unsafe { std::mem::transmute::<rsa::Keypair, libp2p_core::identity::rsa::Keypair>(kp) }),
             Secp256k1(kp) => Keypair::Secp256k1(identity::secp256k1::Keypair::from(identity::secp256k1::SecretKey::from_bytes(kp.secret().to_bytes()).unwrap())),
         }
     }

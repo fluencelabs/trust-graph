@@ -45,9 +45,8 @@ impl Signature {
     pub fn encode(&self) -> Vec<u8> {
         use Signature::*;
 
-        let mut result: Vec<u8> = Vec::new();
-
-        result.push(self.get_prefix());
+        let mut result: Vec<u8> = vec![self.get_prefix()];
+        
         match self {
             Ed25519(sig) => result.extend(sig.0.clone()),
             #[cfg(not(target_arch = "wasm32"))]

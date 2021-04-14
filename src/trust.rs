@@ -136,7 +136,7 @@ impl Trust {
         let msg: &[u8] =
             &Self::metadata_bytes(&trust.issued_for, trust.expires_at, trust.issued_at);
 
-        KeyPair::verify(issued_by, msg, &trust.signature).map_err(|e| SignatureError(e))
+        KeyPair::verify(issued_by, msg, &trust.signature).map_err(SignatureError)
     }
 
     fn metadata_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> Vec<u8> {

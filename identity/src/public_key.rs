@@ -53,9 +53,8 @@ impl PublicKey {
 
     pub fn encode(&self) -> Vec<u8> {
         use PublicKey::*;
-        let mut result: Vec<u8> = Vec::new();
+        let mut result: Vec<u8> = vec![self.get_prefix()];
 
-        result.push(self.get_prefix());
         match self {
             Ed25519(pk) => result.extend(pk.encode().to_vec()),
             #[cfg(not(target_arch = "wasm32"))]

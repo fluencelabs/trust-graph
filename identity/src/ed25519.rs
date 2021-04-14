@@ -51,7 +51,7 @@ impl Keypair {
                 kp.zeroize();
                 Keypair(k)
             })
-            .map_err(|e| DecodingError::Ed25519(e))
+            .map_err(DecodingError::Ed25519)
     }
 
     /// Sign a message using the private key of this keypair.
@@ -118,7 +118,7 @@ pub struct PublicKey(ed25519::PublicKey);
 impl PublicKey {
     /// Verify the Ed25519 signature on a message using the public key.
     pub fn verify(&self, msg: &[u8], sig: &[u8]) -> Result<(), SigningError> {
-        ed25519::Signature::try_from(sig).and_then(|s| self.0.verify(msg, &s)).map_err(|e| SigningError::Ed25519(e))
+        ed25519::Signature::try_from(sig).and_then(|s| self.0.verify(msg, &s)).map_err(SigningError::Ed25519)
     }
 
     /// Encode the public key into a byte array in compressed form, i.e.
@@ -174,7 +174,7 @@ impl SecretKey {
     pub fn from_bytes(mut sk_bytes: impl AsMut<[u8]>) -> Result<Self, DecodingError> {
         let sk_bytes = sk_bytes.as_mut();
         let secret = ed25519::SecretKey::from_bytes(&*sk_bytes)
-            .map_err(|e| DecodingError::Ed25519(e))?;
+            .map_err(DecodingError::Ed25519)?;
         sk_bytes.zeroize();
         Ok(SecretKey(secret))
     }

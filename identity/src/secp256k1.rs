@@ -123,7 +123,7 @@ impl SecretKey {
             .map_err(|_| DecodingError::Secp256k1)?;
         der_obj.zeroize();
         let sk_obj = obj.into_iter().nth(1)
-            .ok_or_else(|| DecodingError::Secp256k1)?;
+            .ok_or(DecodingError::Secp256k1)?;
         let mut sk_bytes: Vec<u8> = FromDerObject::from_der_object(sk_obj)
             .map_err(|_| DecodingError::Secp256k1)?;
         let sk = SecretKey::from_bytes(&mut sk_bytes)?;
@@ -148,7 +148,7 @@ impl SecretKey {
     /// ECDSA signature.
     pub fn sign_hashed(&self, msg: &[u8]) -> Result<Vec<u8>, SigningError> {
         let m = Message::parse_slice(msg)
-            .map_err(|e| SigningError::Secp256k1(e))?;
+            .map_err(SigningError::Secp256k1)?;
         Ok(secp256k1::sign(&m, &self.0).0.serialize_der().as_ref().into())
     }
 }
@@ -167,7 +167,7 @@ impl PublicKey {
     pub fn verify_hashed(&self, msg: &[u8], sig: &[u8]) -> Result<(), SigningError> {
         Message::parse_slice(msg)
             .and_then(|m| secp256k1::Signature::parse_der(sig).map(|s| secp256k1::verify(&m, &s, &self.0)))
-            .map_err(|e| SigningError::Secp256k1(e)).map(|_| ())
+            .map_err(SigningError::Secp256k1).map(|_| ())
     }
 
     /// Encode the public key in compressed form, i.e. with one coordinate

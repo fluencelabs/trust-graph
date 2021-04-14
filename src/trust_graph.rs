@@ -169,7 +169,7 @@ where
 
         // get all possible certificates from the given public key to all roots in the graph
         let certs = self.get_all_certs(pk, roots.as_slice())?;
-        Ok(self.certificates_weight(certs)?)
+        self.certificates_weight(certs)
     }
 
     /// Calculate weight from given certificates
