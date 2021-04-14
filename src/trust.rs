@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-use crate::trust::TrustError::{
-    Base58DecodeError, DecodePublicKeyError, ParseError, SignatureError,
-};
+use crate::trust::TrustError::{Base58DecodeError, DecodePublicKeyError, ParseError, SignatureError, DecodeErrorInvalidSize};
 use derivative::Derivative;
 use fluence_identity::key_pair::KeyPair;
 use fluence_identity::public_key::PublicKey;
@@ -86,6 +84,9 @@ pub enum TrustError {
         #[source]
         fluence_identity::error::DecodingError,
     ),
+
+    #[error("Cannot decode `{0}` field in the trust: invalid size")]
+    DecodeErrorInvalidSize(String),
 }
 
 impl Trust {
@@ -167,25 +168,41 @@ impl Trust {
         vec
     }
 
+    fn check_arr_len(arr: &[u8], field_name: &str, check_len: usize) -> Result<(), TrustError> {
+        if arr.len() < check_len {
+            Err(DecodeErrorInvalidSize(field_name.to_string()))
+        } else {
+            Ok(())
+        }
+    }
+
     /// Decode a trust from a byte array as produced by `encode`.
     #[allow(dead_code)]
     pub fn decode(arr: &[u8]) -> Result<Self, TrustError> {
+        Self::check_arr_len(arr, "public_key_len", 1)?;
         let pk_len = arr[0] as usize;
         let mut offset = 1;
+
+        Self::check_arr_len(arr, "public_key", offset + pk_len)?;
         let pk = PublicKey::decode(&arr[offset..offset + pk_len])?;
         offset += pk_len;
 
+        Self::check_arr_len(arr, "signature_size", offset + 1)?;
         let signature_len = arr[offset] as usize;
         offset += 1;
+
+        Self::check_arr_len(arr, "signature", offset + signature_len)?;
         let signature = &arr[offset..offset + signature_len];
         let signature = Signature::decode(signature.to_vec())?;
         offset += signature_len;
 
+        Self::check_arr_len(arr, "expiration", offset + EXPIRATION_LEN)?;
         let expiration_bytes = &arr[offset..offset + EXPIRATION_LEN];
         let expiration_date = u64::from_le_bytes(expiration_bytes.try_into().unwrap());
         let expiration_date = Duration::from_secs(expiration_date);
         offset += EXPIRATION_LEN;
 
+        Self::check_arr_len(arr, "issued", offset + ISSUED_LEN)?;
         let issued_bytes = &arr[offset..];
         let issued_date = u64::from_le_bytes(issued_bytes.try_into().unwrap());
         let issued_date = Duration::from_secs(issued_date);

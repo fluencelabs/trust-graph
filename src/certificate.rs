@@ -32,6 +32,7 @@ const FORMAT: &[u8; 2] = &[0, 0];
 /// Serialization format version of a certificate.
 /// TODO
 const VERSION: &[u8; 4] = &[0, 0, 0, 0];
+const TRUST_NUMBER_LEN: usize = 1;
 
 /// Chain of trusts started from self-signed root trust.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -189,23 +190,39 @@ impl Certificate {
         encoded
     }
 
+    fn check_arr_len(arr: &[u8], check_len: usize) -> Result<(), CertificateError> {
+        if arr.len() < check_len {
+            Err(CertificateLengthError)
+        } else {
+            Ok(())
+        }
+    }
+
     #[allow(dead_code)]
     pub fn decode(arr: &[u8]) -> Result<Self, CertificateError> {
         // TODO do match different formats and versions
-        let _format = &arr[0..1];
-        let _version = &arr[2..5];
-        let number_of_trusts = arr[2 + 4] as usize;
+        Self::check_arr_len(arr, FORMAT.len() + VERSION.len() + TRUST_NUMBER_LEN)?;
+        let mut offset = 0;
+        let _format = &arr[offset..offset + FORMAT.len()];
+        offset += FORMAT.len();
+
+        let _version = &arr[offset..offset + VERSION.len()];
+        offset += VERSION.len();
+
+        let number_of_trusts = arr[offset] as usize;
+        offset += TRUST_NUMBER_LEN;
 
         if number_of_trusts < 2 {
             return Err(CertificateLengthError);
         }
         let mut chain = Vec::with_capacity(number_of_trusts);
 
-        let mut offset = 2 + 4 + 1;
         for _ in 0..number_of_trusts {
+            Self::check_arr_len(arr, offset + 1)?;
             let trust_len = arr[offset] as usize;
             let from = offset + 1;
             let to = from + trust_len;
+            Self::check_arr_len(arr, to)?;
             let slice = &arr[from..to];
             let t = Trust::decode(slice).map_err(DecodeError)?;
             chain.push(t);
