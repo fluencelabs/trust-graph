@@ -41,6 +41,7 @@ impl Signature {
         }
     }
 
+    /// encode keypair type in first byte and signature as byte array
     pub fn encode(&self) -> Vec<u8> {
         use Signature::*;
 
@@ -57,6 +58,7 @@ impl Signature {
         result
     }
 
+    /// decode with first byte set as keypair type
     pub fn decode(bytes: Vec<u8>) -> Result<Self, DecodingError> {
         match KeyFormat::try_from(bytes[0])? {
             KeyFormat::Ed25519 => Ok(Signature::Ed25519(ed25519::Signature(bytes[1..].to_vec()))),
