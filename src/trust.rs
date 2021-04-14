@@ -155,12 +155,12 @@ impl Trust {
     #[allow(dead_code)]
     pub fn encode(&self) -> Vec<u8> {
         let mut vec = Vec::new();
-        let issued_for = &self.issued_for.encode();
-        let signature = &self.signature.encode();
+        let mut issued_for = self.issued_for.encode();
+        let mut signature = self.signature.encode();
         vec.push(issued_for.len() as u8);
-        vec.extend(issued_for);
+        vec.append(&mut issued_for);
         vec.push(signature.len() as u8);
-        vec.extend(signature);
+        vec.append(&mut signature);
         vec.extend_from_slice(&(self.expires_at.as_secs() as u64).to_le_bytes());
         vec.extend_from_slice(&(self.issued_at.as_secs() as u64).to_le_bytes());
 
@@ -172,7 +172,7 @@ impl Trust {
     pub fn decode(arr: &[u8]) -> Result<Self, TrustError> {
         let pk_len = arr[0] as usize;
         let mut offset = 1;
-        let pk = PublicKey::decode(arr[offset..offset + pk_len].to_vec())?;
+        let pk = PublicKey::decode(&arr[offset..offset + pk_len])?;
         offset += pk_len;
 
         let signature_len = arr[offset] as usize;
@@ -219,7 +219,7 @@ impl Trust {
     ) -> Result<Self, TrustError> {
         // PublicKey
         let issued_for_bytes = Self::bs58_str_to_vec(issued_for, "issued_for")?;
-        let issued_for = PublicKey::decode(issued_for_bytes)
+        let issued_for = PublicKey::decode(&issued_for_bytes)
             .map_err(|e| DecodePublicKeyError(issued_for.to_string(), e))?;
 
         // 64 bytes signature

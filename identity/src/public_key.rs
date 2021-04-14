@@ -66,7 +66,7 @@ impl PublicKey {
         result
     }
 
-    pub fn decode(bytes: Vec<u8>) -> Result<PublicKey, DecodingError> {
+    pub fn decode(bytes: &[u8]) -> Result<PublicKey, DecodingError> {
         match KeyFormat::try_from(bytes[0])? {
             KeyFormat::Ed25519 => Ok(PublicKey::Ed25519(ed25519::PublicKey::decode(&bytes[1..])?)),
             #[cfg(not(target_arch = "wasm32"))]
@@ -87,7 +87,7 @@ impl PublicKey {
 
     pub fn from_base58(str: &str) -> Result<PublicKey, DecodingError> {
         let bytes = bs58::decode(str).into_vec().map_err(DecodingError::Base58DecodeError)?;
-        Self::decode(bytes)
+        Self::decode(&bytes)
     }
 
     pub fn to_vec(&self) -> Vec<u8> {
@@ -125,7 +125,7 @@ mod tests {
         let kp = KeyPair::generate_ed25519();
         let pk = kp.public();
         let encoded_pk = pk.encode();
-        assert_eq!(pk, PublicKey::decode(encoded_pk).unwrap());
+        assert_eq!(pk, PublicKey::decode(&encoded_pk).unwrap());
     }
 
     #[test]
@@ -133,6 +133,6 @@ mod tests {
         let kp = KeyPair::generate_secp256k1();
         let pk = kp.public();
         let encoded_pk = pk.encode();
-        assert_eq!(pk, PublicKey::decode(encoded_pk).unwrap());
+        assert_eq!(pk, PublicKey::decode(&encoded_pk).unwrap());
     }
 }

@@ -132,7 +132,7 @@ impl<'de> serde::Deserialize<'de> for PublicKeyHashable {
             where
                 E: Error,
             {
-                let pk = PublicKey::decode(b.to_vec())
+                let pk = PublicKey::decode(b)
                     .map_err(|err| Error::custom(format!("Invalid bytes {:?}: {}", b, err)))?;
                 Ok(PublicKeyHashable::from(pk))
             }
