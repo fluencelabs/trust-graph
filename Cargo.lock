@@ -344,7 +344,8 @@ checksum = "37ab347416e802de484e4d03c7316c48f1ecb56574dfd4a46a80f173ce1de04d"
 [[package]]
 name = "fluence-fork-libp2p-core"
 version = "0.27.2"
-source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#096acffa78ee0fedb94c557aaf320b9bb8e32d4d"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77ffef53cfb8b873bf75998669b0aedd5212907d29d8be8e7915c4695967c40d"
 dependencies = [
  "asn1_der",
  "bs58 0.4.0",
@@ -377,8 +378,9 @@ dependencies = [
 
 [[package]]
 name = "fluence-fork-multistream-select"
-version = "0.10.2"
-source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#096acffa78ee0fedb94c557aaf320b9bb8e32d4d"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34dacd25fddb6fed5c3fa6109fb29e4eea49b731a2548e09f4e54620fa4d6310"
 dependencies = [
  "bytes",
  "futures",
@@ -390,8 +392,9 @@ dependencies = [
 
 [[package]]
 name = "fluence-fork-parity-multiaddr"
-version = "0.11.1"
-source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#096acffa78ee0fedb94c557aaf320b9bb8e32d4d"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06228daafbf129ef49806f15779857012c01d49658930d086498e78f12191da7"
 dependencies = [
  "arrayref",
  "bs58 0.4.0",
