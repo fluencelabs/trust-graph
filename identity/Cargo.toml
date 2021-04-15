@@ -1,6 +1,6 @@
 [package]
 name = "fluence-identity"
-version = "0.2.7"
+version = "0.3.0"
 authors = ["Fluence Labs"]
 edition = "2018"
 description = "identity"
@@ -24,7 +24,7 @@ asn1_der = "0.6.1"
 sha2 = "0.9.1"
 zeroize = "1"
 serde_bytes = "0.11"
-libp2p-core = { git = "https://github.com/fluencelabs/rust-libp2p", branch = "identity_rework", package = "fluence-fork-libp2p-core" }
+libp2p-core = { package = "fluence-fork-libp2p-core", version = "0.27.2" }
 
 [dev-dependencies]
 quickcheck = "0.9.0"
