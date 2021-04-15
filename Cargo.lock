@@ -343,8 +343,8 @@ checksum = "37ab347416e802de484e4d03c7316c48f1ecb56574dfd4a46a80f173ce1de04d"
 
 [[package]]
 name = "fluence-fork-libp2p-core"
-version = "0.27.1"
-source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#2d785558cfc9908cbfe54c0750e660c001cb2c3b"
+version = "0.27.2"
+source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#096acffa78ee0fedb94c557aaf320b9bb8e32d4d"
 dependencies = [
  "asn1_der",
  "bs58 0.4.0",
@@ -378,7 +378,7 @@ dependencies = [
 [[package]]
 name = "fluence-fork-multistream-select"
 version = "0.10.2"
-source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#2d785558cfc9908cbfe54c0750e660c001cb2c3b"
+source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#096acffa78ee0fedb94c557aaf320b9bb8e32d4d"
 dependencies = [
  "bytes",
  "futures",
@@ -391,7 +391,7 @@ dependencies = [
 [[package]]
 name = "fluence-fork-parity-multiaddr"
 version = "0.11.1"
-source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#2d785558cfc9908cbfe54c0750e660c001cb2c3b"
+source = "git+https://github.com/fluencelabs/rust-libp2p?branch=identity_rework#096acffa78ee0fedb94c557aaf320b9bb8e32d4d"
 dependencies = [
  "arrayref",
  "bs58 0.4.0",
@@ -407,7 +407,7 @@ dependencies = [
 
 [[package]]
 name = "fluence-identity"
-version = "0.2.7"
+version = "0.3.0"
 dependencies = [
  "asn1_der",
  "bs58 0.3.1",
@@ -1454,7 +1454,7 @@ dependencies = [
 
 [[package]]
 name = "trust-graph"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "bs58 0.3.1",
  "derivative",
