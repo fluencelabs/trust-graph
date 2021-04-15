@@ -26,14 +26,16 @@
     unreachable_patterns
 )]
 
+mod secp256k1;
+mod ed25519;
+#[cfg(not(target_arch = "wasm32"))]
+mod rsa;
 pub mod key_pair;
+pub mod error;
 pub mod public_key;
-pub mod secret_key;
 pub mod signature;
 
-pub use crate::key_pair::KeyPair;
+pub use key_pair::KeyPair;
+pub use key_pair::KeyFormat;
 pub use crate::public_key::PublicKey;
-pub use crate::secret_key::SecretKey;
 pub use crate::signature::Signature;
-
-pub(crate) use libp2p_core::identity::ed25519;

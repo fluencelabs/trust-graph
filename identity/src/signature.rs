@@ -13,40 +13,88 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+use crate::ed25519;
+use crate::secp256k1;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::rsa;
+use crate::error::DecodingError;
 use serde::{Deserialize, Serialize};
-use signature::Error as SigError;
-use signature::Signature as SigSignature;
-use thiserror::Error as ThisError;
+use crate::key_pair::KeyFormat;
+use std::convert::TryFrom;
 
-#[derive(ThisError, Debug)]
-pub enum SignatureError {
-    #[error("{0}")]
-    Error(
-        #[from]
-        #[source]
-        SigError,
-    ),
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+pub enum Signature {
+    Ed25519(ed25519::Signature),
+    #[cfg(not(target_arch = "wasm32"))]
+    Rsa(rsa::Signature),
+    Secp256k1(secp256k1::Signature),
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Signature(pub ed25519_dalek::Signature);
-
-pub const SIGNATURE_LENGTH: usize = 64;
-
 impl Signature {
-    /// Create a new signature from a byte array
-    pub fn new(bytes: [u8; SIGNATURE_LENGTH]) -> Self {
-        Signature(ed25519_dalek::Signature::from(bytes))
+    fn get_prefix(&self) -> u8 {
+        use Signature::*;
+        match self {
+            Ed25519(_) => KeyFormat::Ed25519.into(),
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(_) => KeyFormat::Rsa.into(),
+            Secp256k1(_) => KeyFormat::Secp256k1.into()
+        }
     }
 
-    /// Return the inner byte array
-    pub fn to_bytes(&self) -> [u8; SIGNATURE_LENGTH] {
-        self.0.to_bytes()
+    /// encode keypair type in first byte and signature as byte array
+    pub fn encode(&self) -> Vec<u8> {
+        use Signature::*;
+
+        let mut result: Vec<u8> = vec![self.get_prefix()];
+        
+        match self {
+            Ed25519(sig) => result.extend(sig.0.clone()),
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(sig) => result.extend(sig.0.clone()),
+            Secp256k1(sig) => result.extend(sig.0.clone()),
+        }
+
+        result
     }
 
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self, SignatureError> {
-        let sig = ed25519_dalek::Signature::from_bytes(bytes)?;
-        Ok(Signature(sig))
+    /// decode with first byte set as keypair type
+    pub fn decode(bytes: Vec<u8>) -> Result<Self, DecodingError> {
+        match KeyFormat::try_from(bytes[0])? {
+            KeyFormat::Ed25519 => Ok(Signature::Ed25519(ed25519::Signature(bytes[1..].to_vec()))),
+            #[cfg(not(target_arch = "wasm32"))]
+            KeyFormat::Rsa => Ok(Signature::Rsa(rsa::Signature(bytes[1..].to_vec()))),
+            KeyFormat::Secp256k1 => Ok(Signature::Secp256k1(secp256k1::Signature(bytes[1..].to_vec()))),
+
+        }
+    }
+
+    pub fn to_vec(&self) -> &[u8] {
+        use Signature::*;
+
+        match self {
+            Ed25519(sig) => &sig.0,
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(sig) => &sig.0,
+            Secp256k1(sig) => &sig.0,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::*;
+
+    #[test]
+    fn signature_encode_decode() {
+        let bytes: Vec<u8> = (0..10).collect();
+        let ed25519_sig = Signature::Ed25519(crate::ed25519::Signature(bytes.clone()));
+        let secp256k1_sig = Signature::Secp256k1(crate::secp256k1::Signature(bytes.clone()));
+        #[cfg(not(target_arch = "wasm32"))]
+        let rsa_sig = Signature::Rsa(crate::rsa::Signature(bytes.clone()));
+
+        assert_eq!(Signature::decode(ed25519_sig.encode()).unwrap(), ed25519_sig);
+        assert_eq!(Signature::decode(secp256k1_sig.encode()).unwrap(), secp256k1_sig);
+        #[cfg(not(target_arch = "wasm32"))]
+        assert_eq!(Signature::decode(rsa_sig.encode()).unwrap(), rsa_sig);
     }
 }

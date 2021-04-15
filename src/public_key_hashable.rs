@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use fluence_identity::public_key::{PKError, PublicKey};
+use fluence_identity::public_key::PublicKey;
 
 use core::fmt;
 use ref_cast::RefCast;
@@ -33,7 +33,7 @@ pub struct PublicKeyHashable(PublicKey);
 #[allow(clippy::derive_hash_xor_eq)]
 impl Hash for PublicKeyHashable {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        state.write(&self.0.to_bytes());
+        state.write(&self.0.encode());
         state.finish();
     }
 
@@ -44,7 +44,7 @@ impl Hash for PublicKeyHashable {
         // TODO check for overflow
         let mut bytes: Vec<u8> = Vec::with_capacity(data.len() * 32);
         for d in data {
-            bytes.extend_from_slice(&d.0.to_bytes())
+            bytes.extend_from_slice(&d.0.encode())
         }
         state.write(bytes.as_slice());
         state.finish();
@@ -77,12 +77,12 @@ impl AsRef<PublicKeyHashable> for PublicKey {
 
 impl Display for PublicKeyHashable {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", bs58::encode(self.0.to_bytes()).into_string())
+        write!(f, "{}", bs58::encode(self.0.encode()).into_string())
     }
 }
 
 impl FromStr for PublicKeyHashable {
-    type Err = PKError;
+    type Err = fluence_identity::error::DecodingError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let pk = PublicKey::from_base58(s)?;
@@ -95,7 +95,7 @@ impl serde::Serialize for PublicKeyHashable {
     where
         S: Serializer,
     {
-        serializer.serialize_bytes(&self.0.to_bytes())
+        serializer.serialize_bytes(&self.0.encode())
     }
 }
 
@@ -132,7 +132,7 @@ impl<'de> serde::Deserialize<'de> for PublicKeyHashable {
             where
                 E: Error,
             {
-                let pk = PublicKey::from_bytes(b)
+                let pk = PublicKey::decode(b)
                     .map_err(|err| Error::custom(format!("Invalid bytes {:?}: {}", b, err)))?;
                 Ok(PublicKeyHashable::from(pk))
             }

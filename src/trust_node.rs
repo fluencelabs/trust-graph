@@ -160,47 +160,47 @@ mod tests {
 
     #[test]
     fn test_auth_and_revoke_trust_node() {
-        let kp = KeyPair::generate();
+        let kp = KeyPair::generate_ed25519();
 
         let now = Duration::new(50, 0);
         let past = Duration::new(5, 0);
         let future = Duration::new(500, 0);
 
         let mut trust_node = TrustNode {
-            pk: kp.public_key(),
+            pk: kp.public(),
             trust_relations: HashMap::new(),
             verified_at: now,
         };
 
-        let truster = KeyPair::generate();
+        let truster = KeyPair::generate_ed25519();
 
-        let revoke = Revoke::create(&truster, kp.public_key(), now);
+        let revoke = Revoke::create(&truster, kp.public(), now);
 
         trust_node.update_revoke(revoke);
 
-        assert!(trust_node.get_revoke(truster.public_key()).is_some());
+        assert!(trust_node.get_revoke(truster.public()).is_some());
 
-        let old_trust = Trust::create(&truster, kp.public_key(), Duration::new(60, 0), past);
+        let old_trust = Trust::create(&truster, kp.public(), Duration::new(60, 0), past);
 
         let old_auth = Auth {
             trust: old_trust,
-            issued_by: truster.public_key(),
+            issued_by: truster.public(),
         };
 
         trust_node.update_auth(old_auth);
 
-        assert!(trust_node.get_revoke(truster.public_key()).is_some());
-        assert!(trust_node.get_auth(truster.public_key()).is_none());
+        assert!(trust_node.get_revoke(truster.public()).is_some());
+        assert!(trust_node.get_auth(truster.public()).is_none());
 
-        let trust = Trust::create(&truster, kp.public_key(), Duration::new(60, 0), future);
+        let trust = Trust::create(&truster, kp.public(), Duration::new(60, 0), future);
         let auth = Auth {
             trust,
-            issued_by: truster.public_key(),
+            issued_by: truster.public(),
         };
 
         trust_node.update_auth(auth);
 
-        assert!(trust_node.get_auth(truster.public_key()).is_some());
-        assert!(trust_node.get_revoke(truster.public_key()).is_none());
+        assert!(trust_node.get_auth(truster.public()).is_some());
+        assert!(trust_node.get_revoke(truster.public()).is_none());
     }
 }

@@ -1,168 +1,224 @@
-/*
- * Copyright 2020 Fluence Labs Limited
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2019 Parity Technologies (UK) Ltd.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+// DEALINGS IN THE SOFTWARE.
 
-use crate::ed25519::Keypair as Libp2pKeyPair;
+//! A node's network identity keys.
+use crate::ed25519;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::rsa;
+use crate::secp256k1;
 use crate::public_key::PublicKey;
-use crate::secret_key::SecretKey;
 use crate::signature::Signature;
-use ed25519_dalek::SignatureError;
-use ed25519_dalek::Signer;
+use crate::error::{Error, DecodingError, SigningError};
+use std::str::FromStr;
+use std::convert::TryFrom;
 
-use rand::rngs::OsRng;
-use std::fmt;
+/// Identity keypair of a node.
+///
+/// # Example: Generating RSA keys with OpenSSL
+///
+/// ```text
+/// openssl genrsa -out private.pem 2048
+/// openssl pkcs8 -in private.pem -inform PEM -topk8 -out private.pk8 -outform DER -nocrypt
+/// rm private.pem      # optional
+/// ```
+///
+/// Loading the keys:
+///
+/// ```text
+/// let mut bytes = std::fs::read("private.pk8").unwrap();
+/// let keypair = Keypair::rsa_from_pkcs8(&mut bytes);
+/// ```
+///
 
-/// An Ed25519 keypair.
-#[derive(Debug)]
-pub struct KeyPair {
-    key_pair: ed25519_dalek::Keypair,
+
+pub enum KeyFormat {
+    Ed25519,
+    #[cfg(not(target_arch = "wasm32"))]
+    Rsa,
+    Secp256k1,
+}
+
+impl FromStr for KeyFormat {
+    type Err = Error;
+
+    #[inline]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ed25519" => Ok(KeyFormat::Ed25519),
+            "secp256k1" => Ok(KeyFormat::Secp256k1),
+            #[cfg(not(target_arch = "wasm32"))]
+            "rsa" => Ok(KeyFormat::Rsa),
+            _ => Err(Error::InvalidKeyFormat(s.to_string()))
+        }
+    }
+}
+
+impl TryFrom<u8> for KeyFormat {
+    type Error = DecodingError;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(KeyFormat::Ed25519),
+            #[cfg(not(target_arch = "wasm32"))]
+            1 => Ok(KeyFormat::Rsa),
+            2 => Ok(KeyFormat::Secp256k1),
+            _ => Err(DecodingError::InvalidTypeByte)
+        }
+    }
+}
+
+impl From<KeyFormat> for u8 {
+    fn from(kf: KeyFormat) -> Self {
+        match kf {
+            KeyFormat::Ed25519 => 0,
+            #[cfg(not(target_arch = "wasm32"))]
+            KeyFormat::Rsa => 1,
+            KeyFormat::Secp256k1 => 2,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum KeyPair {
+    /// An Ed25519 keypair.
+    Ed25519(ed25519::Keypair),
+    #[cfg(not(target_arch = "wasm32"))]
+    /// An RSA keypair.
+    Rsa(rsa::Keypair),
+    /// A Secp256k1 keypair.
+    Secp256k1(secp256k1::Keypair),
 }
 
 impl KeyPair {
+    pub fn generate(format: KeyFormat) -> KeyPair {
+        match format {
+            KeyFormat::Ed25519 => KeyPair::generate_ed25519(),
+            KeyFormat::Secp256k1 => KeyPair::generate_secp256k1(),
+            #[cfg(not(target_arch = "wasm32"))]
+            KeyFormat::Rsa => todo!("rsa generation is not supported yet!"),
+        }
+    }
+
     /// Generate a new Ed25519 keypair.
-    #[allow(dead_code)]
-    pub fn generate() -> Self {
-        let mut csprng = OsRng {};
-        let kp = ed25519_dalek::Keypair::generate(&mut csprng);
-        kp.into()
+    pub fn generate_ed25519() -> KeyPair {
+        KeyPair::Ed25519(ed25519::Keypair::generate())
     }
 
-    pub fn public(&self) -> PublicKey {
-        PublicKey(self.key_pair.public)
+    /// Generate a new Secp256k1 keypair.
+    pub fn generate_secp256k1() -> KeyPair {
+        KeyPair::Secp256k1(secp256k1::Keypair::generate())
     }
 
-    pub fn secret(&self) -> SecretKey {
-        let b = self.key_pair.secret.to_bytes();
-        SecretKey::from_bytes(&b).expect("SecretKey::from_bytes(to_bytes(k)) != k")
+    /// Decode an keypair from a DER-encoded secret key in PKCS#8 PrivateKeyInfo
+    /// format (i.e. unencrypted) as defined in [RFC5208].
+    ///
+    /// [RFC5208]: https://tools.ietf.org/html/rfc5208#section-5
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn rsa_from_pkcs8(pkcs8_der: &mut [u8]) -> Result<KeyPair, DecodingError> {
+        rsa::Keypair::from_pkcs8(pkcs8_der).map(KeyPair::Rsa)
     }
 
-    pub fn from_bytes(sk_bytes: &[u8]) -> Result<Self, SignatureError> {
-        let kp = ed25519_dalek::Keypair::from_bytes(sk_bytes)?;
-        Ok(KeyPair { key_pair: kp })
+    /// Decode a keypair from a DER-encoded Secp256k1 secret key in an ECPrivateKey
+    /// structure as defined in [RFC5915].
+    ///
+    /// [RFC5915]: https://tools.ietf.org/html/rfc5915
+    pub fn secp256k1_from_der(der: &mut [u8]) -> Result<KeyPair, DecodingError> {
+        secp256k1::SecretKey::from_der(der)
+            .map(|sk| KeyPair::Secp256k1(secp256k1::Keypair::from(sk)))
     }
 
-    /// Encode the keypair into a byte array by concatenating the bytes
-    /// of the secret scalar and the compressed public point/
-    #[allow(dead_code)]
-    pub fn encode(&self) -> [u8; 64] {
-        self.key_pair.to_bytes()
-    }
-
-    /// Decode a keypair from the format produced by `encode`.
-    #[allow(dead_code)]
-    pub fn decode(kp: &[u8]) -> Result<KeyPair, SignatureError> {
-        let kp = ed25519_dalek::Keypair::from_bytes(kp)?;
-        Ok(Self { key_pair: kp })
+    /// Sign a message using the private key of this keypair, producing
+    /// a signature that can be verified using the corresponding public key.
+    pub fn sign(&self, msg: &[u8]) -> Result<Signature, SigningError> {
+        use KeyPair::*;
+        match self {
+            Ed25519(ref pair) => Ok(Signature::Ed25519(ed25519::Signature(pair.sign(msg)?))),
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(ref pair) => Ok(Signature::Rsa(rsa::Signature(pair.sign(msg)?))),
+            Secp256k1(ref pair) => Ok(Signature::Secp256k1(secp256k1::Signature(pair.secret().sign(msg)?)))
+        }
     }
 
     /// Get the public key of this keypair.
-    #[allow(dead_code)]
-    pub fn public_key(&self) -> PublicKey {
-        PublicKey(self.key_pair.public)
-    }
-
-    /// Sign a message using the private key of this keypair.
-    pub fn sign(&self, msg: &[u8]) -> Signature {
-        Signature(self.key_pair.sign(msg))
-    }
-
-    /// Verify the Ed25519 signature on a message using the public key.
-    pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> Result<(), SignatureError> {
-        // let signature = ed25519_dalek::Signature::from_bytes(signature)
-        //     .map_err(|err| format!("Cannot convert bytes to a signature: {:?}", err))?;
-        pk.verify_strict(msg, signature)
-    }
-}
-
-impl From<Libp2pKeyPair> for KeyPair {
-    fn from(kp: Libp2pKeyPair) -> Self {
-        // TODO: this is a hack. Convert directly. Maybe use mem::transmute?
-        let kp = ed25519_dalek::Keypair::from_bytes(&kp.encode()).unwrap();
-        Self { key_pair: kp }
-    }
-}
-
-impl From<ed25519_dalek::Keypair> for KeyPair {
-    fn from(kp: ed25519_dalek::Keypair) -> Self {
-        Self { key_pair: kp }
-    }
-}
-
-impl From<KeyPair> for ed25519_dalek::Keypair {
-    fn from(kp: KeyPair) -> Self {
-        kp.key_pair
-    }
-}
-
-impl From<KeyPair> for Libp2pKeyPair {
-    fn from(kp: KeyPair) -> Self {
-        Libp2pKeyPair::from(kp.key_pair)
-    }
-}
-
-/// Implement serde::Deserialize for KeyPair
-impl<'de> serde::Deserialize<'de> for KeyPair {
-    fn deserialize<D>(deserializer: D) -> Result<KeyPair, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        use serde::de::{Error, Unexpected, Visitor};
-
-        struct KeyPairVisitor;
-
-        impl<'de> Visitor<'de> for KeyPairVisitor {
-            type Value = KeyPair;
-
-            /// Error message stating what was expected
-            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                formatter.write_str("byte array or base58 string")
-            }
-
-            /// Implement deserialization from base58 string
-            fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
-            where
-                E: Error,
-            {
-                bs58::decode(s)
-                    .into_vec()
-                    .map_err(|_| Error::invalid_value(Unexpected::Str(s), &self))
-                    .and_then(|v| self.visit_bytes(v.as_slice()))
-            }
-
-            /// Implement deserialization from bytes
-            fn visit_bytes<E>(self, b: &[u8]) -> Result<Self::Value, E>
-            where
-                E: Error,
-            {
-                KeyPair::decode(b).map_err(|_| Error::invalid_value(Unexpected::Bytes(b), &self))
-            }
+    pub fn public(&self) -> PublicKey {
+        use KeyPair::*;
+        match self {
+            Ed25519(pair) => PublicKey::Ed25519(pair.public()),
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(pair) => PublicKey::Rsa(pair.public()),
+            Secp256k1(pair) => PublicKey::Secp256k1(pair.public().clone()),
         }
+    }
 
-        deserializer.deserialize_str(KeyPairVisitor)
+    /// Verify the signature on a message using the public key.
+    pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> Result<(), SigningError> {
+        pk.verify(msg, signature)
+    }
+
+    pub fn to_vec(&self) -> Vec<u8> {
+        use KeyPair::*;
+        match self {
+            Ed25519(kp) => kp.encode().to_vec(),
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(_) => todo!("rsa encoding is not supported yet!"),
+            Secp256k1(kp) => kp.secret().to_bytes().to_vec(),
+        }
+    }
+
+    pub fn from_vec(mut bytes: Vec<u8>, format: KeyFormat) -> Result<Self, DecodingError> {
+        use KeyPair::*;
+
+        match format {
+            KeyFormat::Ed25519 => Ok(Ed25519(ed25519::Keypair::decode(&mut bytes)?)),
+            KeyFormat::Secp256k1 => Ok(Secp256k1(secp256k1::SecretKey::from_bytes(bytes)?.into())),
+            #[cfg(not(target_arch = "wasm32"))]
+            KeyFormat::Rsa => Err(DecodingError::KeypairDecodingIsNotSupported)
+        }
     }
 }
 
-impl Clone for KeyPair {
-    fn clone(&self) -> KeyPair {
-        let sk_bytes = self.key_pair.secret.to_bytes();
-        let secret = ed25519_dalek::SecretKey::from_bytes(&sk_bytes)
-            .expect("ed25519::SecretKey::from_bytes(to_bytes(k)) != k");
-        let public = ed25519_dalek::PublicKey::from_bytes(&self.key_pair.public.to_bytes())
-            .expect("ed25519::PublicKey::from_bytes(to_bytes(k)) != k");
-        KeyPair {
-            key_pair: ed25519_dalek::Keypair { secret, public },
+impl From<libp2p_core::identity::Keypair> for KeyPair {
+    fn from(key: libp2p_core::identity::Keypair) -> Self {
+        use libp2p_core::identity::Keypair::*;
+
+        match key {
+            Ed25519(kp) => KeyPair::Ed25519(ed25519::Keypair::decode(&mut kp.encode()).unwrap()),
+            #[cfg(not(target_arch = "wasm32"))]
+            // safety: these Keypair structures are identical
+            Rsa(kp) => KeyPair::Rsa(unsafe { std::mem::transmute::<libp2p_core::identity::rsa::Keypair, rsa::Keypair>(kp) }),
+            Secp256k1(kp) => KeyPair::Secp256k1(secp256k1::Keypair::from(secp256k1::SecretKey::from_bytes(kp.secret().to_bytes()).unwrap())),
+        }
+    }
+}
+
+impl From<KeyPair> for libp2p_core::identity::Keypair {
+    fn from(key: KeyPair) -> Self {
+        use KeyPair::*;
+        use libp2p_core::identity::Keypair;
+        use libp2p_core::identity;
+
+        match key {
+            Ed25519(kp) => Keypair::Ed25519(identity::ed25519::Keypair::decode(kp.encode().to_vec().as_mut_slice()).unwrap()),
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(kp) => Keypair::Rsa(unsafe { std::mem::transmute::<rsa::Keypair, libp2p_core::identity::rsa::Keypair>(kp) }),
+            Secp256k1(kp) => Keypair::Secp256k1(identity::secp256k1::Keypair::from(identity::secp256k1::SecretKey::from_bytes(kp.secret().to_bytes()).unwrap())),
         }
     }
 }

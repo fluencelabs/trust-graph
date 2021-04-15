@@ -14,29 +14,23 @@
  * limitations under the License.
  */
 
-use crate::trust::TrustError::{
-    Base58DecodeError, DecodePublicKeyError, IncorrectTrustLength, ParseError, SignatureError,
-};
+use crate::trust::TrustError::{Base58DecodeError, DecodePublicKeyError, ParseError, SignatureError, DecodeErrorInvalidSize};
 use derivative::Derivative;
 use fluence_identity::key_pair::KeyPair;
-use fluence_identity::public_key::{PKError, PublicKey};
-use fluence_identity::signature::{Signature, SignatureError as SigError};
-use serde::{Deserialize, Serialize};
+use fluence_identity::public_key::PublicKey;
+use fluence_identity::signature::Signature;
 use std::convert::TryInto;
 use std::num::ParseIntError;
 use std::time::Duration;
 use thiserror::Error as ThisError;
+use serde::{Deserialize, Serialize};
 
-pub const SIG_LEN: usize = 64;
-pub const PK_LEN: usize = 32;
 pub const EXPIRATION_LEN: usize = 8;
 pub const ISSUED_LEN: usize = 8;
-pub const METADATA_LEN: usize = PK_LEN + EXPIRATION_LEN + ISSUED_LEN;
-pub const TRUST_LEN: usize = SIG_LEN + PK_LEN + EXPIRATION_LEN + ISSUED_LEN;
 
 /// One element in chain of trust in a certificate.
 /// TODO delete pk from Trust (it is already in a trust node)
-#[derive(Clone, PartialEq, Derivative, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Derivative, Eq, Deserialize, Serialize)]
 #[derivative(Debug)]
 pub struct Trust {
     /// For whom this certificate is issued
@@ -53,11 +47,11 @@ pub struct Trust {
 }
 
 fn show_pubkey(key: &PublicKey, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-    write!(f, "{}", bs58::encode(&key.to_bytes()).into_string())
+    write!(f, "{}", bs58::encode(&key.encode()).into_string())
 }
 
 fn show_sig(sig: &Signature, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-    write!(f, "{}", bs58::encode(&sig.to_bytes()).into_string())
+    write!(f, "{}", bs58::encode(&sig.encode()).into_string())
 }
 
 #[derive(ThisError, Debug)]
@@ -66,17 +60,17 @@ pub enum TrustError {
     #[error("Trust is expired at: '{0:?}', current time: '{1:?}'")]
     Expired(Duration, Duration),
 
-    /// Errors occured on signature verification
+    /// Errors occurred on signature verification
     #[error("{0}")]
     SignatureError(
         #[from]
         #[source]
-        ed25519_dalek::SignatureError,
+        fluence_identity::error::SigningError,
     ),
 
-    /// Errors occured on trust decoding from differrent formats
+    /// Errors occurred on trust decoding from different formats
     #[error("Cannot decode the public key: {0} in the trust: {1}")]
-    DecodePublicKeyError(String, #[source] PKError),
+    DecodePublicKeyError(String, #[source] fluence_identity::error::DecodingError),
 
     #[error("Cannot parse `{0}` field in the trust '{1}': {2}")]
     ParseError(String, String, #[source] ParseIntError),
@@ -84,20 +78,15 @@ pub enum TrustError {
     #[error("Cannot decode `{0}` from base58 format in the trust '{1}': {2}")]
     Base58DecodeError(String, String, #[source] bs58::decode::Error),
 
-    #[error("Cannot decode a signature from bytes: {0}")]
-    SignatureFromBytesError(#[from] SigError),
-
     #[error("{0}")]
     PublicKeyError(
         #[from]
         #[source]
-        PKError,
+        fluence_identity::error::DecodingError,
     ),
 
-    #[error(
-        "Trust length should be 104: public key(32) + signature(64) + expiration date(8), was: {0}"
-    )]
-    IncorrectTrustLength(usize),
+    #[error("Cannot decode `{0}` field in the trust: invalid size")]
+    DecodeErrorInvalidSize(String),
 }
 
 impl Trust {
@@ -124,7 +113,7 @@ impl Trust {
     ) -> Self {
         let msg = Self::metadata_bytes(&issued_for, expires_at, issued_at);
 
-        let signature = issued_by.sign(&msg);
+        let signature = issued_by.sign(msg.as_slice()).unwrap();
 
         Self {
             issued_for,
@@ -147,22 +136,18 @@ impl Trust {
         let msg: &[u8] =
             &Self::metadata_bytes(&trust.issued_for, trust.expires_at, trust.issued_at);
 
-        KeyPair::verify(issued_by, msg, &trust.signature).map_err(SignatureError)?;
-
-        Ok(())
+        KeyPair::verify(issued_by, msg, &trust.signature).map_err(SignatureError)
     }
 
-    fn metadata_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> [u8; 48] {
-        let pk_encoded = pk.to_bytes();
+    fn metadata_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> Vec<u8> {
+        let pk_encoded = pk.encode();
         let expires_at_encoded: [u8; EXPIRATION_LEN] = (expires_at.as_secs() as u64).to_le_bytes();
         let issued_at_encoded: [u8; ISSUED_LEN] = (issued_at.as_secs() as u64).to_le_bytes();
-        let mut metadata = [0; METADATA_LEN];
+        let mut metadata = Vec::new();
 
-        metadata[..PK_LEN].clone_from_slice(&pk_encoded[..PK_LEN]);
-        metadata[PK_LEN..PK_LEN + EXPIRATION_LEN]
-            .clone_from_slice(&expires_at_encoded[0..EXPIRATION_LEN]);
-        metadata[PK_LEN + EXPIRATION_LEN..METADATA_LEN]
-            .clone_from_slice(&issued_at_encoded[0..ISSUED_LEN]);
+        metadata.extend(pk_encoded);
+        metadata.extend_from_slice(&expires_at_encoded[0..EXPIRATION_LEN]);
+        metadata.extend_from_slice(&issued_at_encoded[0..ISSUED_LEN]);
 
         metadata
     }
@@ -170,32 +155,55 @@ impl Trust {
     /// Encode the trust into a byte array
     #[allow(dead_code)]
     pub fn encode(&self) -> Vec<u8> {
-        let mut vec = Vec::with_capacity(TRUST_LEN);
-        vec.extend_from_slice(&self.issued_for.to_bytes());
-        vec.extend_from_slice(&self.signature.to_bytes());
+        let mut vec = Vec::new();
+        let mut issued_for = self.issued_for.encode();
+        let mut signature = self.signature.encode();
+        vec.push(issued_for.len() as u8);
+        vec.append(&mut issued_for);
+        vec.push(signature.len() as u8);
+        vec.append(&mut signature);
         vec.extend_from_slice(&(self.expires_at.as_secs() as u64).to_le_bytes());
         vec.extend_from_slice(&(self.issued_at.as_secs() as u64).to_le_bytes());
 
         vec
     }
 
+    fn check_arr_len(arr: &[u8], field_name: &str, check_len: usize) -> Result<(), TrustError> {
+        if arr.len() < check_len {
+            Err(DecodeErrorInvalidSize(field_name.to_string()))
+        } else {
+            Ok(())
+        }
+    }
+
     /// Decode a trust from a byte array as produced by `encode`.
     #[allow(dead_code)]
     pub fn decode(arr: &[u8]) -> Result<Self, TrustError> {
-        if arr.len() != TRUST_LEN {
-            return Err(IncorrectTrustLength(arr.len()));
-        }
+        Self::check_arr_len(arr, "public_key_len", 1)?;
+        let pk_len = arr[0] as usize;
+        let mut offset = 1;
 
-        let pk = PublicKey::from_bytes(&arr[0..PK_LEN])?;
+        Self::check_arr_len(arr, "public_key", offset + pk_len)?;
+        let pk = PublicKey::decode(&arr[offset..offset + pk_len])?;
+        offset += pk_len;
 
-        let signature = &arr[PK_LEN..PK_LEN + SIG_LEN];
-        let signature = Signature::from_bytes(signature)?;
+        Self::check_arr_len(arr, "signature_size", offset + 1)?;
+        let signature_len = arr[offset] as usize;
+        offset += 1;
 
-        let expiration_bytes = &arr[PK_LEN + SIG_LEN..PK_LEN + SIG_LEN + EXPIRATION_LEN];
+        Self::check_arr_len(arr, "signature", offset + signature_len)?;
+        let signature = &arr[offset..offset + signature_len];
+        let signature = Signature::decode(signature.to_vec())?;
+        offset += signature_len;
+
+        Self::check_arr_len(arr, "expiration", offset + EXPIRATION_LEN)?;
+        let expiration_bytes = &arr[offset..offset + EXPIRATION_LEN];
         let expiration_date = u64::from_le_bytes(expiration_bytes.try_into().unwrap());
         let expiration_date = Duration::from_secs(expiration_date);
+        offset += EXPIRATION_LEN;
 
-        let issued_bytes = &arr[PK_LEN + SIG_LEN + EXPIRATION_LEN..TRUST_LEN];
+        Self::check_arr_len(arr, "issued", offset + ISSUED_LEN)?;
+        let issued_bytes = &arr[offset..];
         let issued_date = u64::from_le_bytes(issued_bytes.try_into().unwrap());
         let issued_date = Duration::from_secs(issued_date);
 
@@ -228,12 +236,12 @@ impl Trust {
     ) -> Result<Self, TrustError> {
         // PublicKey
         let issued_for_bytes = Self::bs58_str_to_vec(issued_for, "issued_for")?;
-        let issued_for = PublicKey::from_bytes(issued_for_bytes.as_slice())
+        let issued_for = PublicKey::decode(&issued_for_bytes)
             .map_err(|e| DecodePublicKeyError(issued_for.to_string(), e))?;
 
         // 64 bytes signature
         let signature = Self::bs58_str_to_vec(signature, "signature")?;
-        let signature = Signature::from_bytes(&signature)?;
+        let signature = Signature::decode(signature.to_vec())?;
 
         // Duration
         let expires_at = Self::str_to_duration(expires_at, "expires_at")?;
@@ -247,8 +255,8 @@ impl Trust {
 
 impl ToString for Trust {
     fn to_string(&self) -> String {
-        let issued_for = bs58::encode(self.issued_for.to_bytes()).into_string();
-        let signature = bs58::encode(self.signature.to_bytes()).into_string();
+        let issued_for = bs58::encode(self.issued_for.encode()).into_string();
+        let signature = bs58::encode(self.signature.encode()).into_string();
         let expires_at = (self.expires_at.as_secs() as u64).to_string();
         let issued_at = (self.issued_at.as_secs() as u64).to_string();
 
@@ -264,31 +272,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_gen_revoke_and_validate() {
-        let truster = KeyPair::generate();
-        let trusted = KeyPair::generate();
+    fn test_gen_revoke_and_validate_ed25519() {
+        let truster = KeyPair::generate_ed25519();
+        let trusted = KeyPair::generate_ed25519();
 
         let current = Duration::new(100, 0);
         let duration = Duration::new(1000, 0);
         let issued_at = Duration::new(10, 0);
 
-        let trust = Trust::create(&truster, trusted.public_key(), duration, issued_at);
+        let trust = Trust::create(&truster, trusted.public(), duration, issued_at);
 
         assert_eq!(
-            Trust::verify(&trust, &truster.public_key(), current).is_ok(),
+            Trust::verify(&trust, &truster.public(), current).is_ok(),
             true
         );
     }
 
     #[test]
-    fn test_validate_corrupted_revoke() {
-        let truster = KeyPair::generate();
-        let trusted = KeyPair::generate();
+    fn test_validate_corrupted_revoke_ed25519() {
+        let truster = KeyPair::generate_ed25519();
+        let trusted = KeyPair::generate_ed25519();
 
         let current = Duration::new(1000, 0);
         let issued_at = Duration::new(10, 0);
 
-        let trust = Trust::create(&truster, trusted.public_key(), current, issued_at);
+        let trust = Trust::create(&truster, trusted.public(), current, issued_at);
 
         let corrupted_duration = Duration::new(1234, 0);
         let corrupted_trust = Trust::new(
@@ -298,18 +306,18 @@ mod tests {
             trust.signature,
         );
 
-        assert!(Trust::verify(&corrupted_trust, &truster.public_key(), current).is_err());
+        assert!(Trust::verify(&corrupted_trust, &truster.public(), current).is_err());
     }
 
     #[test]
-    fn test_encode_decode() {
-        let truster = KeyPair::generate();
-        let trusted = KeyPair::generate();
+    fn test_encode_decode_ed25519() {
+        let truster = KeyPair::generate_ed25519();
+        let trusted = KeyPair::generate_ed25519();
 
         let current = Duration::new(1000, 0);
         let issued_at = Duration::new(10, 0);
 
-        let trust = Trust::create(&truster, trusted.public_key(), current, issued_at);
+        let trust = Trust::create(&truster, trusted.public(), current, issued_at);
 
         let encoded = trust.encode();
         let decoded = Trust::decode(encoded.as_slice()).unwrap();

@@ -123,10 +123,10 @@ where
 
         // Insert new TrustNode for this root_pk if there wasn't one
         if self.storage.get(&root_pk)?.is_none() {
-            let mut trust_node = TrustNode::new(root_trust.issued_for, cur_time);
+            let mut trust_node = TrustNode::new(root_trust.issued_for.clone(), cur_time);
             let root_auth = Auth {
                 trust: root_trust.clone(),
-                issued_by: root_trust.issued_for,
+                issued_by: root_trust.issued_for.clone(),
             };
             trust_node.update_auth(root_auth);
             self.storage.insert(root_pk, trust_node)?;
@@ -139,7 +139,7 @@ where
 
             let auth = Auth {
                 trust: trust.clone(),
-                issued_by: previous_trust.issued_for,
+                issued_by: previous_trust.issued_for.clone(),
             };
 
             self.storage
@@ -169,7 +169,7 @@ where
 
         // get all possible certificates from the given public key to all roots in the graph
         let certs = self.get_all_certs(pk, roots.as_slice())?;
-        Ok(self.certificates_weight(certs)?)
+        self.certificates_weight(certs)
     }
 
     /// Calculate weight from given certificates
@@ -347,8 +347,8 @@ mod tests {
     }
 
     fn generate_root_cert() -> (KeyPair, KeyPair, Certificate) {
-        let root_kp = KeyPair::generate();
-        let second_kp = KeyPair::generate();
+        let root_kp = KeyPair::generate_ed25519();
+        let second_kp = KeyPair::generate_ed25519();
 
         let cur_time = current_time();
 
@@ -357,7 +357,7 @@ mod tests {
             second_kp.clone(),
             Certificate::issue_root(
                 &root_kp,
-                second_kp.public_key(),
+                second_kp.public(),
                 cur_time.checked_add(one_minute()).unwrap(),
                 cur_time,
             ),
@@ -373,20 +373,20 @@ mod tests {
     ) -> Result<(Vec<KeyPair>, Certificate), TrustGraphError> {
         assert!(len > 2);
 
-        let root_kp = KeyPair::generate();
-        let second_kp = KeyPair::generate();
+        let root_kp = KeyPair::generate_ed25519();
+        let second_kp = KeyPair::generate_ed25519();
 
         let mut cert =
-            Certificate::issue_root(&root_kp, second_kp.public_key(), expires_at, issued_at);
+            Certificate::issue_root(&root_kp, second_kp.public(), expires_at, issued_at);
 
         let mut key_pairs = vec![root_kp, second_kp];
 
         for idx in 2..len {
-            let kp = keys.get(&idx).unwrap_or(&KeyPair::generate()).clone();
+            let kp = keys.get(&idx).unwrap_or(&KeyPair::generate_ed25519()).clone();
             let previous_kp = &key_pairs[idx - 1];
             cert = Certificate::issue(
                 &previous_kp,
-                kp.public_key(),
+                kp.public(),
                 &cert,
                 expires_at,
                 // TODO: why `issued_at = issued_at - 60 seconds`?
@@ -434,12 +434,12 @@ mod tests {
     }
 
     #[test]
-    fn test_add_certs_with_same_trusts_and_different_expirations() {
+    fn test_add_certs_with_same_trusts_and_different_expirations_ed25519() {
         let cur_time = current_time();
         let far_future = cur_time + Duration::from_secs(10);
         let far_far_future = cur_time + Duration::from_secs(900);
-        let key_pair1 = KeyPair::generate();
-        let key_pair2 = KeyPair::generate();
+        let key_pair1 = KeyPair::generate_ed25519();
+        let key_pair2 = KeyPair::generate_ed25519();
 
         // Use key_pair1 and key_pair2 for 5th and 6th trust in the cert chain
         let mut chain_keys = HashMap::new();
@@ -459,26 +459,26 @@ mod tests {
 
         let st = InMemoryStorage::new();
         let mut graph = TrustGraph::new(st);
-        let root1_pk = key_pairs1[0].public_key();
-        let root2_pk = key_pairs2[0].public_key();
+        let root1_pk = key_pairs1[0].public();
+        let root2_pk = key_pairs2[0].public();
         graph.add_root_weight(root1_pk.into(), 1).unwrap();
         graph.add_root_weight(root2_pk.into(), 0).unwrap();
         graph.add(cert1, cur_time).unwrap();
 
-        let node2 = graph.get(key_pair2.public_key()).unwrap().unwrap();
+        let node2 = graph.get(key_pair2.public()).unwrap().unwrap();
         let auth_by_kp1 = node2
             .authorizations()
-            .find(|a| a.issued_by == key_pair1.public_key())
+            .find(|a| a.issued_by == key_pair1.public())
             .unwrap();
 
         assert_eq!(auth_by_kp1.trust.expires_at, far_future * 2);
 
         graph.add(cert2, cur_time).unwrap();
 
-        let node2 = graph.get(key_pair2.public_key()).unwrap().unwrap();
+        let node2 = graph.get(key_pair2.public()).unwrap().unwrap();
         let auth_by_kp1 = node2
             .authorizations()
-            .find(|a| a.issued_by == key_pair1.public_key())
+            .find(|a| a.issued_by == key_pair1.public())
             .unwrap();
 
         assert_eq!(auth_by_kp1.trust.expires_at, far_far_future * 2);
@@ -492,21 +492,21 @@ mod tests {
         let st = InMemoryStorage::new();
         let mut graph = TrustGraph::new(st);
 
-        let root_pk = key_pairs[0].public_key();
+        let root_pk = key_pairs[0].public();
         graph.add_root_weight(root_pk.into(), 1).unwrap();
 
         graph.add(cert1, current_time()).unwrap();
 
-        let w1 = graph.weight(key_pairs[0].public_key()).unwrap().unwrap();
+        let w1 = graph.weight(key_pairs[0].public()).unwrap().unwrap();
         assert_eq!(w1, 1);
 
-        let w2 = graph.weight(key_pairs[1].public_key()).unwrap().unwrap();
+        let w2 = graph.weight(key_pairs[1].public()).unwrap().unwrap();
         assert_eq!(w2, 2);
 
-        let w3 = graph.weight(key_pairs[9].public_key()).unwrap().unwrap();
+        let w3 = graph.weight(key_pairs[9].public()).unwrap().unwrap();
         assert_eq!(w3, 10);
 
-        let node = graph.get(key_pairs[9].public_key()).unwrap().unwrap();
+        let node = graph.get(key_pairs[9].public()).unwrap().unwrap();
         let auths: Vec<&Auth> = node.authorizations().collect();
 
         assert_eq!(auths.len(), 1);
@@ -515,9 +515,9 @@ mod tests {
 
     #[test]
     fn test_cycles_in_graph() {
-        let key_pair1 = KeyPair::generate();
-        let key_pair2 = KeyPair::generate();
-        let key_pair3 = KeyPair::generate();
+        let key_pair1 = KeyPair::generate_ed25519();
+        let key_pair2 = KeyPair::generate_ed25519();
+        let key_pair3 = KeyPair::generate_ed25519();
 
         let mut chain_keys = HashMap::new();
         chain_keys.insert(3, key_pair1.clone());
@@ -535,8 +535,8 @@ mod tests {
 
         let st = InMemoryStorage::new();
         let mut graph = TrustGraph::new(st);
-        let root1_pk = key_pairs1[0].public_key();
-        let root2_pk = key_pairs2[0].public_key();
+        let root1_pk = key_pairs1[0].public();
+        let root2_pk = key_pairs2[0].public();
         graph.add_root_weight(root1_pk.into(), 1).unwrap();
         graph.add_root_weight(root2_pk.into(), 0).unwrap();
 
@@ -546,15 +546,15 @@ mod tests {
         graph.add(cert1, current_time()).unwrap();
         graph.add(cert2, current_time()).unwrap();
 
-        let revoke1 = Revoke::create(&key_pairs1[3], key_pairs1[4].public_key(), current_time());
+        let revoke1 = Revoke::create(&key_pairs1[3], key_pairs1[4].public(), current_time());
         graph.revoke(revoke1).unwrap();
-        let revoke2 = Revoke::create(&key_pairs2[5], key_pairs2[6].public_key(), current_time());
+        let revoke2 = Revoke::create(&key_pairs2[5], key_pairs2[6].public(), current_time());
         graph.revoke(revoke2).unwrap();
 
-        let w1 = graph.weight(key_pair1.public_key()).unwrap().unwrap();
+        let w1 = graph.weight(key_pair1.public()).unwrap().unwrap();
         // all upper trusts are revoked for this public key
-        let w2 = graph.weight(key_pair2.public_key()).unwrap();
-        let w3 = graph.weight(key_pair3.public_key()).unwrap().unwrap();
+        let w2 = graph.weight(key_pair2.public()).unwrap();
+        let w3 = graph.weight(key_pair3.public()).unwrap().unwrap();
         let w_last1 = graph.weight(last_pk1).unwrap().unwrap();
         let w_last2 = graph.weight(last_pk2).unwrap().unwrap();
 
@@ -571,13 +571,13 @@ mod tests {
 
         let st = InMemoryStorage::new();
         let mut graph = TrustGraph::new(st);
-        let root1_pk = key_pairs[0].public_key();
+        let root1_pk = key_pairs[0].public();
         graph.add_root_weight(root1_pk.clone().into(), 1).unwrap();
 
         graph.add(cert.clone(), current_time()).unwrap();
 
         let certs = graph
-            .get_all_certs(key_pairs.last().unwrap().public_key(), &[root1_pk])
+            .get_all_certs(key_pairs.last().unwrap().public(), &[root1_pk])
             .unwrap();
 
         assert_eq!(certs.len(), 1);
@@ -605,9 +605,9 @@ mod tests {
 
     #[test]
     fn test_find_certs() {
-        let key_pair1 = KeyPair::generate();
-        let key_pair2 = KeyPair::generate();
-        let key_pair3 = KeyPair::generate();
+        let key_pair1 = KeyPair::generate_ed25519();
+        let key_pair2 = KeyPair::generate_ed25519();
+        let key_pair3 = KeyPair::generate_ed25519();
 
         let mut chain_keys = HashMap::new();
         chain_keys.insert(2, key_pair1.clone());
@@ -632,9 +632,9 @@ mod tests {
 
         let st = InMemoryStorage::new();
         let mut graph = TrustGraph::new(st);
-        let root1_pk = key_pairs1[0].public_key();
-        let root2_pk = key_pairs2[0].public_key();
-        let root3_pk = key_pairs3[0].public_key();
+        let root1_pk = key_pairs1[0].public();
+        let root2_pk = key_pairs2[0].public();
+        let root3_pk = key_pairs3[0].public();
         graph.add_root_weight(root1_pk.clone().into(), 1).unwrap();
         graph.add_root_weight(root2_pk.clone().into(), 0).unwrap();
         graph.add_root_weight(root3_pk.clone().into(), 0).unwrap();
@@ -646,21 +646,21 @@ mod tests {
         let roots_values = [root1_pk, root2_pk, root3_pk];
 
         let certs1 = graph
-            .get_all_certs(key_pair1.public_key(), &roots_values)
+            .get_all_certs(key_pair1.public(), &roots_values)
             .unwrap();
         let lenghts1: Vec<usize> = certs1.iter().map(|c| c.chain.len()).collect();
         let check_lenghts1: Vec<usize> = vec![3, 4, 4, 5, 5];
         assert_eq!(lenghts1, check_lenghts1);
 
         let certs2 = graph
-            .get_all_certs(key_pair2.public_key(), &roots_values)
+            .get_all_certs(key_pair2.public(), &roots_values)
             .unwrap();
         let lenghts2: Vec<usize> = certs2.iter().map(|c| c.chain.len()).collect();
         let check_lenghts2: Vec<usize> = vec![4, 4, 4, 5, 5];
         assert_eq!(lenghts2, check_lenghts2);
 
         let certs3 = graph
-            .get_all_certs(key_pair3.public_key(), &roots_values)
+            .get_all_certs(key_pair3.public(), &roots_values)
             .unwrap();
         let lenghts3: Vec<usize> = certs3.iter().map(|c| c.chain.len()).collect();
         let check_lenghts3: Vec<usize> = vec![3, 3, 5];
