@@ -7,10 +7,10 @@ use crate::storage_impl::SQLiteStorageError::{
     WeightConversionDB,
 };
 use core::convert::TryFrom;
-use fce_sqlite_connector;
-use fce_sqlite_connector::Connection;
-use fce_sqlite_connector::Error as InternalSqliteError;
-use fce_sqlite_connector::Value;
+use marine_sqlite_connector;
+use marine_sqlite_connector::Connection;
+use marine_sqlite_connector::Error as InternalSqliteError;
+use marine_sqlite_connector::Value;
 use fluence_identity::public_key::PublicKey;
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
@@ -29,7 +29,7 @@ static INSTANCE: OnceCell<Mutex<TrustGraph<SQLiteStorage>>> = OnceCell::new();
 pub fn get_data() -> &'static Mutex<TrustGraph<SQLiteStorage>> {
     INSTANCE.get_or_init(|| {
         let db_path = "/tmp/users123123.sqlite";
-        let connection = fce_sqlite_connector::open(db_path).unwrap();
+        let connection = marine_sqlite_connector::open(db_path).unwrap();
 
         let init_sql = "CREATE TABLE IF NOT EXISTS trustnodes(
         public_key TEXT PRIMARY KEY,

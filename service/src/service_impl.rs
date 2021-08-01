@@ -1,6 +1,6 @@
 use crate::dto::{Certificate, DtoConversionError};
 use crate::storage_impl::get_data;
-use fluence_identity::public_key::PKError;
+use fluence_identity::error::DecodingError;
 use fluence_identity::PublicKey;
 use std::convert::{Into, TryInto};
 use std::str::FromStr;
@@ -14,7 +14,7 @@ pub enum ServiceError {
     PublicKeyDecodeError(
         #[from]
         #[source]
-        PKError,
+        DecodingError,
     ),
     #[error("{0}")]
     TGError(

@@ -1,4 +1,4 @@
-use fluence::WasmLoggerBuilder;
+use marine_rs_sdk::WasmLoggerBuilder;
 
 mod dto;
 mod results;
@@ -8,7 +8,7 @@ mod storage_impl;
 
 pub fn main() {
     WasmLoggerBuilder::new()
-        .with_log_level(log::Level::Info)
+        .with_log_level(log::LevelFilter::Info)
         .build()
         .unwrap();
 }

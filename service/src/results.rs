@@ -1,8 +1,8 @@
 use crate::dto::Certificate;
 use crate::service_impl::ServiceError;
-use fluence::fce;
+use marine_rs_sdk::marine;
 
-#[fce]
+#[marine]
 pub struct InsertResult {
     pub ret_code: u32,
     pub error: String,
@@ -23,7 +23,7 @@ impl From<Result<(), ServiceError>> for InsertResult {
     }
 }
 
-#[fce]
+#[marine]
 pub struct WeightResult {
     pub ret_code: u32,
     pub weight: Vec<u32>,
@@ -47,7 +47,7 @@ impl From<Result<Option<u32>, ServiceError>> for WeightResult {
     }
 }
 
-#[fce]
+#[marine]
 pub struct AllCertsResult {
     pub ret_code: u32,
     pub certificates: Vec<Certificate>,
@@ -71,7 +71,7 @@ impl From<Result<Vec<Certificate>, ServiceError>> for AllCertsResult {
     }
 }
 
-#[fce]
+#[marine]
 pub struct AddRootResult {
     pub ret_code: u32,
     pub error: String,

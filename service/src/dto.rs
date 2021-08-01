@@ -1,6 +1,5 @@
-use fluence::fce;
-use fluence_identity::public_key::PKError;
-use fluence_identity::signature::SignatureError;
+use marine_rs_sdk::marine;
+use fluence_identity::error::DecodingError;
 use fluence_identity::{PublicKey, Signature};
 use std::convert::TryFrom;
 use std::time::Duration;
@@ -18,17 +17,11 @@ pub enum DtoConversionError {
     PublicKeyDecodeError(
         #[from]
         #[source]
-        PKError,
-    ),
-    #[error("Cannot convert string to PublicKey: {0}")]
-    SignatureDecodeError(
-        #[from]
-        #[source]
-        SignatureError,
+        DecodingError,
     ),
 }
 
-#[fce]
+#[marine]
 pub struct Certificate {
     pub chain: Vec<Trust>,
 }
@@ -54,7 +47,7 @@ impl TryFrom<Certificate> for trust_graph::Certificate {
     }
 }
 
-#[fce]
+#[marine]
 pub struct Trust {
     /// For whom this certificate is issued, base58
     pub issued_for: String,
@@ -73,7 +66,7 @@ impl TryFrom<Trust> for trust_graph::Trust {
     fn try_from(t: Trust) -> Result<Self, Self::Error> {
         let issued_for = PublicKey::from_base58(&t.issued_for)?;
         let signature = bs58::decode(&t.signature).into_vec()?;
-        let signature = Signature::from_bytes(&signature)?;
+        let signature = Signature::decode(signature)?;
         let expires_at = Duration::from_secs(t.expires_at);
         let issued_at = Duration::from_secs(t.issued_at);
         return Ok(trust_graph::Trust {
@@ -87,8 +80,8 @@ impl TryFrom<Trust> for trust_graph::Trust {
 
 impl From<trust_graph::Trust> for Trust {
     fn from(t: trust_graph::Trust) -> Self {
-        let issued_for = bs58::encode(t.issued_for.to_bytes()).into_string();
-        let signature = bs58::encode(t.signature.to_bytes()).into_string();
+        let issued_for = bs58::encode(t.issued_for.encode()).into_string();
+        let signature = bs58::encode(t.signature.encode()).into_string();
         let expires_at = t.expires_at.as_secs();
         let issued_at = t.issued_at.as_secs();
         return Trust {
