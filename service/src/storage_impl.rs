@@ -3,7 +3,7 @@
 // if there is an older trust - don't add received trust
 
 use crate::storage_impl::SQLiteStorageError::{
-    PublcKeyNotFound, PublicKeyConversion, PublicKeyFromStr, TrustNodeConversion,
+    PublicKeyNotFound, PublicKeyConversion, PublicKeyFromStr, TrustNodeConversion,
     WeightConversionDB,
 };
 use core::convert::TryFrom;
@@ -85,7 +85,7 @@ pub enum SQLiteStorageError {
     #[error("Cannot convert trust node as binary from DB")]
     TrustNodeConversion,
     #[error("Cannot revoke. There is no trust with such PublicKey")]
-    PublcKeyNotFound,
+    PublicKeyNotFound,
 }
 
 impl From<SQLiteStorageError> for String {
@@ -203,7 +203,7 @@ impl Storage for SQLiteStorage {
                 self.insert(pk.clone(), trust_node)?;
                 Ok(())
             }
-            None => Err(PublcKeyNotFound),
+            None => Err(PublicKeyNotFound),
         }
     }
 

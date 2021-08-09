@@ -44,32 +44,3 @@ fn add_root(pk: String, weight: u32) -> AddRootResult {
         };
     }
 }
-
-// TODO rewrite test after #[marine_test] will be implemented
-// #[marine_test]
-// fn test() -> String {
-//     let mut tg = get_data().lock();
-//
-//     let root_kp = KeyPair::generate();
-//     let root_kp2 = KeyPair::generate();
-//     let second_kp = KeyPair::generate();
-//
-//     let expires_at = Duration::new(15, 15);
-//     let issued_at = Duration::new(5, 5);
-//
-//     let cert = trust_graph::Certificate::issue_root(
-//         &root_kp,
-//         second_kp.public_key(),
-//         expires_at,
-//         issued_at,
-//     );
-//     tg.add_root_weight(root_kp.public().into(), 0).unwrap();
-//     tg.add_root_weight(root_kp2.public().into(), 1).unwrap();
-//     tg.add(cert, Duration::new(10, 10)).unwrap();
-//
-//     let a = tg.get(second_kp.public_key()).unwrap();
-//     let str = format!("{:?}", a);
-//     log::info!("{}", &str);
-//
-//     str
-// }

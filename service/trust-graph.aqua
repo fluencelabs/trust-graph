@@ -1,0 +1,33 @@
+data AddRootResult:
+  ret_code: u32
+  error: string
+
+data Trust:
+  issued_for: string
+  expires_at: u64
+  signature: string
+  issued_at: u64
+
+data Certificate:
+  chain: []Trust
+
+data AllCertsResult:
+  ret_code: u32
+  certificates: []Certificate
+  error: string
+
+data InsertResult:
+  ret_code: u32
+  error: string
+
+data WeightResult:
+  ret_code: u32
+  weight: []u32
+  error: string
+
+service TrustGraph("trust-graph"):
+  add_root(pk: string, weight: u32) -> AddRootResult
+  get_all_certs(issued_for: string) -> AllCertsResult
+  get_weight(public_key: string) -> WeightResult
+  insert_cert(certificate: Certificate, current_time: u64) -> InsertResult
+  insert_cert_raw(certificate: string, current_time: u64) -> InsertResult
