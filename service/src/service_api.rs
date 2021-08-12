@@ -21,8 +21,8 @@ fn insert_cert(certificate: Certificate, current_time: u64) -> InsertResult {
 }
 
 #[marine]
-fn get_weight(public_key: String) -> WeightResult {
-    get_weight_impl(public_key).into()
+fn get_weight(peer_id: String) -> WeightResult {
+    get_weight_impl(peer_id).into()
 }
 
 #[marine]
@@ -32,11 +32,11 @@ fn get_all_certs(issued_for: String) -> AllCertsResult {
 
 #[marine]
 /// could add only a host of a trust graph service
-fn add_root(pk: String, weight: u32) -> AddRootResult {
+fn add_root(peer_id: String, weight: u32) -> AddRootResult {
     let call_parameters: CallParameters = marine_rs_sdk::get_call_parameters();
     let init_peer_id = call_parameters.init_peer_id.clone();
     if call_parameters.host_id == init_peer_id {
-        add_root_impl(pk, weight).into()
+        add_root_impl(peer_id, weight).into()
     } else {
         return AddRootResult {
             ret_code: 1,

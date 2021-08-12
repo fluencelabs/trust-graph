@@ -7,9 +7,15 @@ use std::str::FromStr;
 use std::time::Duration;
 use thiserror::Error as ThisError;
 use trust_graph::{CertificateError, TrustGraphError};
+use fluence_keypair::public_key::peer_id_to_fluence_pk;
+use libp2p_core::PeerId;
 
 #[derive(ThisError, Debug)]
 pub enum ServiceError {
+    #[error("peer id parse error: {0}")]
+    PeerIdParseError(String),
+    #[error("public key extraction from peer id failed: {0}")]
+    PublicKeyExtractionError(String),
     #[error("{0}")]
     PublicKeyDecodeError(
         #[from]
@@ -36,9 +42,17 @@ pub enum ServiceError {
     ),
 }
 
-pub fn get_weight_impl(public_key: String) -> Result<Option<u32>, ServiceError> {
+fn parse_peer_id(peer_id: String) -> Result<PeerId, ServiceError> {
+    libp2p_core::PeerId::from_str(&peer_id).map_err(|e| ServiceError::PeerIdParseError(format!("{:?}", e)))
+}
+
+fn extract_public_key(peer_id: String) -> Result<PublicKey, ServiceError> {
+    peer_id_to_fluence_pk(parse_peer_id(peer_id)?).map_err(|e| ServiceError::PublicKeyExtractionError(e.to_string()))
+}
+
+pub fn get_weight_impl(peer_id: String) -> Result<Option<u32>, ServiceError> {
     let tg = get_data().lock();
-    let public_key = string_to_public_key(public_key)?;
+    let public_key = extract_public_key(peer_id)?;
     let weight = tg.weight(public_key)?;
     Ok(weight)
 }
@@ -66,7 +80,7 @@ fn string_to_public_key(public_key: String) -> Result<PublicKey, ServiceError> {
 pub fn get_all_certs_impl(issued_for: String) -> Result<Vec<Certificate>, ServiceError> {
     let tg = get_data().lock();
 
-    let public_key = string_to_public_key(issued_for)?;
+    let public_key = extract_public_key(issued_for)?;
     let certs = tg.get_all_certs(public_key, &[])?;
     Ok(certs.into_iter().map(|c| c.into()).collect())
 }
@@ -78,9 +92,9 @@ pub fn insert_cert_impl(certificate: Certificate, duration: u64) -> Result<(), S
     Ok(())
 }
 
-pub fn add_root_impl(pk: String, weight: u32) -> Result<(), ServiceError> {
+pub fn add_root_impl(peer_id: String, weight: u32) -> Result<(), ServiceError> {
     let mut tg = get_data().lock();
-    let pk = PublicKey::from_base58(&pk)?.into();
-    tg.add_root_weight(pk, weight)?;
+    let public_key = extract_public_key(peer_id)?;
+    tg.add_root_weight(public_key, weight)?;
     Ok(())
 }

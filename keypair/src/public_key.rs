@@ -114,6 +114,10 @@ impl From<libp2p_core::identity::PublicKey> for PublicKey {
     }
 }
 
+pub fn peer_id_to_fluence_pk(peer_id: libp2p_core::PeerId) -> eyre::Result<PublicKey> {
+    Ok(peer_id.as_public_key().ok_or(eyre::eyre!("public key is not inlined in peer id: {}", peer_id))?.into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
