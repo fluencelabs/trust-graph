@@ -26,7 +26,7 @@ use crate::trust_graph::TrustGraphError::{
 use crate::trust_graph_storage::Storage;
 use crate::trust_node::{Auth, TrustNode};
 use crate::StorageError;
-use fluence_identity::public_key::PublicKey;
+use fluence_keypair::public_key::PublicKey;
 use std::borrow::Borrow;
 use std::collections::{HashSet, VecDeque};
 use std::convert::{From, Into};
@@ -339,7 +339,7 @@ mod tests {
     use crate::misc::current_time;
     use crate::trust_graph_storage::InMemoryStorage;
     use failure::_core::time::Duration;
-    use fluence_identity::key_pair::KeyPair;
+    use fluence_keypair::key_pair::KeyPair;
     use std::collections::HashMap;
 
     pub fn one_minute() -> Duration {

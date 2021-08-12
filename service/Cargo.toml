@@ -12,7 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 trust-graph = { version = "0.2.6", path = "../." }
-fluence-identity = { version = "0.3.0", path = "../identity" }
+fluence-keypair = { version = "0.3.0", path = "../keypair" }
 marine-rs-sdk = { version = "0.6.11", features = ["logger"] }
 marine-sqlite-connector = "0.5.0"
 

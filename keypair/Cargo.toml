@@ -1,5 +1,5 @@
 [package]
-name = "fluence-identity"
+name = "fluence-keypair"
 version = "0.3.0"
 authors = ["Fluence Labs"]
 edition = "2018"

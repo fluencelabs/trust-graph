@@ -20,8 +20,8 @@ use crate::certificate::CertificateError::{
     VerificationError,
 };
 use crate::trust::{Trust, TrustError};
-use fluence_identity::key_pair::KeyPair;
-use fluence_identity::public_key::PublicKey;
+use fluence_keypair::key_pair::KeyPair;
+use fluence_keypair::public_key::PublicKey;
 use std::str::FromStr;
 use std::time::Duration;
 use thiserror::Error as ThisError;
@@ -281,7 +281,7 @@ impl FromStr for Certificate {
 mod tests {
     use super::*;
     use crate::misc::current_time;
-    use fluence_identity::key_pair::KeyPair;
+    use fluence_keypair::KeyPair;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     pub fn one_second() -> Duration {

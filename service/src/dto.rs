@@ -1,6 +1,6 @@
 use marine_rs_sdk::marine;
-use fluence_identity::error::DecodingError;
-use fluence_identity::{PublicKey, Signature};
+use fluence_keypair::error::DecodingError;
+use fluence_keypair::{PublicKey, Signature};
 use std::convert::TryFrom;
 use std::time::Duration;
 use thiserror::Error as ThisError;

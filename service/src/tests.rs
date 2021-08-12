@@ -17,31 +17,31 @@
 #[cfg(test)]
 mod tests {
     use marine_rs_sdk_test::marine_test;
-    use fluence_identity;
+    use fluence_keypair;
     use std::time::Duration;
 
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
-    fn test() {
-
-        let root_kp = Keypai
-        let root_kp2 = KeyPair::generate();
-        let second_kp = KeyPair::generate();
-
-        let expires_at = Duration::new(15, 15);
-        let issued_at = Duration::new(5, 5);
-
-        let cert = trust_graph::Certificate::issue_root(
-            &root_kp,
-            second_kp.public_key(),
-            expires_at,
-            issued_at,
-        );
-        trast_graph.add_root(root_kp.public().into(), 0).unwrap();
-        tg.add_root_weight(root_kp2.public().into(), 1).unwrap();
-        tg.add(cert, Duration::new(10, 10)).unwrap();
-
-        let a = tg.get(second_kp.public_key()).unwrap();
-        let str = format!("{:?}", a);
-        log::info!("{}", &str);
-    }
+    // #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    // fn test() {
+    //
+    //     let root_kp = Keypair::
+    //     let root_kp2 = KeyPair::generate();
+    //     let second_kp = KeyPair::generate();
+    //
+    //     let expires_at = Duration::new(15, 15);
+    //     let issued_at = Duration::new(5, 5);
+    //
+    //     let cert = trust_graph::Certificate::issue_root(
+    //         &root_kp,
+    //         second_kp.public_key(),
+    //         expires_at,
+    //         issued_at,
+    //     );
+    //     trast_graph.add_root(root_kp.public().into(), 0).unwrap();
+    //     tg.add_root_weight(root_kp2.public().into(), 1).unwrap();
+    //     tg.add(cert, Duration::new(10, 10)).unwrap();
+    //
+    //     let a = tg.get(second_kp.public_key()).unwrap();
+    //     let str = format!("{:?}", a);
+    //     log::info!("{}", &str);
+    // }
 }

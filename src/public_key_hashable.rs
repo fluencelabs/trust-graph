@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-use fluence_identity::public_key::PublicKey;
+use fluence_keypair::PublicKey;
 
 use core::fmt;
 use ref_cast::RefCast;
@@ -82,7 +81,7 @@ impl Display for PublicKeyHashable {
 }
 
 impl FromStr for PublicKeyHashable {
-    type Err = fluence_identity::error::DecodingError;
+    type Err = fluence_keypair::error::DecodingError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let pk = PublicKey::from_base58(s)?;

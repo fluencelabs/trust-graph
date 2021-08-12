@@ -1,7 +1,7 @@
 use crate::dto::{Certificate, DtoConversionError};
 use crate::storage_impl::get_data;
-use fluence_identity::error::DecodingError;
-use fluence_identity::PublicKey;
+use fluence_keypair::error::DecodingError;
+use fluence_keypair::PublicKey;
 use std::convert::{Into, TryInto};
 use std::str::FromStr;
 use std::time::Duration;

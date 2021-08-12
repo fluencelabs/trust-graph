@@ -3,7 +3,7 @@ use crate::revoke::Revoke;
 use crate::trust_graph::Weight;
 use crate::trust_graph_storage::InMemoryStorageError::RevokeError;
 use crate::trust_node::{Auth, TrustNode};
-use fluence_identity::public_key::PublicKey;
+use fluence_keypair::public_key::PublicKey;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::time::Duration;

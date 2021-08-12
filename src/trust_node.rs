@@ -18,7 +18,7 @@ use crate::public_key_hashable::PublicKeyHashable;
 use crate::revoke::Revoke;
 use crate::trust::Trust;
 use failure::_core::time::Duration;
-use fluence_identity::public_key::PublicKey;
+use fluence_keypair::public_key::PublicKey;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use std::collections::HashMap;
@@ -154,7 +154,7 @@ impl TrustNode {
 mod tests {
     use std::time::Duration;
 
-    use fluence_identity::key_pair::KeyPair;
+    use fluence_keypair::key_pair::KeyPair;
 
     use super::*;
 

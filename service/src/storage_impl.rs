@@ -11,7 +11,7 @@ use marine_sqlite_connector;
 use marine_sqlite_connector::Connection;
 use marine_sqlite_connector::Error as InternalSqliteError;
 use marine_sqlite_connector::Value;
-use fluence_identity::public_key::PublicKey;
+use fluence_keypair::public_key::PublicKey;
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
 use rmp_serde::decode::Error as RmpDecodeError;
