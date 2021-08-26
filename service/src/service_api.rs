@@ -1,8 +1,6 @@
 use crate::dto::Certificate;
-use crate::results::{AddRootResult, AllCertsResult, InsertResult, WeightResult};
-use crate::service_impl::{
-    add_root_impl, get_all_certs_impl, get_weight_impl, insert_cert_impl, insert_cert_impl_raw,
-};
+use crate::results::{AddRootResult, AllCertsResult, InsertResult, WeightResult, GetTrustMetadataResult};
+use crate::service_impl::{add_root_impl, get_all_certs_impl, get_weight_impl, insert_cert_impl, insert_cert_impl_raw, get_trust_metadata_imp};
 use marine_rs_sdk::{CallParameters, marine};
 
 #[marine]
@@ -39,8 +37,18 @@ fn add_root(peer_id: String, weight: u32) -> AddRootResult {
         add_root_impl(peer_id, weight).into()
     } else {
         return AddRootResult {
-            ret_code: 1,
+            success: true,
             error: "Root could add only a host of trust graph service".to_string(),
         };
     }
 }
+
+#[marine]
+fn get_trust_metadata(peer_id: String, expires_at: u64, issued_at: u64) -> GetTrustMetadataResult {
+    get_trust_metadata_imp(peer_id, expires_at, issued_at).into()
+}
+
+// #[marine]
+// fn issue_trust(peer_id: String, expires_at: u64, issued_at: u64, signed_metadata: Vec<u8>, sig_type: String) -> IssueTrustResult {
+//     issue_trust_impl(peer_id, expires_at, issued_at, signed_metadata).into()
+// }

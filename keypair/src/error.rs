@@ -47,6 +47,8 @@ pub enum DecodingError {
     InvalidTypeByte,
     #[error("Cannot decode public key from base58 :{0}")]
     Base58DecodeError(#[source] bs58::decode::Error),
+    #[error("Raw signature decoding failed: type {0} not supported")]
+    RawSignatureUnsupportedType(String),
 }
 
 /// An error during signing of a message.

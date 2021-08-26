@@ -1,9 +1,14 @@
 use marine_rs_sdk::marine;
 use fluence_keypair::error::DecodingError;
-use fluence_keypair::{PublicKey, Signature};
+use fluence_keypair::{Signature};
 use std::convert::TryFrom;
 use std::time::Duration;
 use thiserror::Error as ThisError;
+use libp2p_core::PeerId;
+use fluence_keypair::public_key::peer_id_to_fluence_pk;
+use std::str::FromStr;
+use fluence_keypair::signature::RawSignature;
+use crate::dto::DtoConversionError::PeerIdDecodeError;
 
 #[derive(ThisError, Debug)]
 pub enum DtoConversionError {
@@ -19,6 +24,8 @@ pub enum DtoConversionError {
         #[source]
         DecodingError,
     ),
+    #[error("Cannot decode peer id from string: {0}")]
+    PeerIdDecodeError(String),
 }
 
 #[marine]
@@ -48,14 +55,16 @@ impl TryFrom<Certificate> for trust_graph::Certificate {
 }
 
 #[marine]
+#[derive(Default)]
 pub struct Trust {
-    /// For whom this certificate is issued, base58
+    /// For whom this certificate is issued, base58 peer_id
     pub issued_for: String,
     /// Expiration date of a trust, in secs
     pub expires_at: u64,
     /// Signature of a previous trust in a chain.
     /// Signature is self-signed if it is a root trust, base58
     pub signature: String,
+    pub sig_type: String,
     /// Creation time of a trust, in secs
     pub issued_at: u64,
 }
@@ -64,9 +73,11 @@ impl TryFrom<Trust> for trust_graph::Trust {
     type Error = DtoConversionError;
 
     fn try_from(t: Trust) -> Result<Self, Self::Error> {
-        let issued_for = PublicKey::from_base58(&t.issued_for)?;
+        let issued_for = peer_id_to_fluence_pk(PeerId::from_str(&t.issued_for)
+            .map_err(|e| PeerIdDecodeError(format!("{:?}", e)))?)
+            .map_err(|e| DtoConversionError::PeerIdDecodeError(e.to_string()))?;
         let signature = bs58::decode(&t.signature).into_vec()?;
-        let signature = Signature::decode(signature)?;
+        let signature = Signature::from_raw_signature(RawSignature { bytes: signature, sig_type: t.sig_type })?;
         let expires_at = Duration::from_secs(t.expires_at);
         let issued_at = Duration::from_secs(t.issued_at);
         return Ok(trust_graph::Trust {
@@ -81,13 +92,15 @@ impl TryFrom<Trust> for trust_graph::Trust {
 impl From<trust_graph::Trust> for Trust {
     fn from(t: trust_graph::Trust) -> Self {
         let issued_for = bs58::encode(t.issued_for.encode()).into_string();
-        let signature = bs58::encode(t.signature.encode()).into_string();
+        let raw_signature = t.signature.get_raw_signature();
+        let signature = bs58::encode(raw_signature.bytes).into_string();
         let expires_at = t.expires_at.as_secs();
         let issued_at = t.issued_at.as_secs();
         return Trust {
             issued_for,
             expires_at,
             signature,
+            sig_type: raw_signature.sig_type,
             issued_at,
         };
     }

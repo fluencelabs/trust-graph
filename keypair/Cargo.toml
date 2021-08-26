@@ -18,12 +18,12 @@ ed25519 = "1.0.3"
 serde_with = "1.6.0"
 thiserror = "1.0.23"
 lazy_static = "1.2"
-libsecp256k1 = "0.3.5"
+libsecp256k1 = "0.3.1"
 asn1_der = "0.6.1"
 sha2 = "0.9.1"
 zeroize = "1"
 serde_bytes = "0.11"
-libp2p-core = { package = "fluence-fork-libp2p-core", version = "0.27.2" }
+libp2p-core = { package = "fluence-fork-libp2p-core", version = "0.27.2", features = ["secp256k1"]}
 eyre = "0.6.5"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

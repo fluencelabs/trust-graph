@@ -24,6 +24,7 @@ use std::num::ParseIntError;
 use std::time::Duration;
 use thiserror::Error as ThisError;
 use serde::{Deserialize, Serialize};
+use sha2::Digest;
 
 pub const EXPIRATION_LEN: usize = 8;
 pub const ISSUED_LEN: usize = 8;
@@ -139,7 +140,7 @@ impl Trust {
         KeyPair::verify(issued_by, msg, &trust.signature).map_err(SignatureError)
     }
 
-    fn metadata_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> Vec<u8> {
+    pub fn metadata_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> Vec<u8> {
         let pk_encoded = pk.encode();
         let expires_at_encoded: [u8; EXPIRATION_LEN] = (expires_at.as_secs() as u64).to_le_bytes();
         let issued_at_encoded: [u8; ISSUED_LEN] = (issued_at.as_secs() as u64).to_le_bytes();
@@ -149,7 +150,7 @@ impl Trust {
         metadata.extend_from_slice(&expires_at_encoded[0..EXPIRATION_LEN]);
         metadata.extend_from_slice(&issued_at_encoded[0..ISSUED_LEN]);
 
-        metadata
+        sha2::Sha256::digest(&metadata).to_vec()
     }
 
     /// Encode the trust into a byte array

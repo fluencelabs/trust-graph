@@ -1,4 +1,4 @@
-use crate::dto::{Certificate, DtoConversionError};
+use crate::dto::{Certificate, DtoConversionError, Trust};
 use crate::storage_impl::get_data;
 use fluence_keypair::error::DecodingError;
 use fluence_keypair::PublicKey;
@@ -98,3 +98,16 @@ pub fn add_root_impl(peer_id: String, weight: u32) -> Result<(), ServiceError> {
     tg.add_root_weight(public_key, weight)?;
     Ok(())
 }
+
+pub fn get_trust_metadata_imp(peer_id: String, expires_at: u64, issued_at: u64) -> Result<Vec<u8>, ServiceError> {
+    let public_key = extract_public_key(peer_id)?;
+    Ok(trust_graph::Trust::metadata_bytes(&public_key,
+                                          Duration::from_secs(expires_at),
+                                          Duration::from_secs(issued_at)))
+}
+
+// pub fn issue_trust_impl(peer_id: String, expires_at: u64, issued_at: u64, signed_metadata: Vec<u8>) -> Result<Trust, ServiceError> {
+//     let public_key = extract_public_key(peer_id)?;
+//     trust_graph::Trust::new(public_key, Duration::from_secs(expires_at), Duration::from_secs(issued_at),
+//     )
+// }

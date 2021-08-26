@@ -23,6 +23,7 @@ use crate::signature::Signature;
 use serde::{Deserialize, Serialize};
 use crate::key_pair::KeyFormat;
 use std::convert::TryFrom;
+use libp2p_core::PeerId;
 
 /// The public key of a node's identity keypair.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -99,6 +100,10 @@ impl PublicKey {
             Secp256k1(pk) => pk.encode().to_vec(),
         }
     }
+
+    pub fn to_peer_id(&self) -> PeerId {
+        PeerId::from_public_key(self.clone().into())
+    }
 }
 
 impl From<libp2p_core::identity::PublicKey> for PublicKey {
@@ -110,6 +115,19 @@ impl From<libp2p_core::identity::PublicKey> for PublicKey {
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(key) => PublicKey::Rsa(rsa::PublicKey::from_pkcs1(key.encode_pkcs1()).unwrap()),
             Secp256k1(key) => PublicKey::Secp256k1(secp256k1::PublicKey::decode(&key.encode()[..]).unwrap()),
+        }
+    }
+}
+
+impl From<PublicKey> for libp2p_core::identity::PublicKey {
+    fn from(key: PublicKey) -> Self {
+        use libp2p_core::identity as libp2p_identity;
+
+        match key {
+            PublicKey::Ed25519(key) => libp2p_identity::PublicKey::Ed25519(libp2p_identity::ed25519::PublicKey::decode(&key.encode()[..]).unwrap()),
+            #[cfg(not(target_arch = "wasm32"))]
+            PublicKey::Rsa(key) => libp2p_identity::PublicKey::Rsa(libp2p_identity::rsa::PublicKey::decode_x509(&key.encode_x509()).unwrap()),
+            PublicKey::Secp256k1(key) => libp2p_identity::PublicKey::Secp256k1(libp2p_identity::secp256k1::PublicKey::decode(&key.encode()[..]).unwrap()),
         }
     }
 }

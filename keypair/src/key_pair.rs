@@ -28,6 +28,7 @@ use crate::signature::Signature;
 use crate::error::{Error, DecodingError, SigningError};
 use std::str::FromStr;
 use std::convert::TryFrom;
+use libp2p_core::PeerId;
 
 /// Identity keypair of a node.
 ///
@@ -167,6 +168,16 @@ impl KeyPair {
         }
     }
 
+    pub fn secret(&self) -> eyre::Result<Vec<u8>> {
+        use KeyPair::*;
+        match self {
+            Ed25519(pair) => Ok(pair.secret().0.to_bytes().to_vec()),
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(_) => Err(eyre::eyre!("secret key is not available for RSA")),
+            Secp256k1(pair) => Ok(pair.secret().to_bytes().to_vec()),
+        }
+    }
+
     /// Verify the signature on a message using the public key.
     pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> Result<(), SigningError> {
         pk.verify(msg, signature)
@@ -191,6 +202,10 @@ impl KeyPair {
             #[cfg(not(target_arch = "wasm32"))]
             KeyFormat::Rsa => Err(DecodingError::KeypairDecodingIsNotSupported)
         }
+    }
+
+    pub fn get_peer_id(&self) -> PeerId {
+       self.public().to_peer_id()
     }
 }
 

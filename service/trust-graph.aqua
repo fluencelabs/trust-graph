@@ -1,33 +1,40 @@
 data AddRootResult:
-  ret_code: u32
+  success: bool
   error: string
 
 data Trust:
   issued_for: string
   expires_at: u64
   signature: string
+  sig_type: string
   issued_at: u64
 
 data Certificate:
   chain: []Trust
 
 data AllCertsResult:
-  ret_code: u32
+  success: bool
   certificates: []Certificate
   error: string
 
+data GetTrustMetadataResult:
+  success: bool
+  error: string
+  result: []u8
+
 data InsertResult:
-  ret_code: u32
+  success: bool
   error: string
 
 data WeightResult:
-  ret_code: u32
+  success: bool
   weight: []u32
   error: string
 
 service TrustGraph("trust-graph"):
-  add_root(pk: string, weight: u32) -> AddRootResult
+  add_root(peer_id: string, weight: u32) -> AddRootResult
   get_all_certs(issued_for: string) -> AllCertsResult
-  get_weight(public_key: string) -> WeightResult
+  get_trust_metadata(peer_id: string, expires_at: u64, issued_at: u64) -> GetTrustMetadataResult
+  get_weight(peer_id: string) -> WeightResult
   insert_cert(certificate: Certificate, current_time: u64) -> InsertResult
   insert_cert_raw(certificate: string, current_time: u64) -> InsertResult

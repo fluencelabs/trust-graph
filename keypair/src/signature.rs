@@ -30,6 +30,11 @@ pub enum Signature {
     Secp256k1(secp256k1::Signature),
 }
 
+pub struct RawSignature {
+    pub bytes: Vec<u8>,
+    pub sig_type: String,
+}
+
 impl Signature {
     fn get_prefix(&self) -> u8 {
         use Signature::*;
@@ -46,7 +51,7 @@ impl Signature {
         use Signature::*;
 
         let mut result: Vec<u8> = vec![self.get_prefix()];
-        
+
         match self {
             Ed25519(sig) => result.extend(sig.0.clone()),
             #[cfg(not(target_arch = "wasm32"))]
@@ -64,7 +69,6 @@ impl Signature {
             #[cfg(not(target_arch = "wasm32"))]
             KeyFormat::Rsa => Ok(Signature::Rsa(rsa::Signature(bytes[1..].to_vec()))),
             KeyFormat::Secp256k1 => Ok(Signature::Secp256k1(secp256k1::Signature(bytes[1..].to_vec()))),
-
         }
     }
 
@@ -76,6 +80,31 @@ impl Signature {
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(sig) => &sig.0,
             Secp256k1(sig) => &sig.0,
+        }
+    }
+
+    pub fn get_signature_type(&self) -> String {
+        use Signature::*;
+
+        match self {
+            Ed25519(_) => "Ed25519".to_string(),
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(_) => "RSA".to_string(),
+            Secp256k1(_) => "Secp256k1".to_string(),
+        }
+    }
+
+    pub fn get_raw_signature(&self) -> RawSignature {
+        RawSignature { bytes: self.to_vec().clone().to_vec(), sig_type: self.get_signature_type() }
+    }
+
+    pub fn from_raw_signature(raw_signature: RawSignature) -> Result<Self, DecodingError> {
+        match raw_signature.sig_type.as_str() {
+            "Ed25519" => Ok(Signature::Ed25519(crate::ed25519::Signature(raw_signature.bytes))),
+            #[cfg(not(target_arch = "wasm32"))]
+            "RSA" => Ok(Signature::Rsa(crate::rsa::Signature(raw_signature.bytes))),
+            "Secp256k1" => Ok(Signature::Secp256k1(crate::secp256k1::Signature(raw_signature.bytes))),
+            _ => Err(DecodingError::RawSignatureUnsupportedType(raw_signature.sig_type)),
         }
     }
 }

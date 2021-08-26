@@ -5,7 +5,7 @@ set -o errexit -o nounset -o pipefail
 cd "$(dirname "$0")"
 
 # build trust-graph.wasm
-cargo update
+#cargo update
 marine build --release
 
 # copy .wasm to artifacts
