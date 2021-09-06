@@ -40,7 +40,7 @@ pub use crate::certificate::{Certificate, CertificateError};
 pub use crate::misc::current_time;
 pub use crate::public_key_hashable::PublicKeyHashable;
 pub use crate::revoke::Revoke;
-pub use crate::trust::Trust;
+pub use crate::trust::{Trust, TrustError};
 pub use crate::trust_graph::{TrustGraph, TrustGraphError, Weight};
 pub use crate::trust_graph_storage::{Storage, StorageError, InMemoryStorage, InMemoryStorageError};
 pub use crate::trust_node::{Auth, TrustNode};

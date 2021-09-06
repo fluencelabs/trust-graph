@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use crate::ed25519;
+use crate::{ed25519, PublicKey};
 use crate::secp256k1;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::rsa;
@@ -105,6 +105,16 @@ impl Signature {
             "RSA" => Ok(Signature::Rsa(crate::rsa::Signature(raw_signature.bytes))),
             "Secp256k1" => Ok(Signature::Secp256k1(crate::secp256k1::Signature(raw_signature.bytes))),
             _ => Err(DecodingError::RawSignatureUnsupportedType(raw_signature.sig_type)),
+        }
+    }
+
+    pub fn from_bytes_with_public_key(pk: &PublicKey, bytes: Vec<u8>) -> Self {
+        use PublicKey::*;
+        match pk {
+            Ed25519(_) => Signature::Ed25519(ed25519::Signature(bytes)),
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(_) => Signature::Rsa(rsa::Signature(bytes)),
+            Secp256k1(_) => Signature::Secp256k1(secp256k1::Signature(bytes))
         }
     }
 }

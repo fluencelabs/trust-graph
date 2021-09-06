@@ -9,7 +9,7 @@ mod tests;
 
 pub fn main() {
     WasmLoggerBuilder::new()
-        .with_log_level(log::LevelFilter::Info)
+        .with_log_level(log::LevelFilter::Trace)
         .build()
         .unwrap();
 }

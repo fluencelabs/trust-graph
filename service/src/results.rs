@@ -105,12 +105,12 @@ impl From<Result<Vec<u8>, ServiceError>> for GetTrustMetadataResult {
             Ok(res) => GetTrustMetadataResult {
                 success: true,
                 error: "".to_string(),
-                result: res
+                result: res,
             },
             Err(e) => GetTrustMetadataResult {
                 success: false,
                 error: format!("{}", e),
-                result: vec![]
+                result: vec![],
             },
         }
     }
@@ -135,6 +135,51 @@ impl From<Result<Trust, ServiceError>> for IssueTrustResult {
                 success: false,
                 error: format!("{}", e),
                 trust: Trust::default(),
+            },
+        }
+    }
+}
+
+#[marine]
+pub struct VerifyTrustResult {
+    pub success: bool,
+    pub error: String,
+}
+
+impl From<Result<(), ServiceError>> for VerifyTrustResult {
+    fn from(result: Result<(), ServiceError>) -> Self {
+        match result {
+            Ok(()) => VerifyTrustResult {
+                success: true,
+                error: "".to_string(),
+            },
+            Err(e) => VerifyTrustResult {
+                success: false,
+                error: format!("{}", e),
+            },
+        }
+    }
+}
+
+#[marine]
+pub struct IssueCertificateResult {
+    pub success: bool,
+    pub error: String,
+    pub cert: Certificate,
+}
+
+impl From<Result<Certificate, ServiceError>> for IssueCertificateResult {
+    fn from(result: Result<Certificate, ServiceError>) -> Self {
+        match result {
+            Ok(cert) => IssueCertificateResult {
+                success: true,
+                error: "".to_string(),
+                cert,
+            },
+            Err(e) => IssueCertificateResult {
+                success: false,
+                error: format!("{}", e),
+                cert: Certificate { chain: vec![] },
             },
         }
     }

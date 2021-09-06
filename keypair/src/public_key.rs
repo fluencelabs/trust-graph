@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 use crate::ed25519;
+use crate::error::{DecodingError, SigningError};
 #[cfg(not(target_arch = "wasm32"))]
 use crate::rsa;
 use crate::secp256k1;
-use crate::error::{DecodingError, SigningError};
 use crate::signature::Signature;
 
-use serde::{Deserialize, Serialize};
 use crate::key_pair::KeyFormat;
-use std::convert::TryFrom;
 use libp2p_core::PeerId;
+use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
 /// The public key of a node's identity keypair.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -42,13 +42,14 @@ impl PublicKey {
     /// that the signature has been produced by the corresponding
     /// private key (authenticity), and that the message has not been
     /// tampered with (integrity).
+    // TODO: add VerificationError
     pub fn verify(&self, msg: &[u8], sig: &Signature) -> Result<(), SigningError> {
         use PublicKey::*;
         match self {
             Ed25519(pk) => pk.verify(msg, sig.to_vec()),
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(pk) => pk.verify(msg, sig.to_vec()),
-            Secp256k1(pk) => pk.verify(msg, sig.to_vec())
+            Secp256k1(pk) => pk.verify(msg, sig.to_vec()),
         }
     }
 
@@ -70,8 +71,12 @@ impl PublicKey {
         match KeyFormat::try_from(bytes[0])? {
             KeyFormat::Ed25519 => Ok(PublicKey::Ed25519(ed25519::PublicKey::decode(&bytes[1..])?)),
             #[cfg(not(target_arch = "wasm32"))]
-            KeyFormat::Rsa => Ok(PublicKey::Rsa(rsa::PublicKey::from_pkcs1(bytes[1..].to_owned())?)),
-            KeyFormat::Secp256k1 => Ok(PublicKey::Secp256k1(secp256k1::PublicKey::decode(&bytes[1..])?)),
+            KeyFormat::Rsa => Ok(PublicKey::Rsa(rsa::PublicKey::from_pkcs1(
+                bytes[1..].to_owned(),
+            )?)),
+            KeyFormat::Secp256k1 => Ok(PublicKey::Secp256k1(secp256k1::PublicKey::decode(
+                &bytes[1..],
+            )?)),
         }
     }
 
@@ -81,12 +86,14 @@ impl PublicKey {
             Ed25519(_) => KeyFormat::Ed25519.into(),
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(_) => KeyFormat::Rsa.into(),
-            Secp256k1(_) => KeyFormat::Secp256k1.into()
+            Secp256k1(_) => KeyFormat::Secp256k1.into(),
         }
     }
 
     pub fn from_base58(str: &str) -> Result<PublicKey, DecodingError> {
-        let bytes = bs58::decode(str).into_vec().map_err(DecodingError::Base58DecodeError)?;
+        let bytes = bs58::decode(str)
+            .into_vec()
+            .map_err(DecodingError::Base58DecodeError)?;
         Self::decode(&bytes)
     }
 
@@ -111,10 +118,14 @@ impl From<libp2p_core::identity::PublicKey> for PublicKey {
         use libp2p_core::identity::PublicKey::*;
 
         match key {
-            Ed25519(key) => PublicKey::Ed25519(ed25519::PublicKey::decode(&key.encode()[..]).unwrap()),
+            Ed25519(key) => {
+                PublicKey::Ed25519(ed25519::PublicKey::decode(&key.encode()[..]).unwrap())
+            }
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(key) => PublicKey::Rsa(rsa::PublicKey::from_pkcs1(key.encode_pkcs1()).unwrap()),
-            Secp256k1(key) => PublicKey::Secp256k1(secp256k1::PublicKey::decode(&key.encode()[..]).unwrap()),
+            Secp256k1(key) => {
+                PublicKey::Secp256k1(secp256k1::PublicKey::decode(&key.encode()[..]).unwrap())
+            }
         }
     }
 }
@@ -124,16 +135,28 @@ impl From<PublicKey> for libp2p_core::identity::PublicKey {
         use libp2p_core::identity as libp2p_identity;
 
         match key {
-            PublicKey::Ed25519(key) => libp2p_identity::PublicKey::Ed25519(libp2p_identity::ed25519::PublicKey::decode(&key.encode()[..]).unwrap()),
+            PublicKey::Ed25519(key) => libp2p_identity::PublicKey::Ed25519(
+                libp2p_identity::ed25519::PublicKey::decode(&key.encode()[..]).unwrap(),
+            ),
             #[cfg(not(target_arch = "wasm32"))]
-            PublicKey::Rsa(key) => libp2p_identity::PublicKey::Rsa(libp2p_identity::rsa::PublicKey::decode_x509(&key.encode_x509()).unwrap()),
-            PublicKey::Secp256k1(key) => libp2p_identity::PublicKey::Secp256k1(libp2p_identity::secp256k1::PublicKey::decode(&key.encode()[..]).unwrap()),
+            PublicKey::Rsa(key) => libp2p_identity::PublicKey::Rsa(
+                libp2p_identity::rsa::PublicKey::decode_x509(&key.encode_x509()).unwrap(),
+            ),
+            PublicKey::Secp256k1(key) => libp2p_identity::PublicKey::Secp256k1(
+                libp2p_identity::secp256k1::PublicKey::decode(&key.encode()[..]).unwrap(),
+            ),
         }
     }
 }
 
 pub fn peer_id_to_fluence_pk(peer_id: libp2p_core::PeerId) -> eyre::Result<PublicKey> {
-    Ok(peer_id.as_public_key().ok_or(eyre::eyre!("public key is not inlined in peer id: {}", peer_id))?.into())
+    Ok(peer_id
+        .as_public_key()
+        .ok_or(eyre::eyre!(
+            "public key is not inlined in peer id: {}",
+            peer_id
+        ))?
+        .into())
 }
 
 #[cfg(test)]

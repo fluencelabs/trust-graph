@@ -91,7 +91,7 @@ impl TryFrom<Trust> for trust_graph::Trust {
 
 impl From<trust_graph::Trust> for Trust {
     fn from(t: trust_graph::Trust) -> Self {
-        let issued_for = bs58::encode(t.issued_for.encode()).into_string();
+        let issued_for = t.issued_for.to_peer_id().to_base58();
         let raw_signature = t.signature.get_raw_signature();
         let signature = bs58::encode(raw_signature.bytes).into_string();
         let expires_at = t.expires_at.as_secs();

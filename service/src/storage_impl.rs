@@ -3,15 +3,15 @@
 // if there is an older trust - don't add received trust
 
 use crate::storage_impl::SQLiteStorageError::{
-    PublicKeyNotFound, PublicKeyConversion, PublicKeyFromStr, TrustNodeConversion,
+    PublicKeyConversion, PublicKeyFromStr, PublicKeyNotFound, TrustNodeConversion,
     WeightConversionDB,
 };
 use core::convert::TryFrom;
+use fluence_keypair::public_key::PublicKey;
 use marine_sqlite_connector;
 use marine_sqlite_connector::Connection;
 use marine_sqlite_connector::Error as InternalSqliteError;
 use marine_sqlite_connector::Value;
-use fluence_keypair::public_key::PublicKey;
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
 use rmp_serde::decode::Error as RmpDecodeError;
@@ -128,14 +128,13 @@ impl Storage for SQLiteStorage {
     fn insert(&mut self, pk: PK, node: TrustNode) -> Result<(), Self::Error> {
         let mut cursor = self
             .connection
-            .prepare("INSERT OR REPLACE INTO trustnodes VALUES (?, ?)")?
-            .cursor();
+            .prepare("INSERT OR REPLACE INTO trustnodes VALUES (?, ?)")?;
 
         let tn_vec = rmp_serde::to_vec(&node)?;
 
-        log::info!("insert: {:?}", tn_vec);
-
-        cursor.bind(&[Value::String(format!("{}", pk)), Value::Binary(tn_vec)])?;
+        let p = format!("{}", pk);
+        cursor.bind(1, &Value::String(p))?;
+        cursor.bind(2, &Value::Binary(tn_vec))?;
 
         cursor.next()?;
         Ok({})

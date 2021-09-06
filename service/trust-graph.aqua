@@ -26,6 +26,20 @@ data InsertResult:
   success: bool
   error: string
 
+data IssueCertificateResult:
+  success: bool
+  error: string
+  cert: Certificate
+
+data IssueTrustResult:
+  success: bool
+  error: string
+  trust: Trust
+
+data VerifyTrustResult:
+  success: bool
+  error: string
+
 data WeightResult:
   success: bool
   weight: []u32
@@ -34,7 +48,11 @@ data WeightResult:
 service TrustGraph("trust-graph"):
   add_root(peer_id: string, weight: u32) -> AddRootResult
   get_all_certs(issued_for: string) -> AllCertsResult
-  get_trust_metadata(peer_id: string, expires_at: u64, issued_at: u64) -> GetTrustMetadataResult
+  get_trust_metadata(issued_for_peer_id: string, expires_at: u64, issued_at: u64) -> GetTrustMetadataResult
   get_weight(peer_id: string) -> WeightResult
   insert_cert(certificate: Certificate, current_time: u64) -> InsertResult
   insert_cert_raw(certificate: string, current_time: u64) -> InsertResult
+  issue_certificate_with_trust_checked(cert: Certificate, trust: Trust, issued_by_peer_id: string, cur_time: u64) -> IssueCertificateResult
+  issue_root_certificate_checked(root_trust: Trust, issued_trust: Trust, cur_time: u64) -> IssueCertificateResult
+  issue_trust(issued_for_peer_id: string, expires_at: u64, issued_at: u64, signed_metadata: []u8) -> IssueTrustResult
+  verify_trust(trust: Trust, issuer_peer_id: string, cur_time: u64) -> VerifyTrustResult
