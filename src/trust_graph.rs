@@ -199,7 +199,7 @@ where
         // get all possible certificates from the given public key to all roots in the graph
         let certs = self.get_all_certs(pk)?;
         self.certificates_weight_factor(certs)
-            .map(get_weight_from_factor)
+            .map(|wf| wf.map(get_weight_from_factor).unwrap_or(0u32))
     }
 
     /// Calculate weight from given certificates
@@ -209,7 +209,7 @@ where
     pub fn certificates_weight_factor<C, I>(
         &self,
         certs: I,
-    ) -> Result<WeightFactor, TrustGraphError>
+    ) -> Result<Option<WeightFactor>, TrustGraphError>
     where
         C: Borrow<Certificate>,
         I: IntoIterator<Item = C>,
@@ -218,7 +218,7 @@ where
         // if there are no certificates for the given public key, there is no info about this public key
         // or some elements of possible certificate chains was revoked
         if certs.peek().is_none() {
-            return Ok(0u32);
+            return Ok(None);
         }
 
         let mut weight_factor = u32::MAX;
@@ -241,7 +241,7 @@ where
             weight_factor = std::cmp::min(weight_factor, root_weight + c.chain.len() as u32 - 1)
         }
 
-        Ok(weight_factor)
+        Ok(Some(weight_factor))
     }
 
     /// BF search for all converging paths (chains) in the graph
@@ -577,20 +577,28 @@ mod tests {
         graph.add(cert1, current_time()).unwrap();
         graph.add(cert2, current_time()).unwrap();
 
-        let revoke1 = Revoke::create(&key_pairs1[3], key_pairs1[4].public(), current_time());
+        let revoke1 = Revoke::create(
+            &key_pairs1[3],
+            key_pairs1[4].public(),
+            current_time().checked_add(one_minute()).unwrap(),
+        );
         graph.revoke(revoke1).unwrap();
-        let revoke2 = Revoke::create(&key_pairs2[5], key_pairs2[6].public(), current_time());
+        let revoke2 = Revoke::create(
+            &key_pairs2[5],
+            key_pairs2[6].public(),
+            current_time().checked_add(one_minute()).unwrap(),
+        );
         graph.revoke(revoke2).unwrap();
 
         let w1 = graph.weight(key_pair1.public()).unwrap();
         // all upper trusts are revoked for this public key
-        let _w2 = graph.weight(key_pair2.public()).unwrap();
+        let w2 = graph.weight(key_pair2.public()).unwrap();
         let w3 = graph.weight(key_pair3.public()).unwrap();
         let w_last1 = graph.weight(last_pk1).unwrap();
         let w_last2 = graph.weight(last_pk2).unwrap();
 
         assert_eq!(w1, get_weight_from_factor(4));
-        // assert_eq!(w2, 0); // revoked
+        assert_eq!(w2, 0); // revoked
         assert_eq!(w3, get_weight_from_factor(5));
         assert_eq!(w_last1, get_weight_from_factor(7));
         assert_eq!(w_last2, get_weight_from_factor(6));
@@ -772,5 +780,30 @@ mod tests {
         let certs = graph.get_all_certs(trust_kp.public()).unwrap();
         assert_eq!(certs.len(), 1);
         assert_eq!(certs[0], target_cert);
+    }
+
+    #[test]
+    fn test_revoke_weight() {
+        let (key_pairs, cert) = generate_cert_with_len(5, HashMap::new()).unwrap();
+        let cur_time = current_time();
+
+        let st = InMemoryStorage::new();
+        let mut graph = TrustGraph::new(st);
+        let root_pk = key_pairs[0].public();
+        graph
+            .add_root_weight_factor(root_pk.clone().into(), 2)
+            .unwrap();
+        graph.add(cert.clone(), cur_time).unwrap();
+
+        let revoked_by = &key_pairs[3];
+        let revoked = &key_pairs[4];
+        let revoke = Revoke::create(
+            revoked_by,
+            revoked.public(),
+            cur_time.checked_add(one_minute()).unwrap(),
+        );
+
+        graph.revoke(revoke.clone()).unwrap();
+        assert_eq!(0, graph.weight(revoked.public()).unwrap());
     }
 }
