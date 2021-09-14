@@ -1,6 +1,6 @@
 use crate::public_key_hashable::PublicKeyHashable as PK;
 use crate::revoke::Revoke;
-use crate::trust_graph::Weight;
+use crate::trust_graph::WeightFactor;
 use crate::trust_graph_storage::InMemoryStorageError::RevokeError;
 use crate::trust_node::{Auth, TrustNode};
 use fluence_keypair::public_key::PublicKey;
@@ -17,28 +17,22 @@ pub trait Storage {
     fn get(&self, pk: &PK) -> Result<Option<TrustNode>, Self::Error>;
     fn insert(&mut self, pk: PK, node: TrustNode) -> Result<(), Self::Error>;
 
-    fn get_root_weight(&self, pk: &PK) -> Result<Option<Weight>, Self::Error>;
-    fn add_root_weight(&mut self, pk: PK, weight: Weight) -> Result<(), Self::Error>;
+    fn get_root_weight_factor(&self, pk: &PK) -> Result<Option<WeightFactor>, Self::Error>;
+    fn add_root_weight_factor(&mut self, pk: PK, weight: WeightFactor) -> Result<(), Self::Error>;
     fn root_keys(&self) -> Result<Vec<PK>, Self::Error>;
     fn revoke(&mut self, pk: &PK, revoke: Revoke) -> Result<(), Self::Error>;
-    fn update_auth(
-        &mut self,
-        pk: &PK,
-        auth: Auth,
-        issued_for: &PublicKey,
-        cur_time: Duration,
-    ) -> Result<(), Self::Error>;
+    fn update_auth(&mut self, pk: &PK, auth: Auth, cur_time: Duration) -> Result<(), Self::Error>;
 }
 
 #[derive(Debug, Default)]
 pub struct InMemoryStorage {
     nodes: HashMap<PK, TrustNode>,
-    root_weights: HashMap<PK, Weight>,
+    root_weights: HashMap<PK, WeightFactor>,
 }
 
 impl InMemoryStorage {
     #[allow(dead_code)]
-    pub fn new_in_memory(root_weights: Vec<(PublicKey, Weight)>) -> Self {
+    pub fn new_in_memory(root_weights: Vec<(PublicKey, WeightFactor)>) -> Self {
         let root_weights = root_weights
             .into_iter()
             .map(|(k, w)| (k.into(), w))
@@ -78,11 +72,11 @@ impl Storage for InMemoryStorage {
         Ok(())
     }
 
-    fn get_root_weight(&self, pk: &PK) -> Result<Option<Weight>, Self::Error> {
+    fn get_root_weight_factor(&self, pk: &PK) -> Result<Option<WeightFactor>, Self::Error> {
         Ok(self.root_weights.get(pk).cloned())
     }
 
-    fn add_root_weight(&mut self, pk: PK, weight: Weight) -> Result<(), Self::Error> {
+    fn add_root_weight_factor(&mut self, pk: PK, weight: WeightFactor) -> Result<(), Self::Error> {
         self.root_weights.insert(pk, weight);
         Ok(())
     }
@@ -105,20 +99,19 @@ impl Storage for InMemoryStorage {
 
     fn update_auth(
         &mut self,
-        pk: &PK,
+        issued_for_pk: &PK,
         auth: Auth,
-        issued_for: &PublicKey,
         cur_time: Duration,
     ) -> Result<(), Self::Error> {
-        match self.nodes.get_mut(&pk) {
+        match self.nodes.get_mut(&issued_for_pk) {
             Some(trust_node) => {
                 trust_node.update_auth(auth);
                 Ok(())
             }
             None => {
-                let mut trust_node = TrustNode::new(issued_for.clone(), cur_time);
+                let mut trust_node = TrustNode::new(auth.trust.issued_for.clone(), cur_time);
                 trust_node.update_auth(auth);
-                self.insert(pk.clone(), trust_node)
+                self.insert(issued_for_pk.clone(), trust_node)
             }
         }
     }

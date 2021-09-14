@@ -23,7 +23,6 @@ impl From<Result<(), ServiceError>> for InsertResult {
     }
 }
 
-// TODO: add peer id to result
 #[marine]
 pub struct WeightResult {
     pub success: bool,
@@ -32,17 +31,19 @@ pub struct WeightResult {
     pub error: String,
 }
 
-impl From<Result<Option<u32>, ServiceError>> for WeightResult {
-    fn from(result: Result<Option<u32>, ServiceError>) -> Self {
+impl From<Result<(u32, String), ServiceError>> for WeightResult {
+    fn from(result: Result<(u32, String), ServiceError>) -> Self {
         match result {
-            Ok(wo) => WeightResult {
+            Ok((weight, peer_id)) => WeightResult {
                 success: true,
-                weight: wo.map(|w| vec![w]).unwrap_or(vec![]),
+                weight,
+                peer_id,
                 error: "".to_string(),
             },
             Err(e) => WeightResult {
                 success: false,
-                weight: vec![],
+                weight: 0u32,
+                peer_id: "".to_string(),
                 error: format!("{}", e),
             },
         }

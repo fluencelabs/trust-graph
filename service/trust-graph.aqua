@@ -2,6 +2,11 @@ data AddRootResult:
   success: bool
   error: string
 
+data AddTrustResult:
+  success: bool
+  error: string
+  weight: u32
+
 data Trust:
   issued_for: string
   expires_at: u64
@@ -26,11 +31,6 @@ data InsertResult:
   success: bool
   error: string
 
-data IssueCertificateResult:
-  success: bool
-  error: string
-  cert: Certificate
-
 data IssueTrustResult:
   success: bool
   error: string
@@ -40,12 +40,6 @@ data VerifyTrustResult:
   success: bool
   error: string
 
-data AddTrustResult:
-  success: bool
-  error: string
-  weight: u32
-  peer_id: u32
-
 data WeightResult:
   success: bool
   weight: u32
@@ -53,41 +47,12 @@ data WeightResult:
   error: string
 
 service TrustGraph("trust-graph"):
-  -- returns hash of metadata to sign
-  get_trust_bytes(issued_for_peer_id: string, expires_at: u64, issued_at: u64) -> GetTrustMetadataResult
-
-  -- issued_by needed to identify signature type (ed25519, rsa or secp256k1)
-  issue_trust(issued_by_peer_id: string, issued_for_peer_id: string, expires_at: u64, issued_at: u64, signature: []u8) -> IssueTrustResult
-
-  -- just verifying signatures, timestamp without inserting into local trust graph
-  verify_trust(issued_by_peer_id: string, trust: Trust, timestamp_sec: u64) -> VerifyTrustResult
-
-  -- checks signature, timestamp, try to find place to insert, returns max_weight if succeed
-  add_trust(issued_by_peer_id: string, trust: Trust, timestamp_sec: u64) -> AddTrustResult
-
-  -- add root trust with given weight
-  add_root(peer_id: string, trust: Trust, weight: u32) -> AddRootResult
-
-  -- return max weight if found, remove expired
-  get_weight(issued_for: string, timestamp_sec: u32) -> WeightResult
-
-  -- return all certs, remove expired
-  get_all_certs(issued_for: string, timestamp_sec) -> AllCertsResult
-
-  -- insert full certificate if possible
-  insert_cert(certificate: Certificate, current_time: u64) -> InsertResult
-  insert_cert_raw(certificate: string, current_time: u64) -> InsertResult
-
-  -- returns hash of metadata to sign
-  get_revoke_bytes(revoked_peer_id: string, revoked_at: u64, issued_at: u64) -> GetRevokeMetadataResult
-
-  -- revoked_by needed to identify signature type (ed25519, rsa or secp256k1)
-  issue_revoke(revoked_by_peer_id: string, revoked_peer_id: string, revoked_at: u64, signature: []u8) -> IssueRevokeResult
-
-  -- checks signature, checks timestamp
-  revoke(revoke: Revoke, timestamp_sec: u64) -> AddRevokeResult
-
-  get_all_revocation(revoked_peer_id: string)
-
-  -- TODO
-  get_trust
+  add_root(peer_id: string, weight: u32) -> AddRootResult
+  add_trust(trust: Trust, issuer_peer_id: string, timestamp_sec: u64) -> AddTrustResult
+  get_all_certs(issued_for: string) -> AllCertsResult
+  get_trust_metadata(issued_for_peer_id: string, expires_at: u64, issued_at: u64) -> GetTrustMetadataResult
+  get_weight(peer_id: string) -> WeightResult
+  insert_cert(certificate: Certificate, timestamp_sec: u64) -> InsertResult
+  insert_cert_raw(certificate: string, timestamp_sec: u64) -> InsertResult
+  issue_trust(issued_for_peer_id: string, expires_at: u64, issued_at: u64, signed_metadata: []u8) -> IssueTrustResult
+  verify_trust(trust: Trust, issuer_peer_id: string, timestamp_sec: u64) -> VerifyTrustResult

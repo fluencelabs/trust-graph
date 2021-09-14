@@ -17,10 +17,30 @@
 // TODO: clear DB before every test, run in 1 thread
 #[cfg(test)]
 mod tests {
+    use crate::service_impl::{TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID};
     use fluence_keypair;
     use fluence_keypair::KeyPair;
-    use marine_rs_sdk_test::marine_test;
-    use std::time::Duration;
+    use marine_rs_sdk_test::{marine_test, CallParameters, SecurityTetraplet};
+
+    pub static HOST_ID: &str = "host_id";
+
+    fn get_correct_timestamp_cp(arg_number: usize) -> CallParameters {
+        let mut cp = CallParameters::default();
+        cp.host_id = HOST_ID.to_string();
+
+        for _ in 0..arg_number {
+            cp.tetraplets.push(vec![]);
+        }
+
+        cp.tetraplets.push(vec![SecurityTetraplet {
+            peer_pk: HOST_ID.to_string(),
+            service_id: TRUSTED_TIMESTAMP_SERVICE_ID.to_string(),
+            function_name: TRUSTED_TIMESTAMP_FUNCTION_NAME.to_string(),
+            json_path: "".to_string(),
+        }]);
+
+        cp
+    }
 
     macro_rules! issue_trust {
         ($trust_graph:expr, $issuer_kp:expr, $issued_peer_id: expr, $expires_at:expr, $issued_at: expr) => {{
@@ -64,67 +84,12 @@ mod tests {
             expires_at,
             issued_at
         );
-        let verify_result = trust_graph.verify_trust(trust, issuer_kp.get_peer_id().to_base58(), 0);
+        let verify_result = trust_graph.verify_trust_cp(
+            trust,
+            issuer_kp.get_peer_id().to_base58(),
+            0,
+            get_correct_timestamp_cp(2),
+        );
         assert_result!(verify_result);
-    }
-
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
-    fn issue_cert_test() {
-        let issuer_kp = KeyPair::generate_ed25519();
-        let issued_peer_id = KeyPair::generate_ed25519().get_peer_id();
-        let issued_at = 0u64;
-        let expires_at = 10u64;
-        let root_trust = issue_trust!(
-            trust_graph,
-            issuer_kp,
-            issuer_kp.get_peer_id(),
-            expires_at,
-            issued_at
-        );
-        let trust = issue_trust!(
-            trust_graph,
-            issuer_kp,
-            issued_peer_id,
-            expires_at,
-            issued_at
-        );
-
-        let cert_result = trust_graph.issue_root_certificate_checked(root_trust, trust, 0u64);
-        assert_result!(cert_result);
-    }
-
-    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
-    fn extend_cert_test() {
-        let issuer_kp = KeyPair::generate_ed25519();
-        let issued_peer_id = KeyPair::generate_ed25519().get_peer_id();
-        let issued_at = 0u64;
-        let expires_at = 10u64;
-        let root_trust = issue_trust!(
-            trust_graph,
-            issuer_kp,
-            issuer_kp.get_peer_id(),
-            expires_at,
-            issued_at
-        );
-        let trust = issue_trust!(
-            trust_graph,
-            issuer_kp,
-            issued_peer_id,
-            expires_at,
-            issued_at
-        );
-
-        let cert_result = trust_graph.issue_root_certificate_checked(root_trust, trust, 0u64);
-        assert_result!(cert_result);
-        println!("{:?}", cert_result.cert);
-
-        assert_result!(trust_graph.add_root(issuer_kp.get_peer_id().to_base58(), 300));
-
-        let insert_res = trust_graph.insert_cert(cert_result.cert, 0u64);
-        assert_result!(insert_res);
-        let all_certs_res = trust_graph.get_all_certs(issued_peer_id.to_base58());
-        assert_result!(all_certs_res);
-        assert_eq!(all_certs_res.certificates.len(), 1);
-        println!("{:?}", all_certs_res.certificates);
     }
 }

@@ -7,7 +7,6 @@ use crate::storage_impl::SQLiteStorageError::{
     WeightConversionDB,
 };
 use core::convert::TryFrom;
-use fluence_keypair::public_key::PublicKey;
 use marine_sqlite_connector;
 use marine_sqlite_connector::Connection;
 use marine_sqlite_connector::Error as InternalSqliteError;
@@ -21,7 +20,8 @@ use std::str::FromStr;
 use std::time::Duration;
 use thiserror::Error as ThisError;
 use trust_graph::{
-    Auth, PublicKeyHashable as PK, Revoke, Storage, StorageError, TrustGraph, TrustNode, Weight,
+    Auth, PublicKeyHashable as PK, Revoke, Storage, StorageError, TrustGraph, TrustNode,
+    WeightFactor,
 };
 
 static INSTANCE: OnceCell<Mutex<TrustGraph<SQLiteStorage>>> = OnceCell::new();
@@ -140,7 +140,7 @@ impl Storage for SQLiteStorage {
         Ok({})
     }
 
-    fn get_root_weight(&self, pk: &PK) -> Result<Option<Weight>, Self::Error> {
+    fn get_root_weight_factor(&self, pk: &PK) -> Result<Option<WeightFactor>, Self::Error> {
         let mut cursor = self
             .connection
             .prepare("SELECT public_key,weight FROM roots WHERE public_key = ?")?
@@ -160,7 +160,7 @@ impl Storage for SQLiteStorage {
         }
     }
 
-    fn add_root_weight(&mut self, pk: PK, weight: Weight) -> Result<(), Self::Error> {
+    fn add_root_weight_factor(&mut self, pk: PK, weight: WeightFactor) -> Result<(), Self::Error> {
         log::info!("add root: {} weight: {}", pk, weight);
         let mut cursor = self
             .connection
@@ -208,20 +208,19 @@ impl Storage for SQLiteStorage {
 
     fn update_auth(
         &mut self,
-        pk: &PK,
+        issued_for_pk: &PK,
         auth: Auth,
-        issued_for: &PublicKey,
         cur_time: Duration,
     ) -> Result<(), Self::Error> {
-        match self.get(&pk)? {
+        match self.get(&issued_for_pk)? {
             Some(mut trust_node) => {
                 trust_node.update_auth(auth);
-                self.insert(pk.clone(), trust_node)
+                self.insert(issued_for_pk.clone(), trust_node)
             }
             None => {
-                let mut trust_node = TrustNode::new(issued_for.clone(), cur_time);
+                let mut trust_node = TrustNode::new(auth.trust.issued_for.clone(), cur_time);
                 trust_node.update_auth(auth);
-                self.insert(pk.clone(), trust_node)
+                self.insert(issued_for_pk.clone(), trust_node)
             }
         }
     }

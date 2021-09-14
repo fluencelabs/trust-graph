@@ -10,7 +10,7 @@ use std::convert::{Into, TryInto};
 use std::str::FromStr;
 use std::time::Duration;
 use thiserror::Error as ThisError;
-use trust_graph::{current_time, CertificateError, TrustError, TrustGraphError};
+use trust_graph::{CertificateError, TrustError, TrustGraphError};
 
 pub static TRUSTED_TIMESTAMP_SERVICE_ID: &str = "peer";
 pub static TRUSTED_TIMESTAMP_FUNCTION_NAME: &str = "timestamp_sec";
@@ -24,7 +24,7 @@ pub(crate) fn check_timestamp_tetraplets(
         .tetraplets
         .get(arg_number)
         .ok_or(InvalidTimestampTetraplet)?;
-    let tetraplet = tetraplets.get(0).wrap_err(error_msg)?;
+    let tetraplet = tetraplets.get(0).ok_or(InvalidTimestampTetraplet)?;
     (tetraplet.service_id == TRUSTED_TIMESTAMP_SERVICE_ID
         && tetraplet.function_name == TRUSTED_TIMESTAMP_FUNCTION_NAME
         && tetraplet.peer_pk == call_parameters.host_id)
@@ -82,7 +82,7 @@ fn extract_public_key(peer_id: String) -> Result<PublicKey, ServiceError> {
         .map_err(|e| ServiceError::PublicKeyExtractionError(e.to_string()))
 }
 
-pub fn get_weight_impl(peer_id: String) -> Result<Option<u32>, ServiceError> {
+pub fn get_weight_impl(peer_id: String) -> Result<u32, ServiceError> {
     let tg = get_data().lock();
     let public_key = extract_public_key(peer_id)?;
     let weight = tg.weight(public_key)?;
@@ -127,35 +127,38 @@ pub fn insert_cert_impl(certificate: Certificate, timestamp_sec: u64) -> Result<
 pub fn add_root_impl(peer_id: String, weight: u32) -> Result<(), ServiceError> {
     let mut tg = get_data().lock();
     let public_key = extract_public_key(peer_id)?;
-    tg.add_root_weight(public_key, weight)?;
+    tg.add_root_weight_factor(public_key, weight)?;
     Ok(())
 }
 
 pub fn get_trust_metadata_imp(
     peer_id: String,
-    expires_at: u64,
-    issued_at: u64,
+    expires_at_sec: u64,
+    issued_at_sec: u64,
 ) -> Result<Vec<u8>, ServiceError> {
     let public_key = extract_public_key(peer_id)?;
     Ok(trust_graph::Trust::metadata_bytes(
         &public_key,
-        Duration::from_secs(expires_at),
-        Duration::from_secs(issued_at),
+        Duration::from_secs(expires_at_sec),
+        Duration::from_secs(issued_at_sec),
     ))
 }
 
 pub fn issue_trust_impl(
     peer_id: String,
-    expires_at: u64,
-    issued_at: u64,
+    expires_at_sec: u64,
+    issued_at_sec: u64,
     signed_metadata: Vec<u8>,
 ) -> Result<Trust, ServiceError> {
     let public_key = extract_public_key(peer_id)?;
-    let expires_at = Duration::from_secs(expires_at);
-    let issued_at = Duration::from_secs(issued_at);
+    let expires_at_sec = Duration::from_secs(expires_at_sec);
+    let issued_at_sec = Duration::from_secs(issued_at_sec);
     let signature = Signature::from_bytes_with_public_key(&public_key, signed_metadata);
     Ok(Trust::from(trust_graph::Trust::new(
-        public_key, expires_at, issued_at, signature,
+        public_key,
+        expires_at_sec,
+        issued_at_sec,
+        signature,
     )))
 }
 
@@ -179,15 +182,14 @@ pub fn add_trust_impl(
     trust: Trust,
     issuer_peer_id: String,
     timestamp_sec: u64,
-) -> Result<(), ServiceError> {
+) -> Result<u32, ServiceError> {
     let public_key = extract_public_key(issuer_peer_id)?;
     check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 2)?;
     let mut tg = get_data().lock();
     tg.add_trust(
-        trust.try_into()?,
+        &trust.try_into()?,
         public_key,
         Duration::from_secs(timestamp_sec),
-    )?;
-
-    Ok(())
+    )
+    .map_err(ServiceError::TGError)
 }
