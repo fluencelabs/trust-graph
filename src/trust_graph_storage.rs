@@ -118,8 +118,7 @@ impl Storage for InMemoryStorage {
             None => {
                 let mut trust_node = TrustNode::new(issued_for.clone(), cur_time);
                 trust_node.update_auth(auth);
-                self.nodes.insert(pk.clone(), trust_node);
-                Ok(())
+                self.insert(pk.clone(), trust_node)
             }
         }
     }

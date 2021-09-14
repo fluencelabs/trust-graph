@@ -23,10 +23,12 @@ impl From<Result<(), ServiceError>> for InsertResult {
     }
 }
 
+// TODO: add peer id to result
 #[marine]
 pub struct WeightResult {
     pub success: bool,
-    pub weight: Vec<u32>,
+    pub weight: u32,
+    pub peer_id: String,
     pub error: String,
 }
 
@@ -162,24 +164,24 @@ impl From<Result<(), ServiceError>> for VerifyTrustResult {
 }
 
 #[marine]
-pub struct IssueCertificateResult {
+pub struct AddTrustResult {
     pub success: bool,
     pub error: String,
-    pub cert: Certificate,
+    pub weight: u32,
 }
 
-impl From<Result<Certificate, ServiceError>> for IssueCertificateResult {
-    fn from(result: Result<Certificate, ServiceError>) -> Self {
+impl From<Result<u32, ServiceError>> for AddTrustResult {
+    fn from(result: Result<u32, ServiceError>) -> Self {
         match result {
-            Ok(cert) => IssueCertificateResult {
+            Ok(weight) => AddTrustResult {
                 success: true,
                 error: "".to_string(),
-                cert,
+                weight,
             },
-            Err(e) => IssueCertificateResult {
+            Err(e) => AddTrustResult {
                 success: false,
                 error: format!("{}", e),
-                cert: Certificate { chain: vec![] },
+                weight: u32::default(),
             },
         }
     }

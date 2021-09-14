@@ -1,14 +1,36 @@
 use crate::dto::{Certificate, DtoConversionError, Trust};
+use crate::service_impl::ServiceError::InvalidTimestampTetraplet;
 use crate::storage_impl::get_data;
 use fluence_keypair::error::DecodingError;
 use fluence_keypair::public_key::peer_id_to_fluence_pk;
 use fluence_keypair::{PublicKey, Signature};
 use libp2p_core::PeerId;
+use marine_rs_sdk::CallParameters;
 use std::convert::{Into, TryInto};
 use std::str::FromStr;
 use std::time::Duration;
 use thiserror::Error as ThisError;
 use trust_graph::{current_time, CertificateError, TrustError, TrustGraphError};
+
+pub static TRUSTED_TIMESTAMP_SERVICE_ID: &str = "peer";
+pub static TRUSTED_TIMESTAMP_FUNCTION_NAME: &str = "timestamp_sec";
+
+/// Check timestamps are generated on the current host with builtin ("peer" "timestamp_sec")
+pub(crate) fn check_timestamp_tetraplets(
+    call_parameters: &CallParameters,
+    arg_number: usize,
+) -> Result<(), ServiceError> {
+    let tetraplets = call_parameters
+        .tetraplets
+        .get(arg_number)
+        .ok_or(InvalidTimestampTetraplet)?;
+    let tetraplet = tetraplets.get(0).wrap_err(error_msg)?;
+    (tetraplet.service_id == TRUSTED_TIMESTAMP_SERVICE_ID
+        && tetraplet.function_name == TRUSTED_TIMESTAMP_FUNCTION_NAME
+        && tetraplet.peer_pk == call_parameters.host_id)
+        .then(|| ())
+        .ok_or(InvalidTimestampTetraplet)
+}
 
 #[derive(ThisError, Debug)]
 pub enum ServiceError {
@@ -46,6 +68,8 @@ pub enum ServiceError {
         #[source]
         TrustError,
     ),
+    #[error("you should use host peer.timestamp_sec to pass timestamp")]
+    InvalidTimestampTetraplet,
 }
 
 fn parse_peer_id(peer_id: String) -> Result<PeerId, ServiceError> {
@@ -65,17 +89,17 @@ pub fn get_weight_impl(peer_id: String) -> Result<Option<u32>, ServiceError> {
     Ok(weight)
 }
 
-fn add_cert(certificate: trust_graph::Certificate, duration: u64) -> Result<(), ServiceError> {
-    let duration = Duration::from_millis(duration);
+fn add_cert(certificate: trust_graph::Certificate, timestamp_sec: u64) -> Result<(), ServiceError> {
+    let timestamp_sec = Duration::from_secs(timestamp_sec);
     let mut tg = get_data().lock();
-    tg.add(certificate, duration)?;
+    tg.add(certificate, timestamp_sec)?;
     Ok(())
 }
 
-pub fn insert_cert_impl_raw(certificate: String, duration: u64) -> Result<(), ServiceError> {
+pub fn insert_cert_impl_raw(certificate: String, timestamp_sec: u64) -> Result<(), ServiceError> {
     let certificate = trust_graph::Certificate::from_str(&certificate)?;
 
-    add_cert(certificate, duration)?;
+    add_cert(certificate, timestamp_sec)?;
     Ok(())
 }
 
@@ -93,10 +117,10 @@ pub fn get_all_certs_impl(issued_for: String) -> Result<Vec<Certificate>, Servic
     Ok(certs.into_iter().map(|c| c.into()).collect())
 }
 
-pub fn insert_cert_impl(certificate: Certificate, duration: u64) -> Result<(), ServiceError> {
+pub fn insert_cert_impl(certificate: Certificate, timestamp_sec: u64) -> Result<(), ServiceError> {
     let certificate: trust_graph::Certificate = certificate.try_into()?;
 
-    add_cert(certificate, duration)?;
+    add_cert(certificate, timestamp_sec)?;
     Ok(())
 }
 
@@ -138,45 +162,32 @@ pub fn issue_trust_impl(
 pub fn verify_trust_impl(
     trust: Trust,
     issuer_peer_id: String,
-    cur_time: u64,
+    timestamp_sec: u64,
 ) -> Result<(), ServiceError> {
+    check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 2)?;
     let public_key = extract_public_key(issuer_peer_id)?;
     trust_graph::Trust::verify(
         &trust.try_into()?,
         &public_key,
-        Duration::from_secs(cur_time),
+        Duration::from_secs(timestamp_sec),
     )?;
 
     Ok(())
 }
 
-pub fn issue_root_certificate_checked_impl(
-    root_trust: Trust,
-    issued_trust: Trust,
-    cur_time: u64,
-) -> Result<Certificate, ServiceError> {
-    trust_graph::Certificate::new_from_root_trust(
-        root_trust.try_into()?,
-        issued_trust.try_into()?,
-        Duration::from_secs(cur_time),
-    )
-    .map(|c| c.into())
-    .map_err(ServiceError::CertError)
-}
-
-pub fn issue_certificate_with_trust_checked_impl(
-    cert: Certificate,
+pub fn add_trust_impl(
     trust: Trust,
-    issued_by: String,
-    cur_time: u64,
-) -> Result<Certificate, ServiceError> {
-    let public_key = extract_public_key(issued_by)?;
-    trust_graph::Certificate::issue_with_trust(
-        public_key,
+    issuer_peer_id: String,
+    timestamp_sec: u64,
+) -> Result<(), ServiceError> {
+    let public_key = extract_public_key(issuer_peer_id)?;
+    check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 2)?;
+    let mut tg = get_data().lock();
+    tg.add_trust(
         trust.try_into()?,
-        &cert.try_into()?,
-        Duration::from_secs(cur_time),
-    )
-    .map(|c| c.into())
-    .map_err(ServiceError::CertError)
+        public_key,
+        Duration::from_secs(timestamp_sec),
+    )?;
+
+    Ok(())
 }

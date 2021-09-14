@@ -68,6 +68,8 @@ pub enum TrustGraphError {
         #[source]
         RevokeError,
     ),
+    #[error("Path to {0} not found")]
+    AddTrustError(String),
 }
 
 impl<T: StorageError + 'static> From<T> for TrustGraphError {
@@ -92,7 +94,11 @@ where
     }
 
     /// Insert new root weight
-    pub fn add_root_weight(&mut self, pk: PublicKey, weight: Weight) -> Result<(), TrustGraphError> {
+    pub fn add_root_weight(
+        &mut self,
+        pk: PublicKey,
+        weight: Weight,
+    ) -> Result<(), TrustGraphError> {
         Ok(self.storage.add_root_weight(pk.into(), weight)?)
     }
 
@@ -101,7 +107,35 @@ where
         Ok(self.storage.get(&pk.into())?)
     }
 
-    // TODO: remove cur_time from api, leave it for tests only
+    pub fn add_trust<T, P>(
+        &mut self,
+        trust: T,
+        issued_by: P,
+        cur_time: Duration,
+    ) -> Result<(), TrustGraphError>
+    where
+        T: Borrow<Trust>,
+        P: Borrow<PublicKey>,
+    {
+        Trust::verify(trust, issued_by.borrow(), cur_time)?;
+
+        let _parent_trust_node =
+            self.get(issued_by.clone().borrow())?
+                .ok_or(TrustGraphError::AddTrustError(
+                    issued_by.borrow().to_peer_id().to_base58(),
+                ))?;
+
+        let pk = trust.issued_for.clone().into();
+
+        let auth = Auth {
+            trust: trust.clone(),
+            issued_by,
+        };
+
+        self.storage
+            .update_auth(&pk, auth, &root_trust.issued_for, cur_time)
+    }
+
     /// Certificate is a chain of trusts, add this chain to graph
     pub fn add<C>(&mut self, cert: C, cur_time: Duration) -> Result<(), TrustGraphError>
     where
@@ -123,13 +157,13 @@ where
 
         // Insert new TrustNode for this root_pk if there wasn't one
         if self.storage.get(&root_pk)?.is_none() {
-            let mut trust_node = TrustNode::new(root_trust.issued_for.clone(), cur_time);
             let root_auth = Auth {
                 trust: root_trust.clone(),
                 issued_by: root_trust.issued_for.clone(),
             };
-            trust_node.update_auth(root_auth);
-            self.storage.insert(root_pk, trust_node)?;
+
+            self.storage
+                .update_auth(&root_pk, root_auth, &root_trust.issued_for, cur_time)?;
         }
 
         // Insert remaining trusts to the graph
@@ -188,7 +222,7 @@ where
             return Ok(None);
         }
 
-        let mut weight = std::u32::MAX;
+        let mut weight = u32::MAX;
 
         for cert in certs {
             let c = cert.borrow();
@@ -376,13 +410,15 @@ mod tests {
         let root_kp = KeyPair::generate_ed25519();
         let second_kp = KeyPair::generate_ed25519();
 
-        let mut cert =
-            Certificate::issue_root(&root_kp, second_kp.public(), expires_at, issued_at);
+        let mut cert = Certificate::issue_root(&root_kp, second_kp.public(), expires_at, issued_at);
 
         let mut key_pairs = vec![root_kp, second_kp];
 
         for idx in 2..len {
-            let kp = keys.get(&idx).unwrap_or(&KeyPair::generate_ed25519()).clone();
+            let kp = keys
+                .get(&idx)
+                .unwrap_or(&KeyPair::generate_ed25519())
+                .clone();
             let previous_kp = &key_pairs[idx - 1];
             cert = Certificate::issue(
                 &previous_kp,
@@ -591,9 +627,15 @@ mod tests {
         let st = InMemoryStorage::new();
         let mut graph = TrustGraph::new(st);
         // add first and last trusts as roots
-        graph.add_root_weight(cert.chain[0].clone().issued_for.into(), 1).unwrap();
-        graph.add_root_weight(cert.chain[3].clone().issued_for.into(), 1).unwrap();
-        graph.add_root_weight(cert.chain[5].clone().issued_for.into(), 1).unwrap();
+        graph
+            .add_root_weight(cert.chain[0].clone().issued_for.into(), 1)
+            .unwrap();
+        graph
+            .add_root_weight(cert.chain[3].clone().issued_for.into(), 1)
+            .unwrap();
+        graph
+            .add_root_weight(cert.chain[5].clone().issued_for.into(), 1)
+            .unwrap();
 
         graph.add(cert.clone(), current_time()).unwrap();
 
