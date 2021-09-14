@@ -113,7 +113,7 @@ pub fn get_all_certs_impl(issued_for: String) -> Result<Vec<Certificate>, Servic
     let tg = get_data().lock();
 
     let public_key = extract_public_key(issued_for)?;
-    let certs = tg.get_all_certs(public_key, &[])?;
+    let certs = tg.get_all_certs(public_key)?;
     Ok(certs.into_iter().map(|c| c.into()).collect())
 }
 

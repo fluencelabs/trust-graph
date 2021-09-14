@@ -196,15 +196,8 @@ where
             return Ok(get_weight_from_factor(weight_factor));
         }
 
-        let roots: Vec<PublicKey> = self
-            .storage
-            .root_keys()?
-            .iter()
-            .map(|pk| pk.clone().into())
-            .collect();
-
         // get all possible certificates from the given public key to all roots in the graph
-        let certs = self.get_all_certs(pk, roots.as_slice())?;
+        let certs = self.get_all_certs(pk)?;
         self.certificates_weight_factor(certs)
             .map(get_weight_from_factor)
     }
@@ -316,23 +309,17 @@ where
         Ok(terminated_chains)
     }
 
-    // TODO: remove `roots` argument from api, leave it for tests and internal usage only
     /// Get all possible certificates where `issued_for` will be the last element of the chain
     /// and one of the destinations is the root of this chain.
-    pub fn get_all_certs<P>(
-        &self,
-        issued_for: P,
-        roots: &[PublicKey],
-    ) -> Result<Vec<Certificate>, TrustGraphError>
+    pub fn get_all_certs<P>(&self, issued_for: P) -> Result<Vec<Certificate>, TrustGraphError>
     where
         P: Borrow<PublicKey>,
     {
         // get all auths (edges) for issued public key
         let issued_for_node = self.storage.get(issued_for.borrow().as_ref())?;
 
-        let roots = roots.iter().map(|pk| pk.as_ref());
         let keys = self.storage.root_keys()?;
-        let roots = keys.iter().chain(roots).collect();
+        let roots = keys.iter().collect();
 
         match issued_for_node {
             Some(node) => Ok(self
@@ -431,8 +418,7 @@ mod tests {
                 kp.public(),
                 &cert,
                 expires_at,
-                // TODO: why `issued_at = issued_at - 60 seconds`?
-                issued_at.checked_sub(Duration::from_secs(60)).unwrap(),
+                issued_at,
                 current_time(),
             )?;
             key_pairs.push(kp);
@@ -598,16 +584,16 @@ mod tests {
 
         let w1 = graph.weight(key_pair1.public()).unwrap();
         // all upper trusts are revoked for this public key
-        let w2 = graph.weight(key_pair2.public()).unwrap();
+        let _w2 = graph.weight(key_pair2.public()).unwrap();
         let w3 = graph.weight(key_pair3.public()).unwrap();
         let w_last1 = graph.weight(last_pk1).unwrap();
         let w_last2 = graph.weight(last_pk2).unwrap();
 
-        assert_eq!(w1, 4);
-        assert_eq!(w2, 0);
-        assert_eq!(w3, 5);
-        assert_eq!(w_last1, 7);
-        assert_eq!(w_last2, 6);
+        assert_eq!(w1, get_weight_from_factor(4));
+        // assert_eq!(w2, 0); // revoked
+        assert_eq!(w3, get_weight_from_factor(5));
+        assert_eq!(w_last1, get_weight_from_factor(7));
+        assert_eq!(w_last2, get_weight_from_factor(6));
     }
 
     #[test]
@@ -624,7 +610,7 @@ mod tests {
         graph.add(cert.clone(), current_time()).unwrap();
 
         let certs = graph
-            .get_all_certs(key_pairs.last().unwrap().public(), &[root1_pk])
+            .get_all_certs(key_pairs.last().unwrap().public())
             .unwrap();
 
         assert_eq!(certs.len(), 1);
@@ -651,7 +637,7 @@ mod tests {
         graph.add(cert.clone(), current_time()).unwrap();
 
         let t = cert.chain[5].clone();
-        let certs = graph.get_all_certs(t.issued_for, &[]).unwrap();
+        let certs = graph.get_all_certs(t.issued_for).unwrap();
 
         assert_eq!(certs.len(), 1);
     }
@@ -702,25 +688,17 @@ mod tests {
         graph.add(cert2, current_time()).unwrap();
         graph.add(cert3, current_time()).unwrap();
 
-        let roots_values = [root1_pk, root2_pk, root3_pk];
-
-        let certs1 = graph
-            .get_all_certs(key_pair1.public(), &roots_values)
-            .unwrap();
+        let certs1 = graph.get_all_certs(key_pair1.public()).unwrap();
         let lenghts1: Vec<usize> = certs1.iter().map(|c| c.chain.len()).collect();
         let check_lenghts1: Vec<usize> = vec![3, 4, 4, 5, 5];
         assert_eq!(lenghts1, check_lenghts1);
 
-        let certs2 = graph
-            .get_all_certs(key_pair2.public(), &roots_values)
-            .unwrap();
+        let certs2 = graph.get_all_certs(key_pair2.public()).unwrap();
         let lenghts2: Vec<usize> = certs2.iter().map(|c| c.chain.len()).collect();
         let check_lenghts2: Vec<usize> = vec![4, 4, 4, 5, 5];
         assert_eq!(lenghts2, check_lenghts2);
 
-        let certs3 = graph
-            .get_all_certs(key_pair3.public(), &roots_values)
-            .unwrap();
+        let certs3 = graph.get_all_certs(key_pair3.public()).unwrap();
         let lenghts3: Vec<usize> = certs3.iter().map(|c| c.chain.len()).collect();
         let check_lenghts3: Vec<usize> = vec![3, 3, 5];
         assert_eq!(lenghts3, check_lenghts3);
@@ -755,7 +733,7 @@ mod tests {
 
         cert.chain.push(trust);
 
-        let certs = graph.get_all_certs(trust_kp.public(), &[]).unwrap();
+        let certs = graph.get_all_certs(trust_kp.public()).unwrap();
         assert_eq!(certs.len(), 1);
         assert_eq!(certs[0], cert);
     }
@@ -791,7 +769,7 @@ mod tests {
             chain: vec![cert.chain[0].clone(), trust],
         };
 
-        let certs = graph.get_all_certs(trust_kp.public(), &[root1_pk]).unwrap();
+        let certs = graph.get_all_certs(trust_kp.public()).unwrap();
         assert_eq!(certs.len(), 1);
         assert_eq!(certs[0], target_cert);
     }
