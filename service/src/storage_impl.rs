@@ -6,6 +6,7 @@ use crate::storage_impl::SQLiteStorageError::{
     PublicKeyConversion, PublicKeyFromStr, PublicKeyNotFound, TrustNodeConversion,
     WeightConversionDB,
 };
+
 use core::convert::TryFrom;
 use marine_sqlite_connector;
 use marine_sqlite_connector::Connection;

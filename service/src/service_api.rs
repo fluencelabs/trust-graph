@@ -26,16 +26,16 @@ fn insert_cert(certificate: Certificate, timestamp_sec: u64) -> InsertResult {
 
 // TODO: pass current timestamp, return only valid, delete expired, return max weight
 #[marine]
-fn get_weight(peer_id: String) -> WeightResult {
-    get_weight_impl(peer_id.clone())
+fn get_weight(peer_id: String, timestamp_sec: u64) -> WeightResult {
+    get_weight_impl(peer_id.clone(), timestamp_sec)
         .map(|w| (w, peer_id))
         .into()
 }
 
 // TODO: pass current timestamp, return only valid, delete expired
 #[marine]
-fn get_all_certs(issued_for: String) -> AllCertsResult {
-    get_all_certs_impl(issued_for).into()
+fn get_all_certs(issued_for: String, timestamp_sec: u64) -> AllCertsResult {
+    get_all_certs_impl(issued_for, timestamp_sec).into()
 }
 
 #[marine]

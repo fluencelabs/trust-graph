@@ -49,10 +49,10 @@ data WeightResult:
 service TrustGraph("trust-graph"):
   add_root(peer_id: string, weight: u32) -> AddRootResult
   add_trust(trust: Trust, issuer_peer_id: string, timestamp_sec: u64) -> AddTrustResult
-  get_all_certs(issued_for: string) -> AllCertsResult
-  get_trust_metadata(issued_for_peer_id: string, expires_at: u64, issued_at: u64) -> GetTrustMetadataResult
-  get_weight(peer_id: string) -> WeightResult
+  get_all_certs(issued_for: string, timestamp_sec: u64) -> AllCertsResult
+  get_trust_metadata(issued_for_peer_id: string, expires_at_sec: u64, issued_at_sec: u64) -> GetTrustMetadataResult
+  get_weight(peer_id: string, timestamp_sec: u64) -> WeightResult
   insert_cert(certificate: Certificate, timestamp_sec: u64) -> InsertResult
   insert_cert_raw(certificate: string, timestamp_sec: u64) -> InsertResult
-  issue_trust(issued_for_peer_id: string, expires_at: u64, issued_at: u64, signed_metadata: []u8) -> IssueTrustResult
+  issue_trust(issued_for_peer_id: string, expires_at_sec: u64, issued_at_sec: u64, signed_metadata: []u8) -> IssueTrustResult
   verify_trust(trust: Trust, issuer_peer_id: string, timestamp_sec: u64) -> VerifyTrustResult
