@@ -12,9 +12,6 @@ The network-wide peer relationship layer is used to manage connectivity and perm
 
 `js` is a `npm` package that allows you to create and serialize certificates
 
-### Use trust-graph in Fluence network
-
-[Reference](https://fluence.dev/docs/trust-graph)
 
 ### Use trust-graph as a library
 
