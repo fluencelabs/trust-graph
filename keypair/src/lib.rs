@@ -26,35 +26,35 @@
     unreachable_patterns
 )]
 
-mod secp256k1;
 mod ed25519;
+pub mod error;
+pub mod key_pair;
+pub mod public_key;
 #[cfg(not(target_arch = "wasm32"))]
 mod rsa;
-pub mod key_pair;
-pub mod error;
-pub mod public_key;
+mod secp256k1;
 pub mod signature;
 
-pub use key_pair::KeyPair;
-pub use key_pair::KeyFormat;
 pub use crate::public_key::PublicKey;
 pub use crate::signature::Signature;
+pub use key_pair::KeyFormat;
+pub use key_pair::KeyPair;
 
 pub mod peerid_serializer {
+    use libp2p_core::PeerId;
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
     use std::str::FromStr;
-    use libp2p_core::PeerId;
 
     pub fn serialize<S>(value: &PeerId, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         value.to_base58().serialize(serializer)
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<PeerId, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         let str = String::deserialize(deserializer)?;
         PeerId::from_str(&str).map_err(|e| {

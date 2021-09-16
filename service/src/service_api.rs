@@ -12,7 +12,6 @@ use marine_rs_sdk::{marine, CallParameters};
 #[marine]
 /// add a certificate in string representation to trust graph if it is valid
 /// see `trust_graph::Certificate` class for string encoding/decoding
-// TODO change `timestamp_sec` to time service
 fn insert_cert_raw(certificate: String, timestamp_sec: u64) -> InsertResult {
     insert_cert_impl_raw(certificate, timestamp_sec).into()
 }
@@ -24,7 +23,7 @@ fn insert_cert(certificate: Certificate, timestamp_sec: u64) -> InsertResult {
     insert_cert_impl(certificate, timestamp_sec).into()
 }
 
-// TODO: pass current timestamp, return only valid, delete expired, return max weight
+// TODO: return only valid, delete expired, return max weight
 #[marine]
 fn get_weight(peer_id: String, timestamp_sec: u64) -> WeightResult {
     get_weight_impl(peer_id.clone(), timestamp_sec)
@@ -32,7 +31,7 @@ fn get_weight(peer_id: String, timestamp_sec: u64) -> WeightResult {
         .into()
 }
 
-// TODO: pass current timestamp, return only valid, delete expired
+// TODO: return only valid, delete expired
 #[marine]
 fn get_all_certs(issued_for: String, timestamp_sec: u64) -> AllCertsResult {
     get_all_certs_impl(issued_for, timestamp_sec).into()
