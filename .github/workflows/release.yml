@@ -93,7 +93,7 @@ jobs:
         id: release
         uses: softprops/action-gh-release@v1
         with:
-          name: aqua-dht ${{ env.RELEASE_VERSION }}
+          name: trust-graph ${{ env.RELEASE_VERSION }}
           tag_name: ${{ env.RELEASE_VERSION }}
           files: |
             trust-graph.tar.gz
@@ -138,7 +138,7 @@ jobs:
 
       - name: Calculate SHA256
         run: |
-          du -hs aqua-dht.tar.gz
+          du -hs trust-graph.tar.gz
           echo $(sha256sum trust-graph.tar.gz)
           echo "SHA256=$(sha256sum trust-graph.tar.gz | awk '{ print $1 }')" >> $GITHUB_ENV
 
