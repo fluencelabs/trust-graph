@@ -1,0 +1,18 @@
+import "trust-graph.aqua"
+import "@fluencelabs/aqua-lib/builtin.aqua"
+
+func get_trust_metadata(node: string, issued_for_peer_id: string, expires_at_sec: u64, issued_at_sec: u64) -> GetTrustMetadataResult:
+    on node:
+        result <- TrustGraph.get_trust_metadata(issued_for_peer_id, expires_at_sec, issued_at_sec)
+    <- result
+
+func issue_trust(node: string, issued_for_peer_id: string, expires_at_sec: u64, issued_at_sec: u64, signed_metadata: []u8) -> IssueTrustResult:
+    on node:
+        result <- TrustGraph.issue_trust(issued_for_peer_id, expires_at_sec, issued_at_sec, signed_metadata)
+    <- result
+
+func verify_trust(node: string, trust: Trust, issuer_peer_id: string) -> VerifyTrustResult:
+    on node:
+        timestamp_sec <- Peer.timestamp_sec()
+        result <- TrustGraph.verify_trust(trust, issuer_peer_id, timestamp_sec)
+    <- result
