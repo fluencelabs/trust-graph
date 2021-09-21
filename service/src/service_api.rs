@@ -39,15 +39,16 @@ fn get_all_certs(issued_for: String, timestamp_sec: u64) -> AllCertsResult {
 
 #[marine]
 /// could add only a host of a trust graph service
+// TODO: rename to add_root_weight_factor
 fn add_root(peer_id: String, weight: u32) -> AddRootResult {
     let call_parameters: CallParameters = marine_rs_sdk::get_call_parameters();
     let init_peer_id = call_parameters.init_peer_id.clone();
-    if call_parameters.host_id == init_peer_id {
+    if call_parameters.service_creator_peer_id == init_peer_id {
         add_root_impl(peer_id, weight).into()
     } else {
         return AddRootResult {
             success: false,
-            error: "Root could add only a host of trust graph service".to_string(),
+            error: "Root could add only by trust graph service owner".to_string(),
         };
     }
 }

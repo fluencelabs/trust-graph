@@ -16,3 +16,20 @@ func verify_trust(node: string, trust: Trust, issuer_peer_id: string) -> VerifyT
         timestamp_sec <- Peer.timestamp_sec()
         result <- TrustGraph.verify_trust(trust, issuer_peer_id, timestamp_sec)
     <- result
+
+func add_trust(node: string, trust: Trust, issuer_peer_id: string) -> AddTrustResult:
+    on node:
+        timestamp_sec <- Peer.timestamp_sec()
+        result <- TrustGraph.add_trust(trust, issuer_peer_id, timestamp_sec)
+    <- result
+
+func add_root(node: string, peer_id: string, weight: u32) -> AddRootResult:
+    on node:
+        result <- TrustGraph.add_root(peer_id, weight)
+    <- result
+
+func get_weight(node: string, peer_id: string) -> WeightResult:
+    on node:
+        timestamp_sec <- Peer.timestamp_sec()
+        result <- TrustGraph.get_weight(peer_id, timestamp_sec)
+    <- result
