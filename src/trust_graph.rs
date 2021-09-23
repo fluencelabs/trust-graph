@@ -131,7 +131,7 @@ where
     {
         Trust::verify(trust.borrow(), issued_by.borrow(), cur_time)?;
 
-        let issued_by_weight = self.weight(issued_by.borrow().clone().borrow())?;
+        let issued_by_weight = self.weight(issued_by.borrow().clone().borrow(), cur_time)?;
 
         if issued_by_weight == 0u32 {
             return Ok(0u32);
@@ -188,7 +188,7 @@ where
     }
 
     /// Get the maximum weight of trust for one public key.
-    pub fn weight<P>(&self, pk: P) -> Result<u32, TrustGraphError>
+    pub fn weight<P>(&self, pk: P, cur_time: Duration) -> Result<u32, TrustGraphError>
     where
         P: Borrow<PublicKey>,
     {
@@ -197,7 +197,7 @@ where
         }
 
         // get all possible certificates from the given public key to all roots in the graph
-        let certs = self.get_all_certs(pk)?;
+        let certs = self.get_all_certs(pk, cur_time)?;
         self.certificates_weight_factor(certs)
             .map(|wf| wf.map(get_weight_from_factor).unwrap_or(0u32))
     }
@@ -251,11 +251,16 @@ where
         &self,
         node: &TrustNode,
         roots: HashSet<&PK>,
+        cur_time: Duration,
     ) -> Result<Vec<Vec<Auth>>, TrustGraphError> {
         // queue to collect all chains in the trust graph (each chain is a path in the trust graph)
         let mut chains_queue: VecDeque<Vec<Auth>> = VecDeque::new();
 
-        let node_auths: Vec<Auth> = node.authorizations().cloned().collect();
+        let node_auths: Vec<Auth> = node
+            .authorizations()
+            .cloned()
+            .filter(|auth| auth.trust.expires_at > cur_time)
+            .collect();
         // put all auth in the queue as the first possible paths through the graph
         for auth in node_auths {
             chains_queue.push_back(vec![auth]);
@@ -279,6 +284,7 @@ where
                 .ok_or(CertificateCheckError(Unexpected))?
                 .authorizations()
                 .cloned()
+                .filter(|auth| auth.trust.expires_at > cur_time)
                 .collect();
 
             for auth in auths {
@@ -311,7 +317,11 @@ where
 
     /// Get all possible certificates where `issued_for` will be the last element of the chain
     /// and one of the destinations is the root of this chain.
-    pub fn get_all_certs<P>(&self, issued_for: P) -> Result<Vec<Certificate>, TrustGraphError>
+    pub fn get_all_certs<P>(
+        &self,
+        issued_for: P,
+        cur_time: Duration,
+    ) -> Result<Vec<Certificate>, TrustGraphError>
     where
         P: Borrow<PublicKey>,
     {
@@ -323,7 +333,7 @@ where
 
         match issued_for_node {
             Some(node) => Ok(self
-                .bf_search_paths(&node, roots)?
+                .bf_search_paths(&node, roots, cur_time)?
                 .iter()
                 .map(|auths| {
                     // TODO: can avoid cloning here by returning &Certificate
@@ -528,13 +538,13 @@ mod tests {
         graph.add(cert1, current_time()).unwrap();
 
         let root_weight = get_weight_from_factor(1);
-        let w1 = graph.weight(key_pairs[0].public()).unwrap();
+        let w1 = graph.weight(key_pairs[0].public(), current_time()).unwrap();
         assert_eq!(w1, root_weight * 2u32.pow(0));
 
-        let w2 = graph.weight(key_pairs[1].public()).unwrap();
+        let w2 = graph.weight(key_pairs[1].public(), current_time()).unwrap();
         assert_eq!(w2, root_weight / 2u32.pow(1));
 
-        let w3 = graph.weight(key_pairs[9].public()).unwrap();
+        let w3 = graph.weight(key_pairs[9].public(), current_time()).unwrap();
         assert_eq!(w3, root_weight / 2u32.pow(9));
 
         let node = graph.get(key_pairs[9].public()).unwrap().unwrap();
@@ -590,12 +600,12 @@ mod tests {
         );
         graph.revoke(revoke2).unwrap();
 
-        let w1 = graph.weight(key_pair1.public()).unwrap();
+        let w1 = graph.weight(key_pair1.public(), current_time()).unwrap();
         // all upper trusts are revoked for this public key
-        let w2 = graph.weight(key_pair2.public()).unwrap();
-        let w3 = graph.weight(key_pair3.public()).unwrap();
-        let w_last1 = graph.weight(last_pk1).unwrap();
-        let w_last2 = graph.weight(last_pk2).unwrap();
+        let w2 = graph.weight(key_pair2.public(), current_time()).unwrap();
+        let w3 = graph.weight(key_pair3.public(), current_time()).unwrap();
+        let w_last1 = graph.weight(last_pk1, current_time()).unwrap();
+        let w_last2 = graph.weight(last_pk2, current_time()).unwrap();
 
         assert_eq!(w1, get_weight_from_factor(4));
         assert_eq!(w2, 0); // revoked
@@ -618,7 +628,7 @@ mod tests {
         graph.add(cert.clone(), current_time()).unwrap();
 
         let certs = graph
-            .get_all_certs(key_pairs.last().unwrap().public())
+            .get_all_certs(key_pairs.last().unwrap().public(), current_time())
             .unwrap();
 
         assert_eq!(certs.len(), 1);
@@ -645,7 +655,7 @@ mod tests {
         graph.add(cert.clone(), current_time()).unwrap();
 
         let t = cert.chain[5].clone();
-        let certs = graph.get_all_certs(t.issued_for).unwrap();
+        let certs = graph.get_all_certs(t.issued_for, current_time()).unwrap();
 
         assert_eq!(certs.len(), 1);
     }
@@ -696,17 +706,23 @@ mod tests {
         graph.add(cert2, current_time()).unwrap();
         graph.add(cert3, current_time()).unwrap();
 
-        let certs1 = graph.get_all_certs(key_pair1.public()).unwrap();
+        let certs1 = graph
+            .get_all_certs(key_pair1.public(), current_time())
+            .unwrap();
         let lenghts1: Vec<usize> = certs1.iter().map(|c| c.chain.len()).collect();
         let check_lenghts1: Vec<usize> = vec![3, 4, 4, 5, 5];
         assert_eq!(lenghts1, check_lenghts1);
 
-        let certs2 = graph.get_all_certs(key_pair2.public()).unwrap();
+        let certs2 = graph
+            .get_all_certs(key_pair2.public(), current_time())
+            .unwrap();
         let lenghts2: Vec<usize> = certs2.iter().map(|c| c.chain.len()).collect();
         let check_lenghts2: Vec<usize> = vec![4, 4, 4, 5, 5];
         assert_eq!(lenghts2, check_lenghts2);
 
-        let certs3 = graph.get_all_certs(key_pair3.public()).unwrap();
+        let certs3 = graph
+            .get_all_certs(key_pair3.public(), current_time())
+            .unwrap();
         let lenghts3: Vec<usize> = certs3.iter().map(|c| c.chain.len()).collect();
         let check_lenghts3: Vec<usize> = vec![3, 3, 5];
         assert_eq!(lenghts3, check_lenghts3);
@@ -737,11 +753,16 @@ mod tests {
         let weight = graph
             .add_trust(trust.clone(), issued_by.public(), cur_time)
             .unwrap();
-        assert_eq!(weight, graph.weight(issued_by.public()).unwrap() / 2);
+        assert_eq!(
+            weight,
+            graph.weight(issued_by.public(), current_time()).unwrap() / 2
+        );
 
         cert.chain.push(trust);
 
-        let certs = graph.get_all_certs(trust_kp.public()).unwrap();
+        let certs = graph
+            .get_all_certs(trust_kp.public(), current_time())
+            .unwrap();
         assert_eq!(certs.len(), 1);
         assert_eq!(certs[0], cert);
     }
@@ -771,13 +792,18 @@ mod tests {
         let weight = graph
             .add_trust(trust.clone(), issued_by.public(), cur_time)
             .unwrap();
-        assert_eq!(weight, graph.weight(issued_by.public()).unwrap() / 2);
+        assert_eq!(
+            weight,
+            graph.weight(issued_by.public(), current_time()).unwrap() / 2
+        );
 
         let target_cert = Certificate {
             chain: vec![cert.chain[0].clone(), trust],
         };
 
-        let certs = graph.get_all_certs(trust_kp.public()).unwrap();
+        let certs = graph
+            .get_all_certs(trust_kp.public(), current_time())
+            .unwrap();
         assert_eq!(certs.len(), 1);
         assert_eq!(certs[0], target_cert);
     }
@@ -804,6 +830,44 @@ mod tests {
         );
 
         graph.revoke(revoke.clone()).unwrap();
-        assert_eq!(0, graph.weight(revoked.public()).unwrap());
+        assert_eq!(0, graph.weight(revoked.public(), current_time()).unwrap());
+    }
+
+    #[test]
+    fn test_expired_trust() {
+        let (key_pairs, mut cert) = generate_cert_with_len(5, HashMap::new()).unwrap();
+        let cur_time = current_time();
+
+        let st = InMemoryStorage::new();
+        let mut graph = TrustGraph::new(st);
+        let root1_pk = key_pairs[0].public();
+        graph
+            .add_root_weight_factor(root1_pk.clone().into(), 2)
+            .unwrap();
+        graph.add(cert.clone(), cur_time).unwrap();
+
+        let issued_by = key_pairs.last().unwrap();
+        let trust_kp = KeyPair::generate_ed25519();
+        let expired_time = cur_time.checked_add(one_minute()).unwrap();
+        let trust = Trust::create(issued_by, trust_kp.public(), expired_time, cur_time);
+
+        let weight = graph
+            .add_trust(trust.clone(), issued_by.public(), cur_time)
+            .unwrap();
+        assert_eq!(
+            weight,
+            graph.weight(issued_by.public(), cur_time).unwrap() / 2
+        );
+
+        cert.chain.push(trust);
+
+        let certs = graph.get_all_certs(trust_kp.public(), cur_time).unwrap();
+        assert_eq!(certs.len(), 1);
+        assert_eq!(certs[0], cert);
+
+        let certs = graph
+            .get_all_certs(trust_kp.public(), expired_time)
+            .unwrap();
+        assert_eq!(certs.len(), 0);
     }
 }

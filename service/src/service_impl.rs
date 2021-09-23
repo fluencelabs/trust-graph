@@ -82,11 +82,11 @@ fn extract_public_key(peer_id: String) -> Result<PublicKey, ServiceError> {
         .map_err(|e| ServiceError::PublicKeyExtractionError(e.to_string()))
 }
 
-pub fn get_weight_impl(peer_id: String, _timestamp_sec: u64) -> Result<u32, ServiceError> {
+pub fn get_weight_impl(peer_id: String, timestamp_sec: u64) -> Result<u32, ServiceError> {
     check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
     let tg = get_data().lock();
     let public_key = extract_public_key(peer_id)?;
-    let weight = tg.weight(public_key)?;
+    let weight = tg.weight(public_key, Duration::from_secs(timestamp_sec))?;
     Ok(weight)
 }
 
@@ -106,13 +106,13 @@ pub fn insert_cert_impl_raw(certificate: String, timestamp_sec: u64) -> Result<(
 
 pub fn get_all_certs_impl(
     issued_for: String,
-    _timestamp_sec: u64,
+    timestamp_sec: u64,
 ) -> Result<Vec<Certificate>, ServiceError> {
     check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
     let tg = get_data().lock();
 
     let public_key = extract_public_key(issued_for)?;
-    let certs = tg.get_all_certs(public_key)?;
+    let certs = tg.get_all_certs(public_key, Duration::from_secs(timestamp_sec))?;
     Ok(certs.into_iter().map(|c| c.into()).collect())
 }
 
@@ -130,7 +130,7 @@ pub fn add_root_impl(peer_id: String, weight: u32) -> Result<(), ServiceError> {
     Ok(())
 }
 
-pub fn get_trust_metadata_imp(
+pub fn get_trust_bytes_imp(
     peer_id: String,
     expires_at_sec: u64,
     issued_at_sec: u64,
@@ -147,12 +147,12 @@ pub fn issue_trust_impl(
     peer_id: String,
     expires_at_sec: u64,
     issued_at_sec: u64,
-    signed_metadata: Vec<u8>,
+    trust_bytes: Vec<u8>,
 ) -> Result<Trust, ServiceError> {
     let public_key = extract_public_key(peer_id)?;
     let expires_at_sec = Duration::from_secs(expires_at_sec);
     let issued_at_sec = Duration::from_secs(issued_at_sec);
-    let signature = Signature::from_bytes_with_public_key(&public_key, signed_metadata);
+    let signature = Signature::from_bytes_with_public_key(&public_key, trust_bytes);
     Ok(Trust::from(trust_graph::Trust::new(
         public_key,
         expires_at_sec,

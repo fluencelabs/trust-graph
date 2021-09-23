@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { get_trust_metadata, issue_trust, verify_trust, add_trust, add_root, get_weight } from "./generated/export";
+import { get_trust_bytes, issue_trust, verify_trust, add_trust, add_root, get_weight, } from "./generated/export";
 import { Fluence, KeyPair } from "@fluencelabs/fluence";
 import { Node } from "@fluencelabs/fluence-network-environment";
 const bs58 = require('bs58');
@@ -47,7 +47,7 @@ async function main(environment: Node[]) {
     let add_root_result = await add_root(local[0].peerId, local[0].peerId, 2);
     console.log("Add root weight result: %s", add_root_result);
 
-    let trust_metadata = await get_trust_metadata(local[0].peerId, local[0].peerId, 99999999999, 0);
+    let trust_metadata = await get_trust_bytes(local[0].peerId, local[0].peerId, 99999999999, 0);
     const signed_metadata = await issuer_kp.Libp2pPeerId.privKey.sign(Uint8Array.from(trust_metadata.result));
 
     let root_trust = await issue_trust(local[0].peerId, local[0].peerId, 99999999999, 0, Array.from(signed_metadata));
@@ -62,6 +62,7 @@ async function main(environment: Node[]) {
     let root_weight_result = await get_weight(local[0].peerId, local[0].peerId);
     console.log("Root weight: %s", root_weight_result);
 
+    // TODO: insert trust to local[1].peerId, get this certs, add local[1].peerId as root in local[1].peerId and insert_certificate
     return;
 }
 

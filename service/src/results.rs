@@ -96,21 +96,21 @@ impl From<Result<(), ServiceError>> for AddRootResult {
 }
 
 #[marine]
-pub struct GetTrustMetadataResult {
+pub struct GetTrustBytesResult {
     pub success: bool,
     pub error: String,
     pub result: Vec<u8>,
 }
 
-impl From<Result<Vec<u8>, ServiceError>> for GetTrustMetadataResult {
+impl From<Result<Vec<u8>, ServiceError>> for GetTrustBytesResult {
     fn from(result: Result<Vec<u8>, ServiceError>) -> Self {
         match result {
-            Ok(res) => GetTrustMetadataResult {
+            Ok(res) => GetTrustBytesResult {
                 success: true,
                 error: "".to_string(),
                 result: res,
             },
-            Err(e) => GetTrustMetadataResult {
+            Err(e) => GetTrustBytesResult {
                 success: false,
                 error: format!("{}", e),
                 result: vec![],
