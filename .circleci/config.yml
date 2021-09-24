@@ -25,7 +25,7 @@ jobs:
           paths:
             - ~/.cargo
             - ~/.rustup
-          key: trust-graph00-{{ checksum "./service/Cargo.lock" }}-{{ checksum "./Cargo.lock" }}-{{ checksum "./keypair/Cargo.lock" }}
+          key: trust-graph00-{{ checksum "./Cargo.lock" }}-{{ checksum "./keypair/Cargo.lock" }}
 
 
 workflows:
