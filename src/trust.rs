@@ -140,7 +140,7 @@ impl Trust {
         KeyPair::verify(issued_by, msg, &trust.signature).map_err(SignatureError)
     }
 
-    pub fn metadata_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> Vec<u8> {
+    fn metadata_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> Vec<u8> {
         let pk_encoded = pk.encode();
         let expires_at_encoded: [u8; EXPIRATION_LEN] = (expires_at.as_secs() as u64).to_le_bytes();
         let issued_at_encoded: [u8; ISSUED_LEN] = (issued_at.as_secs() as u64).to_le_bytes();
@@ -150,7 +150,7 @@ impl Trust {
         metadata.extend_from_slice(&expires_at_encoded[0..EXPIRATION_LEN]);
         metadata.extend_from_slice(&issued_at_encoded[0..ISSUED_LEN]);
 
-        sha2::Sha256::digest(&metadata).to_vec()
+        metadata
     }
 
     /// Encode the trust into a byte array
