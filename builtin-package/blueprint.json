@@ -1,7 +1,0 @@
-{
-  "name": "trust-graph",
-  "dependencies": [
-    "name:sqlite3",
-    "name:trust-graph"
-  ]
-}
