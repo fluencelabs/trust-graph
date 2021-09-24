@@ -1,6 +1,6 @@
 use crate::public_key_hashable::PublicKeyHashable as PK;
 use crate::revoke::Revoke;
-use crate::trust_graph::WeightFactor;
+use crate::trust_graph::Weight;
 use crate::trust_graph_storage::InMemoryStorageError::RevokeError;
 use crate::trust_node::{Auth, TrustNode};
 use fluence_keypair::public_key::PublicKey;

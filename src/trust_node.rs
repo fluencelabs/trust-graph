@@ -146,7 +146,7 @@ impl TrustNode {
     }
 
     pub fn update_revoke(&mut self, revoke: Revoke) {
-        self.update_relatiqon(TrustRelation::Revoke(revoke));
+        self.update_relation(TrustRelation::Revoke(revoke));
     }
 }
 
