@@ -70,6 +70,8 @@ pub enum ServiceError {
     ),
     #[error("you should use host peer.timestamp_sec to pass timestamp")]
     InvalidTimestampTetraplet,
+    #[error("Trust can't be issued later than the current timestamp")]
+    InvalidTrustTimestamp,
 }
 
 fn parse_peer_id(peer_id: String) -> Result<PeerId, ServiceError> {
@@ -184,6 +186,11 @@ pub fn add_trust_impl(
 ) -> Result<u32, ServiceError> {
     let public_key = extract_public_key(issuer_peer_id)?;
     check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 2)?;
+
+    if trust.issued_at > timestamp_sec {
+        return Err(ServiceError::InvalidTrustTimestamp);
+    }
+
     let mut tg = get_data().lock();
     tg.add_trust(
         &trust.try_into()?,

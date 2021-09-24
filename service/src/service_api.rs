@@ -81,7 +81,6 @@ fn verify_trust(trust: Trust, issuer_peer_id: String, timestamp_sec: u64) -> Ver
     verify_trust_impl(trust, issuer_peer_id, timestamp_sec).into()
 }
 
-// TODO: check issued_at earlier than timestamp_sec
 #[marine]
 fn add_trust(trust: Trust, issuer_peer_id: String, timestamp_sec: u64) -> AddTrustResult {
     add_trust_impl(trust, issuer_peer_id, timestamp_sec).into()
