@@ -45,3 +45,19 @@ func insert_cert(node: string, certificate: Certificate) -> InsertResult:
         timestamp_sec <- Peer.timestamp_sec()
         result <- TrustGraph.insert_cert(certificate, timestamp_sec)
     <- result
+
+func get_revoke_bytes(node: string, revoked_peer_id: string, revoked_at: u64) -> GetRevokeBytesResult:
+    on node:
+        result <- TrustGraph.get_revoke_bytes(revoked_peer_id, revoked_at)
+    <- result
+
+func issue_revocation(node: string, revoked_peer_id: string, revoked_by_peer_id: string, revoked_at_sec: u64, signature_bytes: []u8) -> IssueRevocationResult:
+    on node:
+        result <- TrustGraph.issue_revocation(revoked_peer_id, revoked_by_peer_id, revoked_at_sec, signature_bytes)
+    <- result
+
+func revoke(node: string, revoke: Revoke) -> RevokeResult:
+    on node:
+        timestamp_sec <- Peer.timestamp_sec()
+        result <- TrustGraph.revoke(revoke, timestamp_sec)
+    <- result
