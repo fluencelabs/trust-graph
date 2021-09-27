@@ -1,11 +1,13 @@
-use crate::dto::{Certificate, Trust};
+use crate::dto::{Certificate, Revoke, Trust};
 use crate::results::{
-    AddRootResult, AddTrustResult, AllCertsResult, GetTrustBytesResult, InsertResult,
-    IssueTrustResult, VerifyTrustResult, WeightResult,
+    AddRootResult, AddTrustResult, AllCertsResult, GetRevokeBytesResult, GetTrustBytesResult,
+    InsertResult, IssueRevocationResult, IssueTrustResult, RevokeResult, VerifyTrustResult,
+    WeightResult,
 };
 use crate::service_impl::{
-    add_root_impl, add_trust_impl, get_all_certs_impl, get_trust_bytes_imp, get_weight_impl,
-    insert_cert_impl, insert_cert_impl_raw, issue_trust_impl, verify_trust_impl,
+    add_root_impl, add_trust_impl, get_all_certs_impl, get_revoke_bytes_impl, get_trust_bytes_imp,
+    get_weight_impl, insert_cert_impl, insert_cert_impl_raw, issue_revocation_impl,
+    issue_trust_impl, revoke_impl, verify_trust_impl,
 };
 use marine_rs_sdk::{marine, CallParameters};
 
@@ -84,4 +86,30 @@ fn verify_trust(trust: Trust, issuer_peer_id: String, timestamp_sec: u64) -> Ver
 #[marine]
 fn add_trust(trust: Trust, issuer_peer_id: String, timestamp_sec: u64) -> AddTrustResult {
     add_trust_impl(trust, issuer_peer_id, timestamp_sec).into()
+}
+
+#[marine]
+fn get_revoke_bytes(revoked_peer_id: String, revoked_at: u64) -> GetRevokeBytesResult {
+    get_revoke_bytes_impl(revoked_peer_id, revoked_at).into()
+}
+
+#[marine]
+fn issue_revocation(
+    revoked_peer_id: String,
+    revoked_by_peer_id: String,
+    revoked_at_sec: u64,
+    signature_bytes: Vec<u8>,
+) -> IssueRevocationResult {
+    issue_revocation_impl(
+        revoked_peer_id,
+        revoked_by_peer_id,
+        revoked_at_sec,
+        signature_bytes,
+    )
+    .into()
+}
+
+#[marine]
+fn revoke(revoke: Revoke, timestamp_sec: u64) -> RevokeResult {
+    revoke_impl(revoke, timestamp_sec).into()
 }

@@ -44,11 +44,8 @@ mod tests {
 
     macro_rules! issue_trust {
         ($trust_graph:expr, $issuer_kp:expr, $issued_peer_id: expr, $expires_at:expr, $issued_at: expr) => {{
-            let trust_metadata_result = $trust_graph.get_trust_metadata(
-                $issued_peer_id.to_base58(),
-                $expires_at,
-                $issued_at,
-            );
+            let trust_metadata_result =
+                $trust_graph.get_trust_bytes($issued_peer_id.to_base58(), $expires_at, $issued_at);
             assert_result!(trust_metadata_result);
 
             let metadata = trust_metadata_result.result;

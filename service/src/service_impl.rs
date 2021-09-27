@@ -1,4 +1,4 @@
-use crate::dto::{Certificate, DtoConversionError, Trust};
+use crate::dto::{Certificate, DtoConversionError, Revoke, Trust};
 use crate::service_impl::ServiceError::InvalidTimestampTetraplet;
 use crate::storage_impl::get_data;
 use fluence_keypair::error::DecodingError;
@@ -7,6 +7,7 @@ use fluence_keypair::{PublicKey, Signature};
 use libp2p_core::PeerId;
 use marine_rs_sdk::CallParameters;
 use std::convert::{Into, TryInto};
+use std::iter::Rev;
 use std::str::FromStr;
 use std::time::Duration;
 use thiserror::Error as ThisError;
@@ -198,4 +199,42 @@ pub fn add_trust_impl(
         Duration::from_secs(timestamp_sec),
     )
     .map_err(ServiceError::TGError)
+}
+
+pub fn get_revoke_bytes_impl(
+    revoked_peer_id: String,
+    revoked_at: u64,
+) -> Result<Vec<u8>, ServiceError> {
+    let public_key = extract_public_key(revoked_peer_id)?;
+    Ok(trust_graph::Revoke::signature_bytes(
+        &public_key,
+        Duration::from_secs(revoked_at),
+    ))
+}
+
+pub fn issue_revocation_impl(
+    revoked_peer_id: String,
+    revoked_by_peer_id: String,
+    revoked_at_sec: u64,
+    signature_bytes: Vec<u8>,
+) -> Result<Revoke, ServiceError> {
+    let revoked_pk = extract_public_key(revoked_peer_id)?;
+    let revoked_by_pk = extract_public_key(revoked_by_peer_id)?;
+
+    let revoked_at = Duration::from_secs(revoked_at_sec);
+    let signature = Signature::from_bytes_with_public_key(&revoked_by_pk, signature_bytes);
+    Ok(trust_graph::Revoke::new(revoked_pk, revoked_by_pk, revoked_at, signature).into())
+}
+
+pub fn revoke_impl(revoke: Revoke, timestamp_sec: u64) -> Result<(), ServiceError> {
+    check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
+
+    // TODO: use error for revoke, not trust
+    if revoke.revoked_at > timestamp_sec {
+        return Err(ServiceError::InvalidTrustTimestamp);
+    }
+
+    let mut tg = get_data().lock();
+
+    tg.revoke(revoke.try_into()?).map_err(ServiceError::TGError)
 }

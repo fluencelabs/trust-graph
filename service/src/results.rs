@@ -1,4 +1,4 @@
-use crate::dto::{Certificate, Trust};
+use crate::dto::{Certificate, Revoke, Trust};
 use crate::service_impl::ServiceError;
 use marine_rs_sdk::marine;
 
@@ -183,6 +183,75 @@ impl From<Result<u32, ServiceError>> for AddTrustResult {
                 success: false,
                 error: format!("{}", e),
                 weight: u32::default(),
+            },
+        }
+    }
+}
+
+#[marine]
+pub struct GetRevokeBytesResult {
+    pub success: bool,
+    pub error: String,
+    pub result: Vec<u8>,
+}
+
+impl From<Result<Vec<u8>, ServiceError>> for GetRevokeBytesResult {
+    fn from(result: Result<Vec<u8>, ServiceError>) -> Self {
+        match result {
+            Ok(res) => GetRevokeBytesResult {
+                success: true,
+                error: "".to_string(),
+                result: res,
+            },
+            Err(e) => GetRevokeBytesResult {
+                success: false,
+                error: format!("{}", e),
+                result: vec![],
+            },
+        }
+    }
+}
+
+#[marine]
+pub struct IssueRevocationResult {
+    pub success: bool,
+    pub error: String,
+    pub revoke: Revoke,
+}
+
+impl From<Result<Revoke, ServiceError>> for IssueRevocationResult {
+    fn from(result: Result<Revoke, ServiceError>) -> Self {
+        match result {
+            Ok(revoke) => IssueRevocationResult {
+                success: true,
+                error: "".to_string(),
+                revoke,
+            },
+            Err(e) => IssueRevocationResult {
+                success: false,
+                error: format!("{}", e),
+                revoke: Revoke::default(),
+            },
+        }
+    }
+}
+
+#[marine]
+pub struct RevokeResult {
+    pub success: bool,
+    pub error: String,
+}
+
+impl From<Result<(), ServiceError>> for RevokeResult {
+    fn from(result: Result<(), ServiceError>) -> Self {
+        match result {
+            Ok(()) => RevokeResult {
+                success: true,
+                error: "".to_string(),
+            },
+            Err(e) => RevokeResult {
+                success: false,
+                error: format!("{}", e),
             },
         }
     }

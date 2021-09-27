@@ -1,14 +1,14 @@
-use marine_rs_sdk::marine;
+use crate::dto::DtoConversionError::PeerIdDecodeError;
 use fluence_keypair::error::DecodingError;
-use fluence_keypair::{Signature};
+use fluence_keypair::public_key::peer_id_to_fluence_pk;
+use fluence_keypair::signature::RawSignature;
+use fluence_keypair::Signature;
+use libp2p_core::PeerId;
+use marine_rs_sdk::marine;
 use std::convert::TryFrom;
+use std::str::FromStr;
 use std::time::Duration;
 use thiserror::Error as ThisError;
-use libp2p_core::PeerId;
-use fluence_keypair::public_key::peer_id_to_fluence_pk;
-use std::str::FromStr;
-use fluence_keypair::signature::RawSignature;
-use crate::dto::DtoConversionError::PeerIdDecodeError;
 
 #[derive(ThisError, Debug)]
 pub enum DtoConversionError {
@@ -73,11 +73,15 @@ impl TryFrom<Trust> for trust_graph::Trust {
     type Error = DtoConversionError;
 
     fn try_from(t: Trust) -> Result<Self, Self::Error> {
-        let issued_for = peer_id_to_fluence_pk(PeerId::from_str(&t.issued_for)
-            .map_err(|e| PeerIdDecodeError(format!("{:?}", e)))?)
-            .map_err(|e| DtoConversionError::PeerIdDecodeError(e.to_string()))?;
+        let issued_for = peer_id_to_fluence_pk(
+            PeerId::from_str(&t.issued_for).map_err(|e| PeerIdDecodeError(format!("{:?}", e)))?,
+        )
+        .map_err(|e| DtoConversionError::PeerIdDecodeError(e.to_string()))?;
         let signature = bs58::decode(&t.signature).into_vec()?;
-        let signature = Signature::from_raw_signature(RawSignature { bytes: signature, sig_type: t.sig_type })?;
+        let signature = Signature::from_raw_signature(RawSignature {
+            bytes: signature,
+            sig_type: t.sig_type,
+        })?;
         let expires_at = Duration::from_secs(t.expires_at);
         let issued_at = Duration::from_secs(t.issued_at);
         return Ok(trust_graph::Trust {
@@ -102,6 +106,66 @@ impl From<trust_graph::Trust> for Trust {
             signature,
             sig_type: raw_signature.sig_type,
             issued_at,
+        };
+    }
+}
+
+#[marine]
+#[derive(Default)]
+pub struct Revoke {
+    /// who is revoked
+    pub revoked_peer_id: String,
+    /// date when revocation was created
+    pub revoked_at: u64,
+    /// Signature of a previous trust in a chain.
+    /// Signature is self-signed if it is a root trust, base58
+    pub signature: String,
+    pub sig_type: String,
+    /// the issuer of this revocation, base58 peer id
+    pub revoked_by: String,
+}
+
+impl TryFrom<Revoke> for trust_graph::Revoke {
+    type Error = DtoConversionError;
+
+    fn try_from(r: Revoke) -> Result<Self, Self::Error> {
+        let revoked_pk = peer_id_to_fluence_pk(
+            PeerId::from_str(&r.revoked_peer_id)
+                .map_err(|e| PeerIdDecodeError(format!("{:?}", e)))?,
+        )
+        .map_err(|e| DtoConversionError::PeerIdDecodeError(e.to_string()))?;
+        let revoked_by_pk = peer_id_to_fluence_pk(
+            PeerId::from_str(&r.revoked_by).map_err(|e| PeerIdDecodeError(format!("{:?}", e)))?,
+        )
+        .map_err(|e| DtoConversionError::PeerIdDecodeError(e.to_string()))?;
+        let signature = bs58::decode(&r.signature).into_vec()?;
+        let signature = Signature::from_raw_signature(RawSignature {
+            bytes: signature,
+            sig_type: r.sig_type,
+        })?;
+        let revoked_at = Duration::from_secs(r.revoked_at);
+        return Ok(trust_graph::Revoke {
+            pk: revoked_pk,
+            revoked_at,
+            revoked_by: revoked_by_pk,
+            signature,
+        });
+    }
+}
+
+impl From<trust_graph::Revoke> for Revoke {
+    fn from(r: trust_graph::Revoke) -> Self {
+        let revoked_by = r.revoked_by.to_peer_id().to_base58();
+        let revoked_peer_id = r.pk.to_peer_id().to_base58();
+        let raw_signature = r.signature.get_raw_signature();
+        let signature = bs58::encode(raw_signature.bytes).into_string();
+        let revoked_at = r.revoked_at.as_secs();
+        return Revoke {
+            revoked_peer_id,
+            revoked_at,
+            signature,
+            sig_type: raw_signature.sig_type,
+            revoked_by,
         };
     }
 }
