@@ -26,7 +26,7 @@ use crate::trust_graph::TrustGraphError::{
 use crate::trust_graph_storage::Storage;
 use crate::trust_node::{Auth, TrustNode};
 use crate::StorageError;
-use fluence_identity::public_key::PublicKey;
+use fluence_keypair::public_key::PublicKey;
 use std::borrow::Borrow;
 use std::collections::{HashSet, VecDeque};
 use std::convert::{From, Into};
@@ -92,7 +92,11 @@ where
     }
 
     /// Insert new root weight
-    pub fn add_root_weight(&mut self, pk: PublicKey, weight: Weight) -> Result<(), TrustGraphError> {
+    pub fn add_root_weight(
+        &mut self,
+        pk: PublicKey,
+        weight: Weight,
+    ) -> Result<(), TrustGraphError> {
         Ok(self.storage.add_root_weight(pk.into(), weight)?)
     }
 
@@ -339,7 +343,7 @@ mod tests {
     use crate::misc::current_time;
     use crate::trust_graph_storage::InMemoryStorage;
     use failure::_core::time::Duration;
-    use fluence_identity::key_pair::KeyPair;
+    use fluence_keypair::key_pair::KeyPair;
     use std::collections::HashMap;
 
     pub fn one_minute() -> Duration {
@@ -376,13 +380,15 @@ mod tests {
         let root_kp = KeyPair::generate_ed25519();
         let second_kp = KeyPair::generate_ed25519();
 
-        let mut cert =
-            Certificate::issue_root(&root_kp, second_kp.public(), expires_at, issued_at);
+        let mut cert = Certificate::issue_root(&root_kp, second_kp.public(), expires_at, issued_at);
 
         let mut key_pairs = vec![root_kp, second_kp];
 
         for idx in 2..len {
-            let kp = keys.get(&idx).unwrap_or(&KeyPair::generate_ed25519()).clone();
+            let kp = keys
+                .get(&idx)
+                .unwrap_or(&KeyPair::generate_ed25519())
+                .clone();
             let previous_kp = &key_pairs[idx - 1];
             cert = Certificate::issue(
                 &previous_kp,
@@ -591,9 +597,15 @@ mod tests {
         let st = InMemoryStorage::new();
         let mut graph = TrustGraph::new(st);
         // add first and last trusts as roots
-        graph.add_root_weight(cert.chain[0].clone().issued_for.into(), 1).unwrap();
-        graph.add_root_weight(cert.chain[3].clone().issued_for.into(), 1).unwrap();
-        graph.add_root_weight(cert.chain[5].clone().issued_for.into(), 1).unwrap();
+        graph
+            .add_root_weight(cert.chain[0].clone().issued_for.into(), 1)
+            .unwrap();
+        graph
+            .add_root_weight(cert.chain[3].clone().issued_for.into(), 1)
+            .unwrap();
+        graph
+            .add_root_weight(cert.chain[5].clone().issued_for.into(), 1)
+            .unwrap();
 
         graph.add(cert.clone(), current_time()).unwrap();
 

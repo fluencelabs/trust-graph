@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-use crate::trust::TrustError::{Base58DecodeError, DecodePublicKeyError, ParseError, SignatureError, DecodeErrorInvalidSize};
+use crate::trust::TrustError::{
+    Base58DecodeError, DecodeErrorInvalidSize, DecodePublicKeyError, ParseError, SignatureError,
+};
 use derivative::Derivative;
-use fluence_identity::key_pair::KeyPair;
-use fluence_identity::public_key::PublicKey;
-use fluence_identity::signature::Signature;
+use fluence_keypair::key_pair::KeyPair;
+use fluence_keypair::public_key::PublicKey;
+use fluence_keypair::signature::Signature;
+use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use std::num::ParseIntError;
 use std::time::Duration;
 use thiserror::Error as ThisError;
-use serde::{Deserialize, Serialize};
 
 pub const EXPIRATION_LEN: usize = 8;
 pub const ISSUED_LEN: usize = 8;
@@ -65,12 +67,12 @@ pub enum TrustError {
     SignatureError(
         #[from]
         #[source]
-        fluence_identity::error::SigningError,
+        fluence_keypair::error::SigningError,
     ),
 
     /// Errors occurred on trust decoding from different formats
     #[error("Cannot decode the public key: {0} in the trust: {1}")]
-    DecodePublicKeyError(String, #[source] fluence_identity::error::DecodingError),
+    DecodePublicKeyError(String, #[source] fluence_keypair::error::DecodingError),
 
     #[error("Cannot parse `{0}` field in the trust '{1}': {2}")]
     ParseError(String, String, #[source] ParseIntError),
@@ -82,7 +84,7 @@ pub enum TrustError {
     PublicKeyError(
         #[from]
         #[source]
-        fluence_identity::error::DecodingError,
+        fluence_keypair::error::DecodingError,
     ),
 
     #[error("Cannot decode `{0}` field in the trust: invalid size")]

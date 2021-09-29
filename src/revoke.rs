@@ -15,9 +15,9 @@
  */
 
 use crate::revoke::RevokeError::IncorrectSignature;
-use fluence_identity::key_pair::KeyPair;
-use fluence_identity::public_key::PublicKey;
-use fluence_identity::signature::Signature;
+use fluence_keypair::key_pair::KeyPair;
+use fluence_keypair::public_key::PublicKey;
+use fluence_keypair::signature::Signature;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use thiserror::Error as ThisError;
@@ -28,7 +28,7 @@ pub enum RevokeError {
     IncorrectSignature(
         #[from]
         #[source]
-        fluence_identity::error::SigningError
+        fluence_keypair::error::SigningError
     ),
 }
 
