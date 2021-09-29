@@ -149,14 +149,18 @@ impl From<PublicKey> for libp2p_core::identity::PublicKey {
     }
 }
 
-pub fn peer_id_to_fluence_pk(peer_id: libp2p_core::PeerId) -> eyre::Result<PublicKey> {
-    Ok(peer_id
-        .as_public_key()
-        .ok_or(eyre::eyre!(
-            "public key is not inlined in peer id: {}",
-            peer_id
-        ))?
-        .into())
+impl TryFrom<libp2p_core::PeerId> for PublicKey {
+    type Error = eyre::Error;
+
+    fn try_from(peer_id: libp2p_core::PeerId) -> eyre::Result<PublicKey> {
+        Ok(peer_id
+            .as_public_key()
+            .ok_or(eyre::eyre!(
+                "public key is not inlined in peer id: {}",
+                peer_id
+            ))?
+            .into())
+    }
 }
 
 #[cfg(test)]
@@ -178,5 +182,16 @@ mod tests {
         let pk = kp.public();
         let encoded_pk = pk.encode();
         assert_eq!(pk, PublicKey::decode(&encoded_pk).unwrap());
+    }
+
+    #[test]
+    fn public_key_peer_id_conversions() {
+        let kp = KeyPair::generate_secp256k1();
+        let fluence_pk = kp.public();
+        let libp2p_pk: libp2p_core::PublicKey = fluence_pk.clone().into();
+        let peer_id = PeerId::from_public_key(libp2p_pk);
+        let fluence_pk_converted = PublicKey::try_from(peer_id).unwrap();
+
+        assert_eq!(fluence_pk, fluence_pk_converted);
     }
 }
