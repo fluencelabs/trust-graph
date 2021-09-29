@@ -1,6 +1,6 @@
 [package]
 name = "trust-graph"
-version = "0.2.7"
+version = "0.2.8"
 authors = ["Fluence Labs"]
 edition = "2018"
 description = "trust graph"
@@ -11,7 +11,7 @@ repository = "https://github.com/fluencelabs/trust-graph"
 libp2p-core = { package = "fluence-fork-libp2p-core", version = "0.27.2" }
 serde = { version = "=1.0.118", features = ["derive"] }
 
-fluence-keypair = { path = "./keypair", version = "0.3.0" }
+fluence-keypair = { path = "./keypair", version = "0.4.0" }
 serde_json = "1.0.58"
 bs58 = "0.3.1"
 failure = "0.1.6"
