@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-use crate::{ed25519, PublicKey};
-use crate::secp256k1;
+use crate::ed25519;
+use crate::error::DecodingError;
+use crate::key_pair::KeyFormat;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::rsa;
-use crate::error::DecodingError;
+use crate::secp256k1;
 use serde::{Deserialize, Serialize};
-use crate::key_pair::KeyFormat;
 use std::convert::TryFrom;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -32,7 +32,7 @@ pub enum Signature {
 
 pub struct RawSignature {
     pub bytes: Vec<u8>,
-    pub sig_type: String,
+    pub sig_type: KeyFormat,
 }
 
 impl Signature {
@@ -42,7 +42,7 @@ impl Signature {
             Ed25519(_) => KeyFormat::Ed25519.into(),
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(_) => KeyFormat::Rsa.into(),
-            Secp256k1(_) => KeyFormat::Secp256k1.into()
+            Secp256k1(_) => KeyFormat::Secp256k1.into(),
         }
     }
 
@@ -68,7 +68,9 @@ impl Signature {
             KeyFormat::Ed25519 => Ok(Signature::Ed25519(ed25519::Signature(bytes[1..].to_vec()))),
             #[cfg(not(target_arch = "wasm32"))]
             KeyFormat::Rsa => Ok(Signature::Rsa(rsa::Signature(bytes[1..].to_vec()))),
-            KeyFormat::Secp256k1 => Ok(Signature::Secp256k1(secp256k1::Signature(bytes[1..].to_vec()))),
+            KeyFormat::Secp256k1 => Ok(Signature::Secp256k1(secp256k1::Signature(
+                bytes[1..].to_vec(),
+            ))),
         }
     }
 
@@ -83,38 +85,30 @@ impl Signature {
         }
     }
 
-    pub fn get_signature_type(&self) -> String {
+    pub fn get_signature_type(&self) -> KeyFormat {
         use Signature::*;
 
         match self {
-            Ed25519(_) => "Ed25519".to_string(),
+            Ed25519(_) => KeyFormat::Ed25519,
             #[cfg(not(target_arch = "wasm32"))]
-            Rsa(_) => "RSA".to_string(),
-            Secp256k1(_) => "Secp256k1".to_string(),
+            Rsa(_) => KeyFormat::Rsa,
+            Secp256k1(_) => KeyFormat::Secp256k1,
         }
     }
 
     pub fn get_raw_signature(&self) -> RawSignature {
-        RawSignature { bytes: self.to_vec().clone().to_vec(), sig_type: self.get_signature_type() }
-    }
-
-    pub fn from_raw_signature(raw_signature: RawSignature) -> Result<Self, DecodingError> {
-        match raw_signature.sig_type.as_str() {
-            "Ed25519" => Ok(Signature::Ed25519(crate::ed25519::Signature(raw_signature.bytes))),
-            #[cfg(not(target_arch = "wasm32"))]
-            "RSA" => Ok(Signature::Rsa(crate::rsa::Signature(raw_signature.bytes))),
-            "Secp256k1" => Ok(Signature::Secp256k1(crate::secp256k1::Signature(raw_signature.bytes))),
-            _ => Err(DecodingError::RawSignatureUnsupportedType(raw_signature.sig_type)),
+        RawSignature {
+            bytes: self.to_vec().clone().to_vec(),
+            sig_type: self.get_signature_type(),
         }
     }
 
-    pub fn from_bytes_with_public_key(pk: &PublicKey, bytes: Vec<u8>) -> Self {
-        use PublicKey::*;
-        match pk {
-            Ed25519(_) => Signature::Ed25519(ed25519::Signature(bytes)),
+    pub fn from_bytes(key_format: KeyFormat, bytes: Vec<u8>) -> Self {
+        match key_format {
+            KeyFormat::Ed25519 => Signature::Ed25519(ed25519::Signature(bytes)),
             #[cfg(not(target_arch = "wasm32"))]
-            Rsa(_) => Signature::Rsa(rsa::Signature(bytes)),
-            Secp256k1(_) => Signature::Secp256k1(secp256k1::Signature(bytes))
+            KeyFormat::Rsa => Signature::Rsa(rsa::Signature(bytes)),
+            KeyFormat::Secp256k1 => Signature::Secp256k1(secp256k1::Signature(bytes)),
         }
     }
 }
@@ -131,8 +125,14 @@ mod tests {
         #[cfg(not(target_arch = "wasm32"))]
         let rsa_sig = Signature::Rsa(crate::rsa::Signature(bytes.clone()));
 
-        assert_eq!(Signature::decode(ed25519_sig.encode()).unwrap(), ed25519_sig);
-        assert_eq!(Signature::decode(secp256k1_sig.encode()).unwrap(), secp256k1_sig);
+        assert_eq!(
+            Signature::decode(ed25519_sig.encode()).unwrap(),
+            ed25519_sig
+        );
+        assert_eq!(
+            Signature::decode(secp256k1_sig.encode()).unwrap(),
+            secp256k1_sig
+        );
         #[cfg(not(target_arch = "wasm32"))]
         assert_eq!(Signature::decode(rsa_sig.encode()).unwrap(), rsa_sig);
     }

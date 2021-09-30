@@ -20,15 +20,15 @@
 
 //! A node's network identity keys.
 use crate::ed25519;
+use crate::error::{DecodingError, Error, SigningError};
+use crate::public_key::PublicKey;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::rsa;
 use crate::secp256k1;
-use crate::public_key::PublicKey;
 use crate::signature::Signature;
-use crate::error::{Error, DecodingError, SigningError};
-use std::str::FromStr;
-use std::convert::TryFrom;
 use libp2p_core::PeerId;
+use std::convert::TryFrom;
+use std::str::FromStr;
 
 /// Identity keypair of a node.
 ///
@@ -48,7 +48,6 @@ use libp2p_core::PeerId;
 /// ```
 ///
 
-
 pub enum KeyFormat {
     Ed25519,
     #[cfg(not(target_arch = "wasm32"))]
@@ -66,7 +65,7 @@ impl FromStr for KeyFormat {
             "secp256k1" => Ok(KeyFormat::Secp256k1),
             #[cfg(not(target_arch = "wasm32"))]
             "rsa" => Ok(KeyFormat::Rsa),
-            _ => Err(Error::InvalidKeyFormat(s.to_string()))
+            _ => Err(Error::InvalidKeyFormat(s.to_string())),
         }
     }
 }
@@ -80,7 +79,7 @@ impl TryFrom<u8> for KeyFormat {
             #[cfg(not(target_arch = "wasm32"))]
             1 => Ok(KeyFormat::Rsa),
             2 => Ok(KeyFormat::Secp256k1),
-            _ => Err(DecodingError::InvalidTypeByte)
+            _ => Err(DecodingError::InvalidTypeByte),
         }
     }
 }
@@ -96,6 +95,16 @@ impl From<KeyFormat> for u8 {
     }
 }
 
+impl From<KeyFormat> for String {
+    fn from(kf: KeyFormat) -> Self {
+        match kf {
+            KeyFormat::Ed25519 => "ed25519".to_string(),
+            #[cfg(not(target_arch = "wasm32"))]
+            KeyFormat::Rsa => "rsa".to_string(),
+            KeyFormat::Secp256k1 => "secp256k1".to_string(),
+        }
+    }
+}
 #[derive(Clone)]
 pub enum KeyPair {
     /// An Ed25519 keypair.
@@ -153,7 +162,9 @@ impl KeyPair {
             Ed25519(ref pair) => Ok(Signature::Ed25519(ed25519::Signature(pair.sign(msg)?))),
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(ref pair) => Ok(Signature::Rsa(rsa::Signature(pair.sign(msg)?))),
-            Secp256k1(ref pair) => Ok(Signature::Secp256k1(secp256k1::Signature(pair.secret().sign(msg)?)))
+            Secp256k1(ref pair) => Ok(Signature::Secp256k1(secp256k1::Signature(
+                pair.secret().sign(msg)?,
+            ))),
         }
     }
 
@@ -200,12 +211,12 @@ impl KeyPair {
             KeyFormat::Ed25519 => Ok(Ed25519(ed25519::Keypair::decode(&mut bytes)?)),
             KeyFormat::Secp256k1 => Ok(Secp256k1(secp256k1::SecretKey::from_bytes(bytes)?.into())),
             #[cfg(not(target_arch = "wasm32"))]
-            KeyFormat::Rsa => Err(DecodingError::KeypairDecodingIsNotSupported)
+            KeyFormat::Rsa => Err(DecodingError::KeypairDecodingIsNotSupported),
         }
     }
 
     pub fn get_peer_id(&self) -> PeerId {
-       self.public().to_peer_id()
+        self.public().to_peer_id()
     }
 }
 
@@ -217,23 +228,33 @@ impl From<libp2p_core::identity::Keypair> for KeyPair {
             Ed25519(kp) => KeyPair::Ed25519(ed25519::Keypair::decode(&mut kp.encode()).unwrap()),
             #[cfg(not(target_arch = "wasm32"))]
             // safety: these Keypair structures are identical
-            Rsa(kp) => KeyPair::Rsa(unsafe { std::mem::transmute::<libp2p_core::identity::rsa::Keypair, rsa::Keypair>(kp) }),
-            Secp256k1(kp) => KeyPair::Secp256k1(secp256k1::Keypair::from(secp256k1::SecretKey::from_bytes(kp.secret().to_bytes()).unwrap())),
+            Rsa(kp) => KeyPair::Rsa(unsafe {
+                std::mem::transmute::<libp2p_core::identity::rsa::Keypair, rsa::Keypair>(kp)
+            }),
+            Secp256k1(kp) => KeyPair::Secp256k1(secp256k1::Keypair::from(
+                secp256k1::SecretKey::from_bytes(kp.secret().to_bytes()).unwrap(),
+            )),
         }
     }
 }
 
 impl From<KeyPair> for libp2p_core::identity::Keypair {
     fn from(key: KeyPair) -> Self {
-        use KeyPair::*;
-        use libp2p_core::identity::Keypair;
         use libp2p_core::identity;
+        use libp2p_core::identity::Keypair;
+        use KeyPair::*;
 
         match key {
-            Ed25519(kp) => Keypair::Ed25519(identity::ed25519::Keypair::decode(kp.encode().to_vec().as_mut_slice()).unwrap()),
+            Ed25519(kp) => Keypair::Ed25519(
+                identity::ed25519::Keypair::decode(kp.encode().to_vec().as_mut_slice()).unwrap(),
+            ),
             #[cfg(not(target_arch = "wasm32"))]
-            Rsa(kp) => Keypair::Rsa(unsafe { std::mem::transmute::<rsa::Keypair, libp2p_core::identity::rsa::Keypair>(kp) }),
-            Secp256k1(kp) => Keypair::Secp256k1(identity::secp256k1::Keypair::from(identity::secp256k1::SecretKey::from_bytes(kp.secret().to_bytes()).unwrap())),
+            Rsa(kp) => Keypair::Rsa(unsafe {
+                std::mem::transmute::<rsa::Keypair, libp2p_core::identity::rsa::Keypair>(kp)
+            }),
+            Secp256k1(kp) => Keypair::Secp256k1(identity::secp256k1::Keypair::from(
+                identity::secp256k1::SecretKey::from_bytes(kp.secret().to_bytes()).unwrap(),
+            )),
         }
     }
 }

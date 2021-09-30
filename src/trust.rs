@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-use crate::trust::TrustError::{Base58DecodeError, DecodePublicKeyError, ParseError, SignatureError, DecodeErrorInvalidSize};
+use crate::trust::TrustError::{
+    Base58DecodeError, DecodeErrorInvalidSize, DecodePublicKeyError, ParseError, SignatureError,
+};
 use derivative::Derivative;
 use fluence_keypair::key_pair::KeyPair;
 use fluence_keypair::public_key::PublicKey;

@@ -35,7 +35,7 @@ pub enum DecodingError {
     Ed25519(
         #[from]
         #[source]
-        ed25519_dalek::ed25519::Error
+        ed25519_dalek::ed25519::Error,
     ),
     #[error("Failed to decode with RSA")]
     Rsa,
@@ -49,6 +49,8 @@ pub enum DecodingError {
     Base58DecodeError(#[source] bs58::decode::Error),
     #[error("Raw signature decoding failed: type {0} not supported")]
     RawSignatureUnsupportedType(String),
+    #[error("public key is not inlined in peer id: {0}")]
+    PublicKeyNotInlined(String),
 }
 
 /// An error during signing of a message.
@@ -58,7 +60,7 @@ pub enum SigningError {
     Ed25519(
         #[from]
         #[source]
-        ed25519_dalek::ed25519::Error
+        ed25519_dalek::ed25519::Error,
     ),
     #[error("Failed to sign with RSA")]
     Rsa,
@@ -66,6 +68,6 @@ pub enum SigningError {
     Secp256k1(
         #[from]
         #[source]
-        secp256k1::Error
+        secp256k1::Error,
     ),
 }

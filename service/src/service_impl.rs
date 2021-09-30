@@ -2,12 +2,10 @@ use crate::dto::{Certificate, DtoConversionError, Revoke, Trust};
 use crate::service_impl::ServiceError::InvalidTimestampTetraplet;
 use crate::storage_impl::get_data;
 use fluence_keypair::error::DecodingError;
-use fluence_keypair::public_key::peer_id_to_fluence_pk;
 use fluence_keypair::{PublicKey, Signature};
 use libp2p_core::PeerId;
 use marine_rs_sdk::CallParameters;
-use std::convert::{Into, TryInto};
-use std::iter::Rev;
+use std::convert::{Into, TryFrom, TryInto};
 use std::str::FromStr;
 use std::time::Duration;
 use thiserror::Error as ThisError;
@@ -81,8 +79,11 @@ fn parse_peer_id(peer_id: String) -> Result<PeerId, ServiceError> {
 }
 
 fn extract_public_key(peer_id: String) -> Result<PublicKey, ServiceError> {
-    peer_id_to_fluence_pk(parse_peer_id(peer_id)?)
-        .map_err(|e| ServiceError::PublicKeyExtractionError(e.to_string()))
+    PublicKey::try_from(
+        parse_peer_id(peer_id)
+            .map_err(|e| ServiceError::PublicKeyExtractionError(e.to_string()))?,
+    )
+    .map_err(ServiceError::PublicKeyDecodeError)
 }
 
 pub fn get_weight_impl(peer_id: String, timestamp_sec: u64) -> Result<u32, ServiceError> {
@@ -155,7 +156,7 @@ pub fn issue_trust_impl(
     let public_key = extract_public_key(peer_id)?;
     let expires_at_sec = Duration::from_secs(expires_at_sec);
     let issued_at_sec = Duration::from_secs(issued_at_sec);
-    let signature = Signature::from_bytes_with_public_key(&public_key, trust_bytes);
+    let signature = Signature::from_bytes(public_key.get_key_format(), trust_bytes);
     Ok(Trust::from(trust_graph::Trust::new(
         public_key,
         expires_at_sec,
@@ -222,7 +223,7 @@ pub fn issue_revocation_impl(
     let revoked_by_pk = extract_public_key(revoked_by_peer_id)?;
 
     let revoked_at = Duration::from_secs(revoked_at_sec);
-    let signature = Signature::from_bytes_with_public_key(&revoked_by_pk, signature_bytes);
+    let signature = Signature::from_bytes(revoked_by_pk.get_key_format(), signature_bytes);
     Ok(trust_graph::Revoke::new(revoked_pk, revoked_by_pk, revoked_at, signature).into())
 }
 

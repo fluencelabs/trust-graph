@@ -1,8 +1,7 @@
 use crate::dto::DtoConversionError::PeerIdDecodeError;
 use fluence_keypair::error::DecodingError;
-use fluence_keypair::public_key::peer_id_to_fluence_pk;
 use fluence_keypair::signature::RawSignature;
-use fluence_keypair::Signature;
+use fluence_keypair::{KeyFormat, PublicKey, Signature};
 use libp2p_core::PeerId;
 use marine_rs_sdk::marine;
 use std::convert::TryFrom;
@@ -26,6 +25,12 @@ pub enum DtoConversionError {
     ),
     #[error("Cannot decode peer id from string: {0}")]
     PeerIdDecodeError(String),
+    #[error("{0}")]
+    InvalidKeyFormat(
+        #[from]
+        #[source]
+        fluence_keypair::error::Error,
+    ),
 }
 
 #[marine]
@@ -73,15 +78,12 @@ impl TryFrom<Trust> for trust_graph::Trust {
     type Error = DtoConversionError;
 
     fn try_from(t: Trust) -> Result<Self, Self::Error> {
-        let issued_for = peer_id_to_fluence_pk(
+        let issued_for = PublicKey::try_from(
             PeerId::from_str(&t.issued_for).map_err(|e| PeerIdDecodeError(format!("{:?}", e)))?,
         )
         .map_err(|e| DtoConversionError::PeerIdDecodeError(e.to_string()))?;
         let signature = bs58::decode(&t.signature).into_vec()?;
-        let signature = Signature::from_raw_signature(RawSignature {
-            bytes: signature,
-            sig_type: t.sig_type,
-        })?;
+        let signature = Signature::from_bytes(KeyFormat::from_str(&t.sig_type)?, signature);
         let expires_at = Duration::from_secs(t.expires_at);
         let issued_at = Duration::from_secs(t.issued_at);
         return Ok(trust_graph::Trust {
@@ -104,7 +106,7 @@ impl From<trust_graph::Trust> for Trust {
             issued_for,
             expires_at,
             signature,
-            sig_type: raw_signature.sig_type,
+            sig_type: raw_signature.sig_type.into(),
             issued_at,
         };
     }
@@ -129,20 +131,17 @@ impl TryFrom<Revoke> for trust_graph::Revoke {
     type Error = DtoConversionError;
 
     fn try_from(r: Revoke) -> Result<Self, Self::Error> {
-        let revoked_pk = peer_id_to_fluence_pk(
+        let revoked_pk = PublicKey::try_from(
             PeerId::from_str(&r.revoked_peer_id)
                 .map_err(|e| PeerIdDecodeError(format!("{:?}", e)))?,
         )
         .map_err(|e| DtoConversionError::PeerIdDecodeError(e.to_string()))?;
-        let revoked_by_pk = peer_id_to_fluence_pk(
+        let revoked_by_pk = PublicKey::try_from(
             PeerId::from_str(&r.revoked_by).map_err(|e| PeerIdDecodeError(format!("{:?}", e)))?,
         )
         .map_err(|e| DtoConversionError::PeerIdDecodeError(e.to_string()))?;
         let signature = bs58::decode(&r.signature).into_vec()?;
-        let signature = Signature::from_raw_signature(RawSignature {
-            bytes: signature,
-            sig_type: r.sig_type,
-        })?;
+        let signature = Signature::from_bytes(KeyFormat::from_str(&r.sig_type)?, signature);
         let revoked_at = Duration::from_secs(r.revoked_at);
         return Ok(trust_graph::Revoke {
             pk: revoked_pk,
@@ -164,7 +163,7 @@ impl From<trust_graph::Revoke> for Revoke {
             revoked_peer_id,
             revoked_at,
             signature,
-            sig_type: raw_signature.sig_type,
+            sig_type: raw_signature.sig_type.into(),
             revoked_by,
         };
     }
