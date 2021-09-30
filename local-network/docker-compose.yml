@@ -18,6 +18,7 @@ services:
     volumes:
       - fluence-0:/.fluence
       - data-0:/config
+      - ./builtins_secret_key.ed25519:/.fluence/v1/builtins_secret_key.ed25519
     networks:
       - fluence
 

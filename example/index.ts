@@ -33,7 +33,7 @@ let local: Node[] = [
 ];
 
 async function main(environment: Node[]) {
-    let builtins_keypair = await KeyPair.fromBytes(bs58.decode("5CGiJio6m76GxJ2wLj46PzSu6V7SRa5agv6meR3SJBKtvTgethRCmgBJKXWDSpSEBpgNUPd7Re5cZjF8mWW4kBfs"));
+    let builtins_keypair = await KeyPair.fromBytes(bs58.decode("5CGiJio6m76GxJ2wLj46PzSu6V7SRa5agv6meR3SJBKtvTgethRCmgBJKXWDSpSEBpgNUPd7Re5cZjF8mWW4kBfs").slice(32));
     await Fluence.start({ connectTo: environment[0], KeyPair: builtins_keypair});
     console.log(
         "📗 created a fluence peer %s with relay %s",

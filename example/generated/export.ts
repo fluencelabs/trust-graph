@@ -120,6 +120,99 @@ h.on('getDataSrv', 'issuer_peer_id', () => {return issuer_peer_id;});
       
 
 
+ export function revoke(node: string, revoke: {revoked_at:number;revoked_by:string;revoked_peer_id:string;sig_type:string;signature:string}, config?: {ttl?: number}) : Promise<{error:string;success:boolean}>;
+ export function revoke(peer: FluencePeer, node: string, revoke: {revoked_at:number;revoked_by:string;revoked_peer_id:string;sig_type:string;signature:string}, config?: {ttl?: number}) : Promise<{error:string;success:boolean}>;
+ export function revoke(...args: any) {
+     let peer: FluencePeer;
+     let node: any;
+let revoke: any;
+     let config: any;
+     if (FluencePeer.isInstance(args[0])) {
+         peer = args[0];
+         node = args[1];
+revoke = args[2];
+config = args[3];
+     } else {
+         peer = Fluence.getPeer();
+         node = args[0];
+revoke = args[1];
+config = args[2];
+     }
+    
+     let request: RequestFlow;
+     const promise = new Promise<{error:string;success:boolean}>((resolve, reject) => {
+         const r = new RequestFlowBuilder()
+                 .disableInjections()
+                 .withRawScript(
+                     `
+     (xor
+ (seq
+  (seq
+   (seq
+    (seq
+     (seq
+      (seq
+       (call %init_peer_id% ("getDataSrv" "-relay-") [] -relay-)
+       (call %init_peer_id% ("getDataSrv" "node") [] node)
+      )
+      (call %init_peer_id% ("getDataSrv" "revoke") [] revoke)
+     )
+     (call -relay- ("op" "noop") [])
+    )
+    (xor
+     (seq
+      (call node ("peer" "timestamp_sec") [] timestamp_sec)
+      (call node ("trust-graph" "revoke") [revoke timestamp_sec] result)
+     )
+     (seq
+      (call -relay- ("op" "noop") [])
+      (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
+     )
+    )
+   )
+   (call -relay- ("op" "noop") [])
+  )
+  (xor
+   (call %init_peer_id% ("callbackSrv" "response") [result])
+   (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 2])
+  )
+ )
+ (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 3])
+)
+
+                 `,
+                 )
+                 .configHandler((h) => {
+                     h.on('getDataSrv', '-relay-', () => {
+                    return peer.getStatus().relayPeerId;
+                });
+                h.on('getDataSrv', 'node', () => {return node;});
+h.on('getDataSrv', 'revoke', () => {return revoke;});
+                h.onEvent('callbackSrv', 'response', (args) => {
+    const [res] = args;
+  resolve(res);
+});
+
+                h.onEvent('errorHandlingSrv', 'error', (args) => {
+                    const [err] = args;
+                    reject(err);
+                });
+            })
+            .handleScriptError(reject)
+            .handleTimeout(() => {
+                reject('Request timed out for revoke');
+            })
+        if(config && config.ttl) {
+            r.withTTL(config.ttl)
+        }
+        request = r.build();
+    });
+    peer.internals.initiateFlow(request!);
+    return promise;
+}
+      
+
+
  export function issue_trust(node: string, issued_for_peer_id: string, expires_at_sec: number, issued_at_sec: number, trust_bytes: number[], config?: {ttl?: number}) : Promise<{error:string;success:boolean;trust:{expires_at:number;issued_at:number;issued_for:string;sig_type:string;signature:string}}>;
  export function issue_trust(peer: FluencePeer, node: string, issued_for_peer_id: string, expires_at_sec: number, issued_at_sec: number, trust_bytes: number[], config?: {ttl?: number}) : Promise<{error:string;success:boolean;trust:{expires_at:number;issued_at:number;issued_for:string;sig_type:string;signature:string}}>;
  export function issue_trust(...args: any) {
@@ -219,6 +312,214 @@ h.on('getDataSrv', 'trust_bytes', () => {return trust_bytes;});
             .handleScriptError(reject)
             .handleTimeout(() => {
                 reject('Request timed out for issue_trust');
+            })
+        if(config && config.ttl) {
+            r.withTTL(config.ttl)
+        }
+        request = r.build();
+    });
+    peer.internals.initiateFlow(request!);
+    return promise;
+}
+      
+
+
+ export function get_revoke_bytes(node: string, revoked_peer_id: string, revoked_at: number, config?: {ttl?: number}) : Promise<{error:string;result:number[];success:boolean}>;
+ export function get_revoke_bytes(peer: FluencePeer, node: string, revoked_peer_id: string, revoked_at: number, config?: {ttl?: number}) : Promise<{error:string;result:number[];success:boolean}>;
+ export function get_revoke_bytes(...args: any) {
+     let peer: FluencePeer;
+     let node: any;
+let revoked_peer_id: any;
+let revoked_at: any;
+     let config: any;
+     if (FluencePeer.isInstance(args[0])) {
+         peer = args[0];
+         node = args[1];
+revoked_peer_id = args[2];
+revoked_at = args[3];
+config = args[4];
+     } else {
+         peer = Fluence.getPeer();
+         node = args[0];
+revoked_peer_id = args[1];
+revoked_at = args[2];
+config = args[3];
+     }
+    
+     let request: RequestFlow;
+     const promise = new Promise<{error:string;result:number[];success:boolean}>((resolve, reject) => {
+         const r = new RequestFlowBuilder()
+                 .disableInjections()
+                 .withRawScript(
+                     `
+     (xor
+ (seq
+  (seq
+   (seq
+    (seq
+     (seq
+      (seq
+       (seq
+        (call %init_peer_id% ("getDataSrv" "-relay-") [] -relay-)
+        (call %init_peer_id% ("getDataSrv" "node") [] node)
+       )
+       (call %init_peer_id% ("getDataSrv" "revoked_peer_id") [] revoked_peer_id)
+      )
+      (call %init_peer_id% ("getDataSrv" "revoked_at") [] revoked_at)
+     )
+     (call -relay- ("op" "noop") [])
+    )
+    (xor
+     (call node ("trust-graph" "get_revoke_bytes") [revoked_peer_id revoked_at] result)
+     (seq
+      (call -relay- ("op" "noop") [])
+      (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
+     )
+    )
+   )
+   (call -relay- ("op" "noop") [])
+  )
+  (xor
+   (call %init_peer_id% ("callbackSrv" "response") [result])
+   (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 2])
+  )
+ )
+ (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 3])
+)
+
+                 `,
+                 )
+                 .configHandler((h) => {
+                     h.on('getDataSrv', '-relay-', () => {
+                    return peer.getStatus().relayPeerId;
+                });
+                h.on('getDataSrv', 'node', () => {return node;});
+h.on('getDataSrv', 'revoked_peer_id', () => {return revoked_peer_id;});
+h.on('getDataSrv', 'revoked_at', () => {return revoked_at;});
+                h.onEvent('callbackSrv', 'response', (args) => {
+    const [res] = args;
+  resolve(res);
+});
+
+                h.onEvent('errorHandlingSrv', 'error', (args) => {
+                    const [err] = args;
+                    reject(err);
+                });
+            })
+            .handleScriptError(reject)
+            .handleTimeout(() => {
+                reject('Request timed out for get_revoke_bytes');
+            })
+        if(config && config.ttl) {
+            r.withTTL(config.ttl)
+        }
+        request = r.build();
+    });
+    peer.internals.initiateFlow(request!);
+    return promise;
+}
+      
+
+
+ export function issue_revocation(node: string, revoked_peer_id: string, revoked_by_peer_id: string, revoked_at_sec: number, signature_bytes: number[], config?: {ttl?: number}) : Promise<{error:string;revoke:{revoked_at:number;revoked_by:string;revoked_peer_id:string;sig_type:string;signature:string};success:boolean}>;
+ export function issue_revocation(peer: FluencePeer, node: string, revoked_peer_id: string, revoked_by_peer_id: string, revoked_at_sec: number, signature_bytes: number[], config?: {ttl?: number}) : Promise<{error:string;revoke:{revoked_at:number;revoked_by:string;revoked_peer_id:string;sig_type:string;signature:string};success:boolean}>;
+ export function issue_revocation(...args: any) {
+     let peer: FluencePeer;
+     let node: any;
+let revoked_peer_id: any;
+let revoked_by_peer_id: any;
+let revoked_at_sec: any;
+let signature_bytes: any;
+     let config: any;
+     if (FluencePeer.isInstance(args[0])) {
+         peer = args[0];
+         node = args[1];
+revoked_peer_id = args[2];
+revoked_by_peer_id = args[3];
+revoked_at_sec = args[4];
+signature_bytes = args[5];
+config = args[6];
+     } else {
+         peer = Fluence.getPeer();
+         node = args[0];
+revoked_peer_id = args[1];
+revoked_by_peer_id = args[2];
+revoked_at_sec = args[3];
+signature_bytes = args[4];
+config = args[5];
+     }
+    
+     let request: RequestFlow;
+     const promise = new Promise<{error:string;revoke:{revoked_at:number;revoked_by:string;revoked_peer_id:string;sig_type:string;signature:string};success:boolean}>((resolve, reject) => {
+         const r = new RequestFlowBuilder()
+                 .disableInjections()
+                 .withRawScript(
+                     `
+     (xor
+ (seq
+  (seq
+   (seq
+    (seq
+     (seq
+      (seq
+       (seq
+        (seq
+         (seq
+          (call %init_peer_id% ("getDataSrv" "-relay-") [] -relay-)
+          (call %init_peer_id% ("getDataSrv" "node") [] node)
+         )
+         (call %init_peer_id% ("getDataSrv" "revoked_peer_id") [] revoked_peer_id)
+        )
+        (call %init_peer_id% ("getDataSrv" "revoked_by_peer_id") [] revoked_by_peer_id)
+       )
+       (call %init_peer_id% ("getDataSrv" "revoked_at_sec") [] revoked_at_sec)
+      )
+      (call %init_peer_id% ("getDataSrv" "signature_bytes") [] signature_bytes)
+     )
+     (call -relay- ("op" "noop") [])
+    )
+    (xor
+     (call node ("trust-graph" "issue_revocation") [revoked_peer_id revoked_by_peer_id revoked_at_sec signature_bytes] result)
+     (seq
+      (call -relay- ("op" "noop") [])
+      (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
+     )
+    )
+   )
+   (call -relay- ("op" "noop") [])
+  )
+  (xor
+   (call %init_peer_id% ("callbackSrv" "response") [result])
+   (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 2])
+  )
+ )
+ (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 3])
+)
+
+                 `,
+                 )
+                 .configHandler((h) => {
+                     h.on('getDataSrv', '-relay-', () => {
+                    return peer.getStatus().relayPeerId;
+                });
+                h.on('getDataSrv', 'node', () => {return node;});
+h.on('getDataSrv', 'revoked_peer_id', () => {return revoked_peer_id;});
+h.on('getDataSrv', 'revoked_by_peer_id', () => {return revoked_by_peer_id;});
+h.on('getDataSrv', 'revoked_at_sec', () => {return revoked_at_sec;});
+h.on('getDataSrv', 'signature_bytes', () => {return signature_bytes;});
+                h.onEvent('callbackSrv', 'response', (args) => {
+    const [res] = args;
+  resolve(res);
+});
+
+                h.onEvent('errorHandlingSrv', 'error', (args) => {
+                    const [err] = args;
+                    reject(err);
+                });
+            })
+            .handleScriptError(reject)
+            .handleTimeout(() => {
+                reject('Request timed out for issue_revocation');
             })
         if(config && config.ttl) {
             r.withTTL(config.ttl)
