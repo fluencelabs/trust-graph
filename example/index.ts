@@ -41,11 +41,11 @@ let local: Node[] = [
     },
 ];
 
-async function add_trust_helper(node: string, issuer_kp: KeyPair, issuer_peer_id: string, issued_peer_id: string, expires_at_sec: number, issued_at_sec: number) {
-    let trust_metadata = await get_trust_bytes(node, issued_peer_id, expires_at_sec, issued_at_sec);
+async function add_trust_helper(node: string, issuer_kp: KeyPair, issuer_peer_id: string, issued_for_peer_id: string, expires_at_sec: number, issued_at_sec: number) {
+    let trust_metadata = await get_trust_bytes(node, issued_for_peer_id, expires_at_sec, issued_at_sec);
     const signed_metadata = await issuer_kp.Libp2pPeerId.privKey.sign(Uint8Array.from(trust_metadata.result));
 
-    let trust = await issue_trust(node, issuer_peer_id, expires_at_sec, issued_at_sec, Array.from(signed_metadata));
+    let trust = await issue_trust(node, issued_for_peer_id, expires_at_sec, issued_at_sec, Array.from(signed_metadata));
     console.log("Issued trust %s", trust.trust);
 
     let result = await verify_trust(node, trust.trust, issuer_peer_id);
@@ -72,18 +72,18 @@ async function main(environment: Node[]) {
     console.log("Add root weight result: %s", add_root_result);
 
     // add root trust
-    await add_trust_helper(local[0].peerId, issuer_kp, local[0].peerId, local[0].peerId,expires_at_sec, issued_timestamp_sec);
+    await add_trust_helper(local[0].peerId, issuer_kp, local[0].peerId, local[0].peerId, expires_at_sec, issued_timestamp_sec);
 
     let root_weight_result = await get_weight(local[0].peerId, local[0].peerId);
     console.log("Root weight: %s", root_weight_result);
 
     // add trust
-    await add_trust_helper(local[0].peerId, issuer_kp, local[0].peerId, local[1].peerId,expires_at_sec, issued_timestamp_sec);
+    await add_trust_helper(local[0].peerId, issuer_kp, local[0].peerId, local[1].peerId, expires_at_sec, issued_timestamp_sec);
     let weight_result = await get_weight(local[0].peerId, local[1].peerId);
     console.log("Trust weight: %s", weight_result);
 
     let certs = await get_all_certs(local[0].peerId, local[1].peerId);
-    console.log("Certs: %s", certs);
+    console.log("Certs: %s", JSON.stringify(certs.certificates));
 
     return;
 }
