@@ -20,7 +20,7 @@
 
 //! A node's network identity keys.
 use crate::ed25519;
-use crate::error::{DecodingError, Error, SigningError};
+use crate::error::{DecodingError, Error, SigningError, VerificationError};
 use crate::public_key::PublicKey;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::rsa;
@@ -190,7 +190,11 @@ impl KeyPair {
     }
 
     /// Verify the signature on a message using the public key.
-    pub fn verify(pk: &PublicKey, msg: &[u8], signature: &Signature) -> Result<(), SigningError> {
+    pub fn verify(
+        pk: &PublicKey,
+        msg: &[u8],
+        signature: &Signature,
+    ) -> Result<(), VerificationError> {
         pk.verify(msg, signature)
     }
 

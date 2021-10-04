@@ -29,7 +29,7 @@ pub enum RevokeError {
     IncorrectSignature(
         #[from]
         #[source]
-        fluence_keypair::error::SigningError,
+        fluence_keypair::error::VerificationError,
     ),
 }
 

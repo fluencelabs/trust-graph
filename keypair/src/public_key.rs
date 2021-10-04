@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 use crate::ed25519;
-use crate::error::{DecodingError, SigningError};
+use crate::error::{DecodingError, VerificationError};
 #[cfg(not(target_arch = "wasm32"))]
 use crate::rsa;
 use crate::secp256k1;
@@ -43,7 +43,7 @@ impl PublicKey {
     /// private key (authenticity), and that the message has not been
     /// tampered with (integrity).
     // TODO: add VerificationError
-    pub fn verify(&self, msg: &[u8], sig: &Signature) -> Result<(), SigningError> {
+    pub fn verify(&self, msg: &[u8], sig: &Signature) -> Result<(), VerificationError> {
         use PublicKey::*;
         match self {
             Ed25519(pk) => pk.verify(msg, sig.to_vec()),

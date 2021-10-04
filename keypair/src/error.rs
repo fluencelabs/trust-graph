@@ -71,3 +71,22 @@ pub enum SigningError {
         secp256k1::Error,
     ),
 }
+
+/// An error during verification of a message.
+#[derive(ThisError, Debug)]
+pub enum VerificationError {
+    #[error("Failed to verify signature  with ed25519: {0}")]
+    Ed25519(
+        #[from]
+        #[source]
+        ed25519_dalek::ed25519::Error,
+    ),
+    #[error("Failed to verify signature with RSA")]
+    Rsa,
+    #[error("Failed to verify signature with secp256k1: {0}")]
+    Secp256k1(
+        #[from]
+        #[source]
+        secp256k1::Error,
+    ),
+}

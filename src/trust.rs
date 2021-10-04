@@ -21,12 +21,12 @@ use derivative::Derivative;
 use fluence_keypair::key_pair::KeyPair;
 use fluence_keypair::public_key::PublicKey;
 use fluence_keypair::signature::Signature;
+use serde::{Deserialize, Serialize};
+use sha2::Digest;
 use std::convert::TryInto;
 use std::num::ParseIntError;
 use std::time::Duration;
 use thiserror::Error as ThisError;
-use serde::{Deserialize, Serialize};
-use sha2::Digest;
 
 pub const EXPIRATION_LEN: usize = 8;
 pub const ISSUED_LEN: usize = 8;
@@ -68,7 +68,7 @@ pub enum TrustError {
     SignatureError(
         #[from]
         #[source]
-        fluence_keypair::error::SigningError,
+        fluence_keypair::error::VerificationError,
     ),
 
     /// Errors occurred on trust decoding from different formats
