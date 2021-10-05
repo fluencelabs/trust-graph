@@ -6,11 +6,11 @@ The network-wide peer relationship layer is used to manage connectivity and perm
 
 `/.` is the main project with all trust graph logic and in-memory storage as a default
 
-`identity` directory is an abstracted cryptographical layer (key pairs, signature, etc.)
+`keypair` directory is an abstracted cryptographical layer (key pairs, public keys, signatures, etc.)
 
-`wasm` is a package that provides `fce` API and could be compiled to a Wasm file. It is used `SQLite` as storage and could be used only with `SQLite` Wasm file near.
+`service` is a package that provides `marine` API and could be compiled to a Wasm file. It is uses `SQLite` as storage.
 
-`js` is a `npm` package that allows you to create and serialize certificates
+`example` is a `js` script that shows how to issue, sign trusts/revokes, get certificates
 
 
 ### Use trust-graph as a library
@@ -21,7 +21,7 @@ The network-wide peer relationship layer is used to manage connectivity and perm
 let root_kp = KeyPair::generate();
 
 // Generate a key for which a certificate will be issued
-let issued_for = KeyPair::generate();
+let issued_for = KeyPair::generate_ed25519();
 
 // A time when the certificate will be issued and whet it will be expired
 let now = Duration::from_secs(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as u64)
@@ -32,7 +32,7 @@ let mut cert = Certificate::issue_root(&root_kp, issued_for.public_key(), expire
 
 // We can add more keys to extend created certificate
 // The method requires current_time to check if the old certificate is valid
-let new_key = KeyPair::generate();
+let new_key = KeyPair::generate_ed25519();
 let new_cert = Certificate::issue(
                 &issued_for,
                 new_key.public_key(),
@@ -46,8 +46,8 @@ let new_cert = Certificate::issue(
 let st = Box::new(InMemoryStorage::new());
 let mut graph = TrustGraph::new(st);
 
-// Add root weights. Basic keys that certificates should start with
-graph.add_root_weight(root_kp.public_key().into(), 1);
+// Add root weight factor. Basic keys that certificates should start with
+graph.add_root_weight_factor(root_kp.public_key().into(), 1);
 
 // Add the certificate to a trust graph
 // current_time is to check if certificate is still valid
