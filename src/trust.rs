@@ -114,7 +114,7 @@ impl Trust {
         expires_at: Duration,
         issued_at: Duration,
     ) -> Self {
-        let msg = Self::metadata_bytes(&issued_for, expires_at, issued_at);
+        let msg = Self::signature_bytes(&issued_for, expires_at, issued_at);
 
         let signature = issued_by.sign(msg.as_slice()).unwrap();
 
@@ -137,12 +137,12 @@ impl Trust {
         }
 
         let msg: &[u8] =
-            &Self::metadata_bytes(&trust.issued_for, trust.expires_at, trust.issued_at);
+            &Self::signature_bytes(&trust.issued_for, trust.expires_at, trust.issued_at);
 
         KeyPair::verify(issued_by, msg, &trust.signature).map_err(SignatureError)
     }
 
-    pub fn metadata_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> Vec<u8> {
+    pub fn signature_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> Vec<u8> {
         let pk_encoded = pk.encode();
         let expires_at_encoded: [u8; EXPIRATION_LEN] = (expires_at.as_secs() as u64).to_le_bytes();
         let issued_at_encoded: [u8; ISSUED_LEN] = (issued_at.as_secs() as u64).to_le_bytes();

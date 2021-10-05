@@ -1,6 +1,5 @@
 {
   "name": "trust-graph",
-  "mem_page_count": 1,
   "preopened_files": [
     "/tmp"
   ],

@@ -69,7 +69,7 @@ mod tests {
     }
 
     #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
-    fn issue_trust_test() {
+    fn verify_trust_test() {
         let issuer_kp = KeyPair::generate_ed25519();
         let issued_peer_id = KeyPair::generate_ed25519().get_peer_id();
         let issued_at = 0u64;
@@ -87,6 +87,10 @@ mod tests {
             0,
             get_correct_timestamp_cp(2),
         );
+
         assert_result!(verify_result);
     }
+
+    #[marine_test(config_path = "../Config.toml", modules_dir = "../artifacts/")]
+    fn add_root_not_owner() {}
 }

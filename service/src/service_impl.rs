@@ -69,8 +69,8 @@ pub enum ServiceError {
     ),
     #[error("you should use host peer.timestamp_sec to pass timestamp")]
     InvalidTimestampTetraplet,
-    #[error("Trust can't be issued later than the current timestamp")]
-    InvalidTrustTimestamp,
+    #[error("{0} can't be issued later than the current timestamp")]
+    InvalidTimestamp(String),
 }
 
 fn parse_peer_id(peer_id: String) -> Result<PeerId, ServiceError> {
@@ -140,7 +140,7 @@ pub fn get_trust_bytes_imp(
     issued_at_sec: u64,
 ) -> Result<Vec<u8>, ServiceError> {
     let public_key = extract_public_key(peer_id)?;
-    Ok(trust_graph::Trust::metadata_bytes(
+    Ok(trust_graph::Trust::signature_bytes(
         &public_key,
         Duration::from_secs(expires_at_sec),
         Duration::from_secs(issued_at_sec),
@@ -190,7 +190,7 @@ pub fn add_trust_impl(
     check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 2)?;
 
     if trust.issued_at > timestamp_sec {
-        return Err(ServiceError::InvalidTrustTimestamp);
+        return Err(ServiceError::InvalidTimestamp("Trust".to_string()));
     }
 
     let mut tg = get_data().lock();
@@ -230,9 +230,8 @@ pub fn issue_revocation_impl(
 pub fn revoke_impl(revoke: Revoke, timestamp_sec: u64) -> Result<(), ServiceError> {
     check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
 
-    // TODO: use error for revoke, not trust
     if revoke.revoked_at > timestamp_sec {
-        return Err(ServiceError::InvalidTrustTimestamp);
+        return Err(ServiceError::InvalidTimestamp("Revoke".to_string()));
     }
 
     let mut tg = get_data().lock();

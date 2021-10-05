@@ -154,34 +154,12 @@ where
     where
         C: Borrow<Certificate>,
     {
-        let roots: Vec<PublicKey> = self
-            .storage
-            .root_keys()?
-            .iter()
-            .cloned()
-            .map(Into::into)
-            .collect();
-
-        // TODO: add possibility to add certs with root not in trusted_roots (if path to cert root exists)
-        // Check that certificate is valid and converges to one of the known roots
-        Certificate::verify(cert.borrow(), roots.as_slice(), cur_time)?;
-
         let chain = &cert.borrow().chain;
-        let root_trust = chain.get(0).ok_or(EmptyChain)?;
+        let mut issued_by = chain.get(0).ok_or(EmptyChain)?.issued_for.clone();
 
-        // Insert remaining trusts to the graph
-        let mut previous_trust = root_trust;
         for trust in chain {
-            let issued_for_pk = trust.issued_for.clone().into();
-
-            let auth = Auth {
-                trust: trust.clone(),
-                issued_by: previous_trust.issued_for.clone(),
-            };
-
-            self.storage.update_auth(&issued_for_pk, auth, cur_time)?;
-
-            previous_trust = trust;
+            self.add_trust(trust, issued_by, cur_time)?;
+            issued_by = trust.issued_for.clone();
         }
 
         Ok(())
@@ -445,18 +423,6 @@ mod tests {
         let far_future = cur_time.checked_add(one_minute()).unwrap();
 
         generate_cert_with(len, keys, far_future, cur_time)
-    }
-
-    #[test]
-    fn test_add_cert_without_trusted_root() {
-        let (_, _, cert) = generate_root_cert();
-
-        let cur_time = current_time();
-
-        let st = InMemoryStorage::new();
-        let mut graph = TrustGraph::new(st);
-        let addition = graph.add(cert, cur_time);
-        assert_eq!(addition.is_ok(), false);
     }
 
     #[test]

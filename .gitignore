@@ -1,4 +1,5 @@
 service/target
+service/artifacts
 builtin-package/*.wasm
 trust-graph.tar.gz
 
