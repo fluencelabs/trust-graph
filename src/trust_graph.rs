@@ -836,5 +836,62 @@ mod tests {
             .get_all_certs(trust_kp.public(), expired_time)
             .unwrap();
         assert_eq!(certs.len(), 0);
+
+        // check garbage collector
+        let certs = graph.get_all_certs(trust_kp.public(), cur_time).unwrap();
+        assert_eq!(certs.len(), 0);
+    }
+
+    #[test]
+    fn test_expired_root_trust() {
+        let st = InMemoryStorage::new();
+        let mut graph = TrustGraph::new(st);
+
+        let root_kp = KeyPair::generate_ed25519();
+        let cur_time = current_time();
+        let root_expired_time = cur_time.checked_add(one_minute()).unwrap();
+        let root_trust = Trust::create(&root_kp, root_kp.public(), root_expired_time, cur_time);
+
+        graph
+            .add_root_weight_factor(root_kp.public().clone().into(), 2)
+            .unwrap();
+        graph
+            .add_trust(root_trust.clone(), root_kp.public(), cur_time)
+            .unwrap();
+
+        let issued_by = &root_kp;
+        let trust_kp = KeyPair::generate_ed25519();
+        let trust = Trust::create(
+            issued_by,
+            trust_kp.public(),
+            root_expired_time.checked_add(one_minute()).unwrap(),
+            cur_time,
+        );
+
+        let weight = graph
+            .add_trust(trust.clone(), issued_by.public(), cur_time)
+            .unwrap();
+        assert_eq!(
+            weight,
+            graph.weight(issued_by.public(), cur_time).unwrap() / 2
+        );
+
+        let certs = graph.get_all_certs(trust_kp.public(), cur_time).unwrap();
+        assert_eq!(certs.len(), 1);
+        assert_eq!(
+            certs[0],
+            Certificate {
+                chain: { vec![root_trust, trust] }
+            }
+        );
+
+        let certs = graph
+            .get_all_certs(trust_kp.public(), root_expired_time)
+            .unwrap();
+        assert_eq!(certs.len(), 0);
+
+        // check garbage collector
+        let certs = graph.get_all_certs(trust_kp.public(), cur_time).unwrap();
+        assert_eq!(certs.len(), 0);
     }
 }

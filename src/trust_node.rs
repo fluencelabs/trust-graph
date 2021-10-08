@@ -152,7 +152,7 @@ impl TrustNode {
     pub fn remove_expired(&mut self, cur_time: Duration) {
         self.trust_relations.retain(|_, tr| {
             if let TrustRelation::Auth(auth) = tr {
-                (auth.trust.expires_at > cur_time)
+                auth.trust.expires_at > cur_time
             } else {
                 true
             }
