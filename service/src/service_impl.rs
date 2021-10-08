@@ -88,7 +88,7 @@ fn extract_public_key(peer_id: String) -> Result<PublicKey, ServiceError> {
 
 pub fn get_weight_impl(peer_id: String, timestamp_sec: u64) -> Result<u32, ServiceError> {
     check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
-    let tg = get_data().lock();
+    let mut tg = get_data().lock();
     let public_key = extract_public_key(peer_id)?;
     let weight = tg.weight(public_key, Duration::from_secs(timestamp_sec))?;
     Ok(weight)
@@ -113,7 +113,7 @@ pub fn get_all_certs_impl(
     timestamp_sec: u64,
 ) -> Result<Vec<Certificate>, ServiceError> {
     check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
-    let tg = get_data().lock();
+    let mut tg = get_data().lock();
 
     let public_key = extract_public_key(issued_for)?;
     let certs = tg.get_all_certs(public_key, Duration::from_secs(timestamp_sec))?;

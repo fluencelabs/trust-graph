@@ -225,4 +225,8 @@ impl Storage for SQLiteStorage {
             }
         }
     }
+
+    fn remove_expired(&mut self, cur_time: Duration) -> Result<(), Self::Error> {
+        unimplemented!()
+    }
 }

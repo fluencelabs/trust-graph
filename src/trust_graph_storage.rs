@@ -22,6 +22,7 @@ pub trait Storage {
     fn root_keys(&self) -> Result<Vec<PK>, Self::Error>;
     fn revoke(&mut self, pk: &PK, revoke: Revoke) -> Result<(), Self::Error>;
     fn update_auth(&mut self, pk: &PK, auth: Auth, cur_time: Duration) -> Result<(), Self::Error>;
+    fn remove_expired(&mut self, current_time: Duration) -> Result<(), Self::Error>;
 }
 
 #[derive(Debug, Default)]
@@ -114,5 +115,12 @@ impl Storage for InMemoryStorage {
                 self.insert(issued_for_pk.clone(), trust_node)
             }
         }
+    }
+
+    fn remove_expired(&mut self, current_time: Duration) -> Result<(), Self::Error> {
+        for (_, node) in self.nodes.iter_mut() {
+            node.remove_expired(current_time);
+        }
+        Ok(())
     }
 }

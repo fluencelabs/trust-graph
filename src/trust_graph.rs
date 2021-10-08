@@ -166,7 +166,7 @@ where
     }
 
     /// Get the maximum weight of trust for one public key.
-    pub fn weight<P>(&self, pk: P, cur_time: Duration) -> Result<u32, TrustGraphError>
+    pub fn weight<P>(&mut self, pk: P, cur_time: Duration) -> Result<u32, TrustGraphError>
     where
         P: Borrow<PublicKey>,
     {
@@ -296,13 +296,14 @@ where
     /// Get all possible certificates where `issued_for` will be the last element of the chain
     /// and one of the destinations is the root of this chain.
     pub fn get_all_certs<P>(
-        &self,
+        &mut self,
         issued_for: P,
         cur_time: Duration,
     ) -> Result<Vec<Certificate>, TrustGraphError>
     where
         P: Borrow<PublicKey>,
     {
+        self.storage.remove_expired(cur_time)?;
         // get all auths (edges) for issued public key
         let issued_for_node = self.storage.get(issued_for.borrow().as_ref())?;
 

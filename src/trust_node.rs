@@ -148,6 +148,16 @@ impl TrustNode {
     pub fn update_revoke(&mut self, revoke: Revoke) {
         self.update_relation(TrustRelation::Revoke(revoke));
     }
+
+    pub fn remove_expired(&mut self, cur_time: Duration) {
+        self.trust_relations.retain(|_, tr| {
+            if let TrustRelation::Auth(auth) = tr {
+                (auth.trust.expires_at > cur_time)
+            } else {
+                true
+            }
+        });
+    }
 }
 
 #[cfg(test)]
