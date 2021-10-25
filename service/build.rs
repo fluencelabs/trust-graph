@@ -13,14 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+use marine_rs_sdk_test::generate_marine_test_env;
+use marine_rs_sdk_test::ServiceDescription;
+fn main() {
+    let services = vec![(
+        "trust_graph".to_string(),
+        ServiceDescription {
+            config_path: "Config.toml".to_string(),
+            modules_dir: Some("artifacts".to_string()),
+        },
+    )];
 
-// TODO: clear DB before every test, run in 1 thread
-#[cfg(test)]
-mod tests {
-    marine_rs_sdk_test::include_test_env!("/marine_test_env.rs");
-
-    #[test]
-    fn add_root() {
-        let mut trust_graph = marine_test_env::trust_graph::ServiceInterface::new();
+    let target = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap();
+    if target != "wasm32" {
+        generate_marine_test_env(services, "marine_test_env.rs", file!());
     }
+
+    println!("cargo:rerun-if-changed=src/main.rs");
 }

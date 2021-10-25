@@ -19,12 +19,13 @@ use crate::revoke::Revoke;
 use crate::trust::Trust;
 use failure::_core::time::Duration;
 use fluence_keypair::public_key::PublicKey;
+use fluence_keypair::Signature;
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-enum TrustRelation {
+pub enum TrustRelation {
     Auth(Auth),
     Revoke(Revoke),
 }
@@ -45,9 +46,30 @@ impl TrustRelation {
             TrustRelation::Revoke(revoke) => &revoke.revoked_by,
         }
     }
+
+    pub fn issued_for(&self) -> &PublicKey {
+        match self {
+            TrustRelation::Auth(auth) => &auth.trust.issued_for,
+            TrustRelation::Revoke(revoke) => &revoke.pk,
+        }
+    }
+
+    pub fn expires_at(&self) -> Duration {
+        match self {
+            TrustRelation::Auth(auth) => auth.trust.expires_at,
+            TrustRelation::Revoke(_) => Duration::from_secs(0),
+        }
+    }
+
+    pub fn signature(&self) -> &Signature {
+        match self {
+            TrustRelation::Auth(auth) => &auth.trust.signature,
+            TrustRelation::Revoke(revoke) => &revoke.signature,
+        }
+    }
 }
 
-/// Represents who give a certificate
+/// Represents who give a trust
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Auth {
     /// proof of this authorization

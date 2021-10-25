@@ -1,4 +1,8 @@
+use marine_rs_sdk::marine;
+use marine_rs_sdk::module_manifest;
 use marine_rs_sdk::WasmLoggerBuilder;
+
+module_manifest!();
 
 mod dto;
 mod results;
