@@ -14,3 +14,5 @@ trust-graph.tar.gz
 aqua/target/typescript/**
 example/src/generated/**
 example/generated/**
+admin/src/generated/**
+admin/generated/**
