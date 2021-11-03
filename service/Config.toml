@@ -4,10 +4,13 @@ modules_dir = "artifacts/"
     name = "sqlite3"
     logger_enabled = true
 
+    [module.wasi]
+        preopened_files = ["./data"]
+        mapped_dirs = { "data" = "data" }
 [[module]]
     name = "trust-graph"
     logger_enabled = true
 
     [module.wasi]
-    preopened_files = ["/tmp"]
-    mapped_dirs = { "tmp" = "/tmp" }
+    preopened_files = ["./data"]
+    mapped_dirs = { "data" = "data" }

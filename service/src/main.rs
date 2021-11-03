@@ -1,4 +1,6 @@
-use marine_rs_sdk::marine;
+#![allow(dead_code)]
+
+use crate::storage_impl::create_tables;
 use marine_rs_sdk::module_manifest;
 use marine_rs_sdk::WasmLoggerBuilder;
 
@@ -16,4 +18,6 @@ pub fn main() {
         .with_log_level(log::LevelFilter::Trace)
         .build()
         .unwrap();
+
+    create_tables();
 }

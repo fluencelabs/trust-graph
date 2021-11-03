@@ -7,7 +7,7 @@ use crate::results::{
 use crate::service_impl::{
     add_root_impl, add_trust_impl, get_all_certs_impl, get_revoke_bytes_impl, get_trust_bytes_imp,
     get_weight_impl, insert_cert_impl, insert_cert_impl_raw, issue_revocation_impl,
-    issue_trust_impl, revoke_impl, verify_trust_impl,
+    issue_trust_impl, revoke_impl, verify_trust_impl, ServiceError,
 };
 use marine_rs_sdk::{marine, CallParameters};
 
@@ -48,7 +48,7 @@ fn add_root(peer_id: String, weight_factor: u32) -> AddRootResult {
     } else {
         return AddRootResult {
             success: false,
-            error: "Root could add only by trust graph service owner".to_string(),
+            error: ServiceError::NotOwner.to_string(),
         };
     }
 }

@@ -71,6 +71,8 @@ pub enum ServiceError {
     InvalidTimestampTetraplet,
     #[error("{0} can't be issued later than the current timestamp")]
     InvalidTimestamp(String),
+    #[error("Root could add only by trust graph service owner")]
+    NotOwner,
 }
 
 fn parse_peer_id(peer_id: String) -> Result<PeerId, ServiceError> {

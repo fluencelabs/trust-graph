@@ -26,6 +26,7 @@ rand = "0.7.0"
 
 [workspace]
 members = [
-    "keypair",
-    "service"
+    "keypair"]
+exclude = [
+"service"
 ]

@@ -25,6 +25,7 @@
     unused_unsafe,
     unreachable_patterns
 )]
+#![allow(dead_code)]
 
 mod certificate;
 pub mod certificate_serde;
@@ -34,7 +35,7 @@ mod revoke;
 mod trust;
 mod trust_graph;
 mod trust_graph_storage;
-mod trust_node;
+mod trust_relation;
 
 pub use crate::certificate::{Certificate, CertificateError};
 pub use crate::misc::current_time;
@@ -43,4 +44,4 @@ pub use crate::revoke::Revoke;
 pub use crate::trust::{Trust, TrustError};
 pub use crate::trust_graph::{TrustGraph, TrustGraphError, WeightFactor};
 pub use crate::trust_graph_storage::{Storage, StorageError};
-pub use crate::trust_node::{Auth, TrustNode, TrustRelation};
+pub use crate::trust_relation::{Auth, TrustRelation};

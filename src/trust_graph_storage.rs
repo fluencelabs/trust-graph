@@ -1,7 +1,7 @@
 use crate::public_key_hashable::PublicKeyHashable as PK;
 use crate::revoke::Revoke;
 use crate::trust_graph::WeightFactor;
-use crate::trust_node::{Auth, TrustRelation};
+use crate::trust_relation::{Auth, TrustRelation};
 use std::fmt::Display;
 use std::time::Duration;
 
