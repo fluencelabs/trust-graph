@@ -73,7 +73,7 @@ async function revoke_helper(node: string, issuer_kp: KeyPair, revoked_by_peer_i
 async function main(environment: Node[]) {
     // key from local-network/builtins_secret_key.ed25519 to connect as builtins owner
     let sk = bs58.decode("5FwE32bDcphFzuMca7Y2qW1gdR64fTBYoRNvD4MLE1hecDGhCMQGKn8aseMr5wRo4Xo2CRFdrEAawUNLYkgQD78K").slice(0, 32); // first 32 bytes - secret key, second - public key
-    let builtins_keypair = await KeyPair.fromBytes(sk);
+    let builtins_keypair = await KeyPair.fromEd25519SK(sk);
     await Fluence.start({ connectTo: environment[0], KeyPair: builtins_keypair});
     console.log(
         "📗 created a fluence peer %s with relay %s",
@@ -82,7 +82,7 @@ async function main(environment: Node[]) {
     );
     const issued_timestamp_sec = await timestamp_sec(local[0].peerId);
     const expires_at_sec = issued_timestamp_sec + 999999999;
-    const issuer_kp = await KeyPair.fromBytes(bs58.decode("29Apzfedhw2Jxh94Jj4rNSmavQ1TkNe8ALYRA7bMegobwp423aLrURxLk32WtXgXHDqoSz7GAT9fQfoMhVd1e5Ww"));
+    const issuer_kp = await KeyPair.fromEd25519SK(bs58.decode("29Apzfedhw2Jxh94Jj4rNSmavQ1TkNe8ALYRA7bMegobwp423aLrURxLk32WtXgXHDqoSz7GAT9fQfoMhVd1e5Ww"));
 
     let add_root_result = await add_root(local[0].peerId, local[0].peerId, 2);
     console.log("Add root weight result: %s", add_root_result);

@@ -61,3 +61,21 @@ func revoke(node: string, revoke: Revoke) -> RevokeResult:
         timestamp_sec <- Peer.timestamp_sec()
         result <- TrustGraph.revoke(revoke, timestamp_sec)
     <- result
+
+service MyOp("op"):
+  array_length(a: []Trust) -> u64
+
+func isFluenceNode(node: string, peer_id: string) -> bool:
+    certs_result <- get_all_certs(node, peer_id)
+    resultBox: *bool
+    resultBox <<- false
+    if certs_result.success:
+        for cert  <- certs_result.certificates:
+            on node:
+                len <- MyOp.array_length(cert.chain)
+                if len == 3:
+                    if cert.chain!0.issued_for == "12D3KooWNbZKaPWRZ8wgjGvrxdJFz9Fq5uVwkR6ERV1f74HhPdyB":
+                        if cert.chain!1.issued_for == "12D3KooWM45u7AQxsb4MuQJNYT3NWHHMLU7JTbBV66RTfF3KSzdR":
+                            resultBox <<- true
+    result = resultBox!
+    <- result
