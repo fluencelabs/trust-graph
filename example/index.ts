@@ -102,7 +102,7 @@ async function main(environment: Node[]) {
 
     let certs = await get_all_certs(local[0].peerId, local[1].peerId);
     console.log("Certs: %s", JSON.stringify(certs.certificates));
-
+    assert(certs.certificates.length === 1);
 
     // wait to create revoke after trust (because timestamp in secs)
     await new Promise(f => setTimeout(f, 1000));

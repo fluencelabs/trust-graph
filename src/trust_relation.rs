@@ -21,6 +21,15 @@ use fluence_keypair::public_key::PublicKey;
 use fluence_keypair::Signature;
 use serde::{Deserialize, Serialize};
 
+/// Represents who give a trust
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Auth {
+    /// proof of this authorization
+    pub trust: Trust,
+    /// the issuer of this authorization
+    pub issued_by: PublicKey,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TrustRelation {
     Auth(Auth),
@@ -64,13 +73,4 @@ impl TrustRelation {
             TrustRelation::Revoke(revoke) => &revoke.signature,
         }
     }
-}
-
-/// Represents who give a trust
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Auth {
-    /// proof of this authorization
-    pub trust: Trust,
-    /// the issuer of this authorization
-    pub issued_by: PublicKey,
 }

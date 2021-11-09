@@ -24,10 +24,9 @@ mod service_tests {
     use fluence_keypair::KeyPair;
     use libp2p_core::PeerId;
     use marine_rs_sdk::{CallParameters, SecurityTetraplet};
-    use marine_test_env::trust_graph::{Revoke, ServiceInterface, Trust, Certificate};
+    use marine_test_env::trust_graph::{Certificate, Revoke, ServiceInterface, Trust};
     use rusqlite::Connection;
     use std::collections::HashMap;
-    use std::str::FromStr;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     static HOST_ID: &str = "some_host_id";
@@ -85,9 +84,27 @@ mod service_tests {
         cp
     }
 
-    fn add_root(trust_graph: &mut ServiceInterface, peer_id: PeerId, weight_factor: u32) {
+    fn add_root_peer_id(trust_graph: &mut ServiceInterface, peer_id: PeerId, weight_factor: u32) {
         let result = trust_graph.add_root(peer_id.to_base58(), weight_factor);
         assert!(result.success, "{}", result.error);
+    }
+
+    fn add_root_with_trust(
+        trust_graph: &mut ServiceInterface,
+        issuer_kp: &KeyPair,
+        issued_at_sec: u64,
+        expires_at_sec: u64,
+        weight_factor: u32,
+    ) {
+        let result = trust_graph.add_root(issuer_kp.get_peer_id().to_base58(), weight_factor);
+        assert!(result.success, "{}", result.error);
+        add_trust(
+            trust_graph,
+            issuer_kp,
+            &issuer_kp.get_peer_id(),
+            issued_at_sec,
+            expires_at_sec,
+        );
     }
 
     fn issue_trust(
@@ -204,7 +221,6 @@ mod service_tests {
         issue_result.revoke
     }
 
-
     fn generate_trust_chain_with(
         trust_graph: &mut ServiceInterface,
         len: usize,
@@ -275,13 +291,22 @@ mod service_tests {
     }
 
     fn get_weight(trust_graph: &mut ServiceInterface, peer_id: PeerId, cur_time: u64) -> u32 {
-        let result = trust_graph.get_weight_cp(peer_id.to_base58(), cur_time, get_correct_timestamp_cp(1));
+        let result =
+            trust_graph.get_weight_cp(peer_id.to_base58(), cur_time, get_correct_timestamp_cp(1));
         assert!(result.success, "{}", result.error);
         result.weight
     }
 
-    fn get_all_certs(trust_graph: &mut ServiceInterface, issued_for: PeerId, cur_time: u64) -> Vec<Certificate> {
-        let result = trust_graph.get_all_certs_cp(issued_for.to_base58(), cur_time, get_correct_timestamp_cp(1));
+    fn get_all_certs(
+        trust_graph: &mut ServiceInterface,
+        issued_for: PeerId,
+        cur_time: u64,
+    ) -> Vec<Certificate> {
+        let result = trust_graph.get_all_certs_cp(
+            issued_for.to_base58(),
+            cur_time,
+            get_correct_timestamp_cp(1),
+        );
         assert!(result.success, "{}", result.error);
         result.certificates
     }
@@ -329,7 +354,7 @@ mod service_tests {
         let expires_at_sec = 9999u64;
         let issued_at_sec = 0u64;
 
-        add_root(&mut trust_graph, root_kp.get_peer_id(), 4u32);
+        add_root_peer_id(&mut trust_graph, root_kp.get_peer_id(), 4u32);
 
         let result =
             trust_graph.get_trust_bytes(root_peer_id.to_base58(), expires_at_sec, issued_at_sec);
@@ -361,7 +386,10 @@ mod service_tests {
         );
 
         assert!(add_trust_result.success, "{}", add_trust_result.error);
-        assert_eq!(get_weight(&mut trust_graph, root_peer_id, 100u64), add_trust_result.weight);
+        assert_eq!(
+            get_weight(&mut trust_graph, root_peer_id, 100u64),
+            add_trust_result.weight
+        );
     }
 
     #[test]
@@ -372,15 +400,12 @@ mod service_tests {
         let root_kp = KeyPair::generate_ed25519();
         let cur_time = 100u64;
         let root_expired_time = cur_time + 10000;
-
-        add_root(&mut trust_graph, root_kp.get_peer_id(), 4u32);
-
-        add_trust(
+        add_root_with_trust(
             &mut trust_graph,
             &root_kp,
-            &root_kp.get_peer_id(),
             cur_time,
             root_expired_time - 1,
+            4,
         );
 
         let trust_kp = KeyPair::generate_ed25519();
@@ -393,10 +418,7 @@ mod service_tests {
         );
 
         let root_weight = get_weight(&mut trust_graph, root_kp.get_peer_id(), cur_time);
-        let trust_weight = get_weight(&mut trust_graph,
-                                      trust_kp.get_peer_id(),
-                                      cur_time,
-        );
+        let trust_weight = get_weight(&mut trust_graph, trust_kp.get_peer_id(), cur_time);
         assert_eq!(root_weight / 2, trust_weight);
 
         let certs = get_all_certs(&mut trust_graph, trust_kp.get_peer_id(), cur_time);
@@ -418,15 +440,7 @@ mod service_tests {
 
         let root_kp = KeyPair::generate_ed25519();
         let mut cur_time = 100u64;
-
-        add_root(&mut trust_graph, root_kp.get_peer_id(), 4u32);
-        add_trust(
-            &mut trust_graph,
-            &root_kp,
-            &root_kp.get_peer_id(),
-            cur_time,
-            cur_time + 9999,
-        );
+        add_root_with_trust(&mut trust_graph, &root_kp, cur_time, cur_time + 9999, 4u32);
 
         let trust_kp = KeyPair::generate_ed25519();
         add_trust(
@@ -455,21 +469,31 @@ mod service_tests {
     #[test]
     fn test_add_one_trust_to_cert_last() {
         let mut trust_graph = ServiceInterface::new();
-        let (key_pairs, mut trusts) = generate_trust_chain_with_len(&mut trust_graph, 5, HashMap::new());
+        let (key_pairs, mut trusts) =
+            generate_trust_chain_with_len(&mut trust_graph, 5, HashMap::new());
         let cur_time = current_time();
 
         let root_peer_id = key_pairs[0].get_peer_id();
-        add_root(&mut trust_graph, root_peer_id, 2);
+        add_root_peer_id(&mut trust_graph, root_peer_id, 2);
         add_trusts(&mut trust_graph, &trusts, cur_time);
 
         let issued_by = key_pairs.last().unwrap().get_peer_id();
         let trust_kp = KeyPair::generate_ed25519();
         let issued_for = trust_kp.get_peer_id();
         let future = cur_time + 60;
-        let trust = add_trust(&mut trust_graph, &key_pairs.last().unwrap(), &issued_for, cur_time, future);
-        trusts.push(Auth { issuer: issued_by, trust });
+        let trust = add_trust(
+            &mut trust_graph,
+            &key_pairs.last().unwrap(),
+            &issued_for,
+            cur_time,
+            future,
+        );
+        trusts.push(Auth {
+            issuer: issued_by,
+            trust,
+        });
 
-        let previous_weight =  get_weight(&mut trust_graph, issued_by, cur_time);
+        let previous_weight = get_weight(&mut trust_graph, issued_by, cur_time);
         assert_ne!(previous_weight, 0u32);
 
         let weight = get_weight(&mut trust_graph, issued_for, cur_time);
@@ -491,7 +515,7 @@ mod service_tests {
         let cur_time = current_time();
 
         let root1_peer_id = key_pairs[0].get_peer_id();
-        add_root(&mut trust_graph, root1_peer_id, 2);
+        add_root_peer_id(&mut trust_graph, root1_peer_id, 2);
         add_trusts(&mut trust_graph, &trusts, cur_time);
 
         let issued_by = key_pairs.last().unwrap().get_peer_id();
@@ -499,8 +523,17 @@ mod service_tests {
         let issued_for = trust_kp.get_peer_id();
         let expired_time = cur_time + 60;
 
-        let trust = add_trust(&mut trust_graph, &key_pairs.last().unwrap(), &issued_for, cur_time, expired_time);
-        trusts.push(Auth { issuer: issued_by, trust });
+        let trust = add_trust(
+            &mut trust_graph,
+            &key_pairs.last().unwrap(),
+            &issued_for,
+            cur_time,
+            expired_time,
+        );
+        trusts.push(Auth {
+            issuer: issued_by,
+            trust,
+        });
 
         let certs = get_all_certs(&mut trust_graph, issued_for, cur_time);
         assert_eq!(certs.len(), 1);
@@ -525,7 +558,7 @@ mod service_tests {
 
         let cur_time = current_time();
         let root_peer_id = key_pairs[0].get_peer_id();
-        add_root(&mut trust_graph, root_peer_id, 1);
+        add_root_peer_id(&mut trust_graph, root_peer_id, 1);
 
         for auth in trusts.iter() {
             add_trust_checked(&mut trust_graph, auth.trust.clone(), auth.issuer, cur_time);
@@ -549,29 +582,182 @@ mod service_tests {
     fn test_chain_from_root_to_another_root() {
         let mut trust_graph = ServiceInterface::new();
         clear_env();
-        let (_, trusts) = generate_trust_chain_with_len(&mut trust_graph, 6, HashMap::new());
+        let (kps, trusts) = generate_trust_chain_with_len(&mut trust_graph, 6, HashMap::new());
         let cur_time = current_time();
+        let far_future = cur_time + 9999;
 
         // add first and last trusts as roots
-        add_root(
-            &mut trust_graph,
-            PeerId::from_str(&trusts[0].trust.issued_for).unwrap(),
-            1,
-        );
-        add_root(
-            &mut trust_graph,
-            PeerId::from_str(&trusts[3].trust.issued_for).unwrap(),
-            1,
-        );
-        add_root(
-            &mut trust_graph,
-            PeerId::from_str(&trusts[5].trust.issued_for).unwrap(),
-            1,
-        );
-
+        add_root_peer_id(&mut trust_graph, kps[0].get_peer_id(), 0);
         add_trusts(&mut trust_graph, &trusts, cur_time);
+        add_root_with_trust(&mut trust_graph, &kps[5], cur_time, far_future, 0);
 
-        let certs = get_all_certs(&mut trust_graph, PeerId::from_str(&trusts[5].trust.issued_for).unwrap(), cur_time);
-        assert_eq!(certs.len(), 1);
+        let certs = get_all_certs(&mut trust_graph, kps[5].get_peer_id(), cur_time);
+        // first with self-signed last trust, second - without
+        assert_eq!(certs.len(), 2);
+        assert_eq!(certs[0].chain.len(), 6);
+        assert_eq!(certs[1].chain.len(), 7);
+    }
+
+    #[test]
+    fn test_revoke_gc() {
+        let mut trust_graph = marine_test_env::trust_graph::ServiceInterface::new();
+        clear_env();
+
+        let root_kp = KeyPair::generate_ed25519();
+        let cur_time = 100u64;
+        add_root_with_trust(&mut trust_graph, &root_kp, cur_time, cur_time + 999, 4u32);
+
+        let trust_kp = KeyPair::generate_ed25519();
+        add_trust(
+            &mut trust_graph,
+            &root_kp,
+            &trust_kp.get_peer_id(),
+            cur_time,
+            cur_time + 99999,
+        );
+
+        let weight = get_weight(&mut trust_graph, trust_kp.get_peer_id(), cur_time);
+        assert_ne!(weight, 0u32);
+
+        let revoked_time = cur_time + 1;
+        revoke(
+            &mut trust_graph,
+            &root_kp,
+            &trust_kp.get_peer_id(),
+            revoked_time,
+        );
+
+        let weight = get_weight(&mut trust_graph, trust_kp.get_peer_id(), revoked_time);
+        assert_eq!(weight, 0u32);
+
+        // add trust issued earlier than last revoke
+        add_trust(
+            &mut trust_graph,
+            &root_kp,
+            &trust_kp.get_peer_id(),
+            revoked_time - 10,
+            cur_time + 99999,
+        );
+
+        let weight = get_weight(&mut trust_graph, trust_kp.get_peer_id(), revoked_time);
+        assert_eq!(weight, 0u32);
+    }
+
+    #[test]
+    fn test_update_trust() {
+        let mut trust_graph = marine_test_env::trust_graph::ServiceInterface::new();
+        clear_env();
+
+        let root_kp = KeyPair::generate_ed25519();
+        let mut cur_time = 100u64;
+        add_root_with_trust(&mut trust_graph, &root_kp, cur_time, cur_time + 999, 4u32);
+
+        let trust_kp = KeyPair::generate_ed25519();
+        let expires_at_sec = cur_time + 10;
+        add_trust(
+            &mut trust_graph,
+            &root_kp,
+            &trust_kp.get_peer_id(),
+            cur_time,
+            expires_at_sec,
+        );
+
+        let weight = get_weight(&mut trust_graph, trust_kp.get_peer_id(), cur_time);
+        assert_ne!(weight, 0u32);
+
+        cur_time = expires_at_sec - 1;
+        let future_time = expires_at_sec + 10;
+        // add trust that expires lately
+        add_trust(
+            &mut trust_graph,
+            &root_kp,
+            &trust_kp.get_peer_id(),
+            cur_time,
+            future_time + 99999,
+        );
+
+        // first trust should be replaced by second (and has already been expired)
+        let weight = get_weight(&mut trust_graph, trust_kp.get_peer_id(), future_time);
+        assert_ne!(weight, 0u32);
+    }
+
+    #[test]
+    fn path_from_root_to_root_weight() {
+        let mut trust_graph = marine_test_env::trust_graph::ServiceInterface::new();
+        clear_env();
+
+        let root1_kp = KeyPair::generate_ed25519();
+        let root2_kp = KeyPair::generate_ed25519();
+        let cur_time = 100;
+        let far_future = cur_time + 99999;
+        // root with bigger weight (smaller weight factor)
+        add_root_with_trust(&mut trust_graph, &root1_kp, cur_time, far_future, 0u32);
+        // opposite
+        add_root_with_trust(&mut trust_graph, &root2_kp, cur_time, far_future, 5u32);
+
+        // issue trust from root2 to any other peer_id
+        let issued_by_root2_peer_id = KeyPair::generate_ed25519().get_peer_id();
+        add_trust(
+            &mut trust_graph,
+            &root2_kp,
+            &issued_by_root2_peer_id,
+            cur_time,
+            far_future,
+        );
+
+        let root2_weight_before = get_weight(&mut trust_graph, root2_kp.get_peer_id(), cur_time);
+        let issued_by_root2_peer_id_before =
+            get_weight(&mut trust_graph, issued_by_root2_peer_id, cur_time);
+        // issue trust from root1 to root2
+        add_trust(
+            &mut trust_graph,
+            &root1_kp,
+            &root2_kp.get_peer_id(),
+            cur_time,
+            far_future,
+        );
+
+        let root2_weight_after = get_weight(&mut trust_graph, root2_kp.get_peer_id(), cur_time);
+        let issued_by_root2_peer_id_after =
+            get_weight(&mut trust_graph, issued_by_root2_peer_id, cur_time);
+
+        assert!(issued_by_root2_peer_id_before < issued_by_root2_peer_id_after);
+        assert!(root2_weight_before < root2_weight_after);
+    }
+
+    #[test]
+    fn add_self_signed_weight() {
+        let mut trust_graph = marine_test_env::trust_graph::ServiceInterface::new();
+        clear_env();
+
+        let root_kp = KeyPair::generate_ed25519();
+        let cur_time = 100;
+        let far_future = cur_time + 99999;
+
+        add_root_with_trust(&mut trust_graph, &root_kp, cur_time, far_future, 0u32);
+
+        // issue trust from root to any other peer
+        let other_peer_kp = KeyPair::generate_ed25519();
+        add_trust(
+            &mut trust_graph,
+            &root_kp,
+            &other_peer_kp.get_peer_id(),
+            cur_time,
+            far_future,
+        );
+
+        let weight_before = get_weight(&mut trust_graph, other_peer_kp.get_peer_id(), cur_time);
+
+        // issue self-signed trust
+        add_trust(
+            &mut trust_graph,
+            &other_peer_kp,
+            &other_peer_kp.get_peer_id(),
+            cur_time,
+            far_future,
+        );
+
+        let weight_after = get_weight(&mut trust_graph, other_peer_kp.get_peer_id(), cur_time);
+        assert_eq!(weight_after, weight_before);
     }
 }

@@ -3,7 +3,7 @@
 // if there is an older trust - don't add received trust
 
 use crate::storage_impl::SQLiteStorageError::{
-    FieldConversionDB, PublicKeyConversion, PublicKeyFromStr, WeightConversionDB,
+    FieldConversionDB, PublicKeyConversion, PublicKeyFromStr, WeightFactorConversionDB,
 };
 
 use core::convert::TryFrom;
@@ -50,7 +50,7 @@ pub fn create_tables() {
         .execute(
             "CREATE TABLE IF NOT EXISTS roots(
         public_key TEXT,
-        weight INTEGER
+        weight_factor INTEGER
         );",
         )
         .unwrap();
@@ -74,12 +74,11 @@ impl SQLiteStorage {
         SQLiteStorage { connection }
     }
 
-    fn update_relation(
-        &mut self,
-        issued_for: &PK,
-        relation: TrustRelation,
-    ) -> Result<(), SQLiteStorageError> {
-        match self.get_relation(issued_for, relation.issued_by().as_ref())? {
+    fn update_relation(&mut self, relation: TrustRelation) -> Result<(), SQLiteStorageError> {
+        match self.get_relation(
+            relation.issued_for().as_ref(),
+            relation.issued_by().as_ref(),
+        )? {
             Some(TrustRelation::Auth(auth)) => {
                 if auth.trust.issued_at < relation.issued_at() {
                     self.insert(relation)?;
@@ -125,8 +124,8 @@ pub enum SQLiteStorageError {
     ),
     #[error("Cannot convert field  from DB")]
     FieldConversionDB,
-    #[error("Cannot convert weight as integer from DB")]
-    WeightConversionDB,
+    #[error("Cannot convert weight factor as integer from DB")]
+    WeightFactorConversionDB,
     #[error("Cannot convert public key as binary from DB")]
     PublicKeyConversion,
     #[error("Cannot revoke. There is no trust with such PublicKey")]
@@ -190,8 +189,10 @@ impl Storage for SQLiteStorage {
             )?
             .cursor();
 
-        cursor.bind(&[Value::String(format!("{}", issued_by))])?;
-        cursor.bind(&[Value::String(format!("{}", issued_for))])?;
+        cursor.bind(&[
+            Value::String(format!("{}", issued_by)),
+            Value::String(format!("{}", issued_for)),
+        ])?;
 
         if let Some(row) = cursor.next()? {
             parse_relation(row).map(Some)
@@ -252,16 +253,14 @@ impl Storage for SQLiteStorage {
     fn get_root_weight_factor(&self, pk: &PK) -> Result<Option<WeightFactor>, Self::Error> {
         let mut cursor = self
             .connection
-            .prepare("SELECT public_key, weight FROM roots WHERE public_key = ?")?
+            .prepare("SELECT public_key, weight_factor FROM roots WHERE public_key = ?")?
             .cursor();
 
         cursor.bind(&[Value::String(format!("{}", pk))])?;
 
         if let Some(row) = cursor.next()? {
-            log::info!("row: {:?}", row);
-
-            let w = u32::try_from(row[1].as_integer().ok_or(WeightConversionDB)?)
-                .map_err(|_e| WeightConversionDB)?;
+            let w = u32::try_from(row[1].as_integer().ok_or(WeightFactorConversionDB)?)
+                .map_err(|_e| WeightFactorConversionDB)?;
 
             Ok(Some(w))
         } else {
@@ -269,8 +268,11 @@ impl Storage for SQLiteStorage {
         }
     }
 
-    fn add_root_weight_factor(&mut self, pk: PK, weight: WeightFactor) -> Result<(), Self::Error> {
-        log::info!("add root: {} weight: {}", pk, weight);
+    fn add_root_weight_factor(
+        &mut self,
+        pk: PK,
+        weight_factor: WeightFactor,
+    ) -> Result<(), Self::Error> {
         let mut cursor = self
             .connection
             .prepare("INSERT OR REPLACE INTO roots VALUES (?, ?)")?
@@ -278,7 +280,7 @@ impl Storage for SQLiteStorage {
 
         cursor.bind(&[
             Value::String(format!("{}", pk)),
-            Value::Integer(i64::from(weight)),
+            Value::Integer(i64::from(weight_factor)),
         ])?;
 
         cursor.next()?;
@@ -288,7 +290,7 @@ impl Storage for SQLiteStorage {
     fn root_keys(&self) -> Result<Vec<PK>, Self::Error> {
         let mut cursor = self
             .connection
-            .prepare("SELECT public_key,weight FROM roots")?
+            .prepare("SELECT public_key, weight_factor FROM roots")?
             .cursor();
 
         let mut roots = vec![];
@@ -304,26 +306,24 @@ impl Storage for SQLiteStorage {
         Ok(roots)
     }
 
-    fn revoke(&mut self, pk: &PK, revoke: Revoke) -> Result<(), Self::Error> {
-        self.update_relation(pk, TrustRelation::Revoke(revoke))
+    fn revoke(&mut self, revoke: Revoke) -> Result<(), Self::Error> {
+        self.update_relation(TrustRelation::Revoke(revoke))
     }
 
-    fn update_auth(
-        &mut self,
-        issued_for_pk: &PK,
-        auth: Auth,
-        _cur_time: Duration,
-    ) -> Result<(), Self::Error> {
-        self.update_relation(issued_for_pk, TrustRelation::Auth(auth))
+    fn update_auth(&mut self, auth: Auth, _cur_time: Duration) -> Result<(), Self::Error> {
+        self.update_relation(TrustRelation::Auth(auth))
     }
 
     fn remove_expired(&mut self, cur_time: Duration) -> Result<(), Self::Error> {
         let mut cursor = self
             .connection
-            .prepare("DELETE FROM trust_relations WHERE expires_at <= ?")?
+            .prepare("DELETE FROM trust_relations WHERE expires_at <= ? AND relation_type = ?")?
             .cursor();
 
-        cursor.bind(&[Value::Integer(cur_time.as_secs() as i64)])?;
+        cursor.bind(&[
+            Value::Integer(cur_time.as_secs() as i64),
+            Value::Integer(AUTH_TYPE),
+        ])?;
 
         cursor.next()?;
 

@@ -136,7 +136,7 @@ pub fn add_root_impl(peer_id: String, weight: u32) -> Result<(), ServiceError> {
     Ok(())
 }
 
-pub fn get_trust_bytes_imp(
+pub fn get_trust_bytes_impl(
     peer_id: String,
     expires_at_sec: u64,
     issued_at_sec: u64,

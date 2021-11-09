@@ -124,30 +124,24 @@ where
         P: Borrow<PublicKey>,
     {
         Trust::verify(trust.borrow(), issued_by.borrow(), cur_time)?;
+        let next_weight = self.get_next_weight(
+            issued_by.borrow().as_ref(),
+            trust.borrow().issued_for.as_ref(),
+            cur_time,
+        )?;
 
-        let issued_by_weight = self.weight(issued_by.borrow().clone().borrow(), cur_time)?;
-
-        if issued_by_weight == 0u32 {
+        if next_weight == 0u32 {
             return Ok(0u32);
         }
-
-        let issued_for = trust.borrow().issued_for.clone().into();
 
         let auth = Auth {
             trust: trust.borrow().clone(),
             issued_by: issued_by.borrow().clone(),
         };
 
-        self.storage.update_auth(&issued_for, auth, cur_time)?;
+        self.storage.update_auth(auth, cur_time)?;
 
-        // self-signed root trust weight == root weight
-        if *issued_by.borrow() == *issued_for.as_ref()
-            && self.storage.root_keys()?.contains(&issued_for)
-        {
-            Ok(issued_by_weight)
-        } else {
-            Ok(issued_by_weight / 2)
-        }
+        Ok(next_weight)
     }
 
     /// Certificate is a chain of trusts, add this chain to graph
@@ -158,6 +152,7 @@ where
         let chain = &cert.borrow().chain;
         let mut issued_by = chain.get(0).ok_or(EmptyChain)?.issued_for.clone();
 
+        // TODO: optimize to check only root weight
         for trust in chain {
             self.add_trust(trust, issued_by, cur_time)?;
             issued_by = trust.issued_for.clone();
@@ -166,25 +161,44 @@ where
         Ok(())
     }
 
+    fn get_next_weight(
+        &mut self,
+        issued_by: &PK,
+        issued_for: &PK,
+        cur_time: Duration,
+    ) -> Result<u32, TrustGraphError> {
+        let issued_by_weight = self.weight(issued_by.as_ref(), cur_time)?;
+
+        // self-signed trust has same weight as max weight of issuer
+        if issued_by.eq(issued_for) {
+            Ok(issued_by_weight)
+        } else {
+            Ok(issued_by_weight / 2)
+        }
+    }
+
     /// Get the maximum weight of trust for one public key.
     pub fn weight<P>(&mut self, pk: P, cur_time: Duration) -> Result<u32, TrustGraphError>
     where
         P: Borrow<PublicKey>,
     {
+        let mut max_weight = 0;
         if let Some(weight_factor) = self.storage.get_root_weight_factor(pk.borrow().as_ref())? {
-            return Ok(get_weight_from_factor(weight_factor));
+            max_weight = get_weight_from_factor(weight_factor);
         }
 
         // get all possible certificates from the given public key to all roots in the graph
         let certs = self.get_all_certs(pk, cur_time)?;
-        self.certificates_weight_factor(certs)
-            .map(|wf| wf.map(get_weight_from_factor).unwrap_or(0u32))
+        if let Some(weight_factor) = self.certificates_weight_factor(certs)? {
+            max_weight = std::cmp::max(max_weight, get_weight_from_factor(weight_factor))
+        }
+
+        Ok(max_weight)
     }
 
     /// Calculate weight from given certificates
     /// Returns None if there is no such public key
     /// or some trust between this key and a root key is revoked.
-    /// TODO handle non-direct revocations
     pub fn certificates_weight_factor<C, I>(
         &self,
         certs: I,
@@ -210,22 +224,21 @@ where
                 .first()
                 .ok_or(CertificateCheckError(CertificateLengthError))?;
 
-            let root_weight = self
+            let root_weight_factor = self
                 .storage
                 .get_root_weight_factor(first.issued_for.as_ref())?
                 .ok_or(NoRoot)?;
 
-            // certificate weight = root weight + 1 * every other element in the chain
-            // (except root, so the formula is `root weight + chain length - 1`)
-            weight_factor = std::cmp::min(weight_factor, root_weight + c.chain.len() as u32 - 1)
+            // certificate weight_factor = root weight factor + 1 * every other element in the chain
+            // (except root, so the formula is `root weight factor + chain length - 1`)
+            weight_factor =
+                std::cmp::min(weight_factor, root_weight_factor + c.chain.len() as u32 - 1)
         }
 
         Ok(Some(weight_factor))
     }
 
     /// BF search for all converging paths (chains) in the graph
-    /// TODO could be optimized with closure, that will calculate the weight on the fly
-    /// TODO or store auths to build certificates
     fn bf_search_paths(
         &self,
         pk: &PK,
@@ -270,7 +283,7 @@ where
 
             // to be considered a valid chain, the chain must:
             // - end with a self-signed trust
-            // - that trust must converge to one of the root weights
+            // - that trust must converge to one of the roots
             // - there should be more than 1 trust in the chain
             let self_signed = last.issued_by == last.trust.issued_for;
             let issued_by: &PK = last.issued_by.as_ref();
@@ -294,9 +307,10 @@ where
     where
         P: Borrow<PublicKey>,
     {
+        // garbage collect
         self.storage.remove_expired(cur_time)?;
-        // get all auths (edges) for issued public key
 
+        // maybe later we should retrieve root keys lazily
         let keys = self.storage.root_keys()?;
         let roots = keys.iter().collect();
 
@@ -323,8 +337,6 @@ where
     pub fn revoke(&mut self, revoke: Revoke) -> Result<(), TrustGraphError> {
         Revoke::verify(&revoke)?;
 
-        let pk: PK = revoke.pk.clone().into();
-
-        Ok(self.storage.revoke(&pk, revoke)?)
+        Ok(self.storage.revoke(revoke)?)
     }
 }

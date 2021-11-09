@@ -77,7 +77,6 @@ async function main(environment: Node[]) {
         Fluence.getStatus().relayPeerId
     );
 
-
     let root_sk_b58 = fs.readFileSync("./root_secret_key.ed25519").toString();
     let issuer_sk_b58 = fs.readFileSync("./issuer_secret_key.ed25519").toString();
     let root_kp = await KeyPair.fromBytes(bs58.decode(root_sk_b58));
@@ -104,7 +103,7 @@ async function main(environment: Node[]) {
         certificates.push(certs.certificates[0]);
     }
 
-    fs.writeFileSync("../builti-package/on_start.json", JSON.stringify({certs: certificates}));
+    fs.writeFileSync("../builtin-package/on_start.json", JSON.stringify({certs: certificates}));
 
     return;
 }

@@ -5,37 +5,16 @@ use crate::results::{
     WeightResult,
 };
 use crate::service_impl::{
-    add_root_impl, add_trust_impl, get_all_certs_impl, get_revoke_bytes_impl, get_trust_bytes_imp,
+    add_root_impl, add_trust_impl, get_all_certs_impl, get_revoke_bytes_impl, get_trust_bytes_impl,
     get_weight_impl, insert_cert_impl, insert_cert_impl_raw, issue_revocation_impl,
     issue_trust_impl, revoke_impl, verify_trust_impl, ServiceError,
 };
 use marine_rs_sdk::{marine, CallParameters};
+use trust_graph::MAX_WEIGHT_FACTOR;
 
 #[marine]
-/// add a certificate in string representation to trust graph if it is valid
-/// see `trust_graph::Certificate` class for string encoding/decoding
-fn insert_cert_raw(certificate: String, timestamp_sec: u64) -> InsertResult {
-    insert_cert_impl_raw(certificate, timestamp_sec).into()
-}
-
-#[marine]
-/// add a certificate in JSON representation to trust graph if it is valid
-/// see `dto::Certificate` class for structure
-fn insert_cert(certificate: Certificate, timestamp_sec: u64) -> InsertResult {
-    insert_cert_impl(certificate, timestamp_sec).into()
-}
-
-#[marine]
-fn get_weight(peer_id: String, timestamp_sec: u64) -> WeightResult {
-    get_weight_impl(peer_id.clone(), timestamp_sec)
-        .map(|w| (w, peer_id))
-        .into()
-}
-
-// TODO: delete expired
-#[marine]
-fn get_all_certs(issued_for: String, timestamp_sec: u64) -> AllCertsResult {
-    get_all_certs_impl(issued_for, timestamp_sec).into()
+fn get_weight_factor(max_chain_len: u32) -> u32 {
+    MAX_WEIGHT_FACTOR - max_chain_len
 }
 
 #[marine]
@@ -54,12 +33,38 @@ fn add_root(peer_id: String, weight_factor: u32) -> AddRootResult {
 }
 
 #[marine]
+/// add a certificate in string representation to trust graph if it is valid
+/// see `trust_graph::Certificate` class for string encoding/decoding
+fn insert_cert_raw(certificate: String, timestamp_sec: u64) -> InsertResult {
+    insert_cert_impl_raw(certificate, timestamp_sec).into()
+}
+
+#[marine]
+/// add a certificate in JSON representation to trust graph if it is valid
+/// see `dto::Certificate` class for structure
+fn insert_cert(certificate: Certificate, timestamp_sec: u64) -> InsertResult {
+    insert_cert_impl(certificate, timestamp_sec).into()
+}
+
+#[marine]
+fn get_all_certs(issued_for: String, timestamp_sec: u64) -> AllCertsResult {
+    get_all_certs_impl(issued_for, timestamp_sec).into()
+}
+
+#[marine]
+fn get_weight(peer_id: String, timestamp_sec: u64) -> WeightResult {
+    get_weight_impl(peer_id.clone(), timestamp_sec)
+        .map(|w| (w, peer_id))
+        .into()
+}
+
+#[marine]
 fn get_trust_bytes(
     issued_for_peer_id: String,
     expires_at_sec: u64,
     issued_at_sec: u64,
 ) -> GetTrustBytesResult {
-    get_trust_bytes_imp(issued_for_peer_id, expires_at_sec, issued_at_sec).into()
+    get_trust_bytes_impl(issued_for_peer_id, expires_at_sec, issued_at_sec).into()
 }
 
 #[marine]

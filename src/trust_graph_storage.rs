@@ -22,7 +22,7 @@ pub trait Storage {
     fn get_root_weight_factor(&self, pk: &PK) -> Result<Option<WeightFactor>, Self::Error>;
     fn add_root_weight_factor(&mut self, pk: PK, weight: WeightFactor) -> Result<(), Self::Error>;
     fn root_keys(&self) -> Result<Vec<PK>, Self::Error>;
-    fn revoke(&mut self, pk: &PK, revoke: Revoke) -> Result<(), Self::Error>;
-    fn update_auth(&mut self, pk: &PK, auth: Auth, cur_time: Duration) -> Result<(), Self::Error>;
+    fn revoke(&mut self, revoke: Revoke) -> Result<(), Self::Error>;
+    fn update_auth(&mut self, auth: Auth, cur_time: Duration) -> Result<(), Self::Error>;
     fn remove_expired(&mut self, current_time: Duration) -> Result<(), Self::Error>;
 }
