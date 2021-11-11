@@ -93,7 +93,7 @@ impl From<TrustGraphError> for String {
 }
 
 pub fn get_weight_from_factor(wf: WeightFactor) -> u32 {
-    2u32.pow(MAX_WEIGHT_FACTOR - wf)
+    2u32.pow(MAX_WEIGHT_FACTOR.checked_sub(wf).unwrap_or(0u32))
 }
 
 impl<S> TrustGraph<S>

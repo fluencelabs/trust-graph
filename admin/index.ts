@@ -81,7 +81,7 @@ async function main(environment: Node[]) {
 
 let args = process.argv.slice(2);
 let environment: Node[];
-if (args.length >= 1 && args[0] == "testnet") {
+if (args[0] == "testnet") {
     environment = testNet;
     console.log("📘 Will connect to testNet");
 } else if (args[0] == "stage") {
@@ -90,11 +90,11 @@ if (args.length >= 1 && args[0] == "testnet") {
 } else if (args[0] == "krasnodar") {
     environment = krasnodar;
     console.log("📘 Will connect to krasnodar");
-} else if (args[0] == "testnet") {
-    environment = testNet;
-    console.log("📘 Will connect to testNet");
+} else if (args[0] == "local") {
+    environment = local;
+    console.log("📘 Will connect to local");
 } else {
-    throw "Specify environment";
+    throw "Specify environment: krasnodar, testnet, stage or local";
 }
 
 main(environment)

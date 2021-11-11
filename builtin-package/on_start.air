@@ -5,7 +5,7 @@
             (match add_root_res.$.success! true
                 (null)
            )
-           (call %init_peer_id% ("op" "return") [add_root_res.$.error!])
+           (call relay ("op" "return") [add_root_res.$.error!])
         )
     )
     (seq
@@ -20,12 +20,12 @@
                         (match insert_result.$.success! true
                             (null)
                         )
-                        (call %init_peer_id% ("op" "return") [insert_result.$.error!])
+                        (call relay ("op" "return") [insert_result.$.error!])
                     )
                 )
                 (next i)
             )
         )
-        (call %init_peer_id% ("op" "return") [true])
+        (call relay ("op" "return") [true])
     )
 )

@@ -70,11 +70,12 @@ async function revoke_helper(node: string, issuer_kp: KeyPair, revoked_by_peer_i
     console.log("Revoke result: %s", result_add);
 }
 
-async function main(environment: Node[]) {
+async function main() {
+    console.log("📘 Will connect to local nodes");
     // key from local-network/builtins_secret_key.ed25519 to connect as builtins owner
     let sk = bs58.decode("5FwE32bDcphFzuMca7Y2qW1gdR64fTBYoRNvD4MLE1hecDGhCMQGKn8aseMr5wRo4Xo2CRFdrEAawUNLYkgQD78K").slice(0, 32); // first 32 bytes - secret key, second - public key
     let builtins_keypair = await KeyPair.fromEd25519SK(sk);
-    await Fluence.start({ connectTo: environment[0], KeyPair: builtins_keypair});
+    await Fluence.start({ connectTo: local[0], KeyPair: builtins_keypair});
     console.log(
         "📗 created a fluence peer %s with relay %s",
         Fluence.getStatus().peerId,
@@ -116,11 +117,8 @@ async function main(environment: Node[]) {
     return;
 }
 
-let environment: Node[];
-environment = local;
-console.log("📘 Will connect to local nodes");
 
-main(environment)
+main()
     .then(() => process.exit(0))
     .catch((error) => {
         console.error(error);

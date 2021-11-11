@@ -68,6 +68,8 @@ service TrustOp("op"):
 service BoolOp("op"):
   array_length(a: []bool) -> u64
 
+-- TODO: major part of the code will be moved into the service
+-- https://github.com/fluencelabs/trust-graph/issues/26
 func isFluencePeer(node: string, peer_id: string) -> bool:
     certs_result <- get_all_certs(node, peer_id)
     resultBox: *bool

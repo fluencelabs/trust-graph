@@ -21,7 +21,7 @@ fn get_weight_factor(max_chain_len: u32) -> u32 {
 /// could add only a owner of a trust graph service
 fn add_root(peer_id: String, weight_factor: u32) -> AddRootResult {
     let call_parameters: CallParameters = marine_rs_sdk::get_call_parameters();
-    let init_peer_id = call_parameters.init_peer_id.clone();
+    let init_peer_id = call_parameters.init_peer_id;
     if call_parameters.service_creator_peer_id == init_peer_id {
         add_root_impl(peer_id, weight_factor).into()
     } else {
