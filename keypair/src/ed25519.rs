@@ -126,7 +126,13 @@ impl PublicKey {
     pub fn verify(&self, msg: &[u8], sig: &[u8]) -> Result<(), VerificationError> {
         ed25519::Signature::try_from(sig)
             .and_then(|s| self.0.verify(msg, &s))
-            .map_err(VerificationError::Ed25519)
+            .map_err(|e| {
+                VerificationError::Ed25519(
+                    e,
+                    bs58::encode(sig).into_string(),
+                    bs58::encode(self.0.as_bytes()).into_string(),
+                )
+            })
     }
 
     /// Encode the public key into a byte array in compressed form, i.e.

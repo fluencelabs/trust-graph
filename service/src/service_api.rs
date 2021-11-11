@@ -14,7 +14,7 @@ use trust_graph::MAX_WEIGHT_FACTOR;
 
 #[marine]
 fn get_weight_factor(max_chain_len: u32) -> u32 {
-    MAX_WEIGHT_FACTOR - max_chain_len
+    MAX_WEIGHT_FACTOR.checked_sub(max_chain_len).unwrap_or(0u32)
 }
 
 #[marine]

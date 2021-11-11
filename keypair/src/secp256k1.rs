@@ -173,7 +173,13 @@ impl PublicKey {
             .and_then(|m| {
                 secp256k1::Signature::parse_der(sig).map(|s| secp256k1::verify(&m, &s, &self.0))
             })
-            .map_err(VerificationError::Secp256k1)
+            .map_err(|e| {
+                VerificationError::Secp256k1(
+                    e,
+                    bs58::encode(sig).into_string(),
+                    bs58::encode(self.0.serialize_compressed()).into_string(),
+                )
+            })
             .map(|_| ())
     }
 

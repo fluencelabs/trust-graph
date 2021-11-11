@@ -75,18 +75,10 @@ pub enum SigningError {
 /// An error during verification of a message.
 #[derive(ThisError, Debug)]
 pub enum VerificationError {
-    #[error("Failed to verify signature with ed25519: {0}")]
-    Ed25519(
-        #[from]
-        #[source]
-        ed25519_dalek::ed25519::Error,
-    ),
-    #[error("Failed to verify signature with RSA")]
-    Rsa,
-    #[error("Failed to verify signature with secp256k1: {0}")]
-    Secp256k1(
-        #[from]
-        #[source]
-        secp256k1::Error,
-    ),
+    #[error("Failed to verify signature {1} with {2} ed25519 public key: {0}")]
+    Ed25519(#[source] ed25519_dalek::ed25519::Error, String, String),
+    #[error("Failed to verify signature {1} with {2} RSA public key: {0}")]
+    Rsa(#[source] ring::error::Unspecified, String, String),
+    #[error("Failed to verify signature {1} with {2} secp256k1 public key: {0}")]
+    Secp256k1(#[source] secp256k1::Error, String, String),
 }
