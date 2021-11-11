@@ -253,6 +253,7 @@ impl From<KeyPair> for libp2p_core::identity::Keypair {
                 identity::ed25519::Keypair::decode(kp.encode().to_vec().as_mut_slice()).unwrap(),
             ),
             #[cfg(not(target_arch = "wasm32"))]
+            // safety: these Keypair structures are identical
             Rsa(kp) => Keypair::Rsa(unsafe {
                 std::mem::transmute::<rsa::Keypair, libp2p_core::identity::rsa::Keypair>(kp)
             }),
