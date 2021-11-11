@@ -2535,7 +2535,7 @@ dependencies = [
 
 [[package]]
 name = "trust-graph"
-version = "0.2.9"
+version = "0.3.0"
 dependencies = [
  "bs58 0.3.1",
  "derivative",

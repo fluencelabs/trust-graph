@@ -12,5 +12,5 @@ modules_dir = "artifacts/"
     logger_enabled = true
 
     [module.wasi]
-    preopened_files = ["./data"]
-    mapped_dirs = { "data" = "data" }
+        preopened_files = ["./data"]
+        mapped_dirs = { "data" = "data" }
