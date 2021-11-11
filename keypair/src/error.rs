@@ -75,7 +75,7 @@ pub enum SigningError {
 /// An error during verification of a message.
 #[derive(ThisError, Debug)]
 pub enum VerificationError {
-    #[error("Failed to verify signature  with ed25519: {0}")]
+    #[error("Failed to verify signature with ed25519: {0}")]
     Ed25519(
         #[from]
         #[source]
