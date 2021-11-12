@@ -28,7 +28,7 @@ static INSTANCE: OnceCell<Mutex<TrustGraph<SQLiteStorage>>> = OnceCell::new();
 
 static AUTH_TYPE: i64 = 0;
 static REVOKE_TYPE: i64 = 1;
-pub static DB_PATH: &str = "data/users12312233.sqlite";
+pub static DB_PATH: &str = "/tmp/trust-graph.sqlite";
 
 pub fn create_tables() {
     let connection = marine_sqlite_connector::open(DB_PATH).unwrap();
