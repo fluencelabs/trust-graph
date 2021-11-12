@@ -22,6 +22,7 @@ jobs:
           cargo test --no-fail-fast --release --all-features --
           cd ./service
           ./build.sh
+          mkdir data
           cargo test --no-fail-fast --release --all-features --
       - save_cache:
           paths:
