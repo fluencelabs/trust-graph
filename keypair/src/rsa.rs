@@ -19,16 +19,19 @@
 // DEALINGS IN THE SOFTWARE.
 
 //! RSA keys.
-use crate::error::{DecodingError, SigningError};
+use crate::error::{DecodingError, SigningError, VerificationError};
 
-use asn1_der::{Asn1Der, FromDerObject, IntoDerObject, DerObject, DerTag, DerValue, Asn1DerError};
+use asn1_der::{Asn1Der, Asn1DerError, DerObject, DerTag, DerValue, FromDerObject, IntoDerObject};
 use lazy_static::lazy_static;
 use ring::rand::SystemRandom;
-use ring::signature::{self, RsaKeyPair, RSA_PKCS1_SHA256, RSA_PKCS1_2048_8192_SHA256};
 use ring::signature::KeyPair;
-use std::{fmt::{self, Write}, sync::Arc};
-use zeroize::Zeroize;
+use ring::signature::{self, RsaKeyPair, RSA_PKCS1_2048_8192_SHA256, RSA_PKCS1_SHA256};
 use serde::{Deserialize, Serialize};
+use std::{
+    fmt::{self, Write},
+    sync::Arc,
+};
+use zeroize::Zeroize;
 
 /// An RSA keypair.
 #[derive(Clone)]
@@ -40,8 +43,7 @@ impl Keypair {
     ///
     /// [RFC5208]: https://tools.ietf.org/html/rfc5208#section-5
     pub fn from_pkcs8(der: &mut [u8]) -> Result<Self, DecodingError> {
-        let kp = RsaKeyPair::from_pkcs8(&der)
-            .map_err(|_| DecodingError::Rsa)?;
+        let kp = RsaKeyPair::from_pkcs8(&der).map_err(|_| DecodingError::Rsa)?;
         der.zeroize();
         Ok(Keypair(Arc::new(kp)))
     }
@@ -57,7 +59,7 @@ impl Keypair {
         let rng = SystemRandom::new();
         match self.0.sign(&RSA_PKCS1_SHA256, &rng, &data, &mut signature) {
             Ok(()) => Ok(signature),
-            Err(_) => Err(SigningError::Rsa)
+            Err(_) => Err(SigningError::Rsa),
         }
     }
 }
@@ -68,9 +70,15 @@ pub struct PublicKey(Vec<u8>);
 
 impl PublicKey {
     /// Verify an RSA signature on a message using the public key.
-    pub fn verify(&self, msg: &[u8], sig: &[u8]) -> Result<(), SigningError> {
+    pub fn verify(&self, msg: &[u8], sig: &[u8]) -> Result<(), VerificationError> {
         let key = signature::UnparsedPublicKey::new(&RSA_PKCS1_2048_8192_SHA256, &self.0);
-        key.verify(msg, sig).map_err(|_| SigningError::Rsa)
+        key.verify(msg, sig).map_err(|e| {
+            VerificationError::Rsa(
+                e,
+                bs58::encode(sig).into_string(),
+                bs58::encode(&self.0).into_string(),
+            )
+        })
     }
 
     /// Encode the RSA public key in DER as a PKCS#1 RSAPublicKey structure,
@@ -99,7 +107,8 @@ impl PublicKey {
             subjectPublicKey: Asn1SubjectPublicKey(self.clone()),
         };
         let mut buf = vec![0u8; spki.serialized_len()];
-        spki.serialize(buf.iter_mut()).map(|_| buf)
+        spki.serialize(buf.iter_mut())
+            .map(|_| buf)
             .expect("RSA X.509 public key encoding failed.")
     }
 
@@ -121,9 +130,7 @@ impl fmt::Debug for PublicKey {
             write!(hex, "{:02x}", byte).expect("Can't fail on writing to string");
         }
 
-        f.debug_struct("PublicKey")
-            .field("pkcs1", &hex)
-            .finish()
+        f.debug_struct("PublicKey").field("pkcs1", &hex).finish()
     }
 }
 
@@ -273,6 +280,8 @@ mod tests {
         fn prop(SomeKeypair(kp): SomeKeypair, msg: Vec<u8>) -> Result<bool, SigningError> {
             kp.sign(&msg).map(|s| kp.public().verify(&msg, &s).is_ok())
         }
-        QuickCheck::new().tests(10).quickcheck(prop as fn(_, _) -> _);
+        QuickCheck::new()
+            .tests(10)
+            .quickcheck(prop as fn(_, _) -> _);
     }
 }

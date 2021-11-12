@@ -1,0 +1,10 @@
+import get_trust_bytes, issue_trust, verify_trust, add_trust, add_root, get_weight, get_all_certs, insert_cert, get_revoke_bytes, issue_revocation, revoke, isFluencePeer from "../../aqua/trust-graph-api.aqua"
+
+export get_trust_bytes, issue_trust, verify_trust, add_trust, add_root, get_weight, get_all_certs, insert_cert, get_revoke_bytes, issue_revocation, revoke, isFluencePeer
+
+import "@fluencelabs/aqua-lib/builtin.aqua"
+
+func timestamp_sec(node: string) -> u64:
+    on node:
+        result <- Peer.timestamp_sec()
+    <- result

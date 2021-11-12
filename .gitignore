@@ -1,2 +1,18 @@
-.idea
-target/
+service/target
+service/artifacts
+builtin-package/*.wasm
+trust-graph.tar.gz
+
+**/*.rs.bk
+**/.idea
+**/artifacts
+**/.DS_Store
+**/node_modules
+**/dist
+
+# Remove after https://github.com/fluencelabs/aqua/issues/287
+aqua/target/typescript/**
+example/src/generated/**
+example/generated/**
+admin/src/generated/**
+admin/generated/**

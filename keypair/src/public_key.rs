@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 use crate::ed25519;
-use crate::error::{DecodingError, SigningError};
+use crate::error::{DecodingError, VerificationError};
 #[cfg(not(target_arch = "wasm32"))]
 use crate::rsa;
 use crate::secp256k1;
@@ -43,7 +43,7 @@ impl PublicKey {
     /// private key (authenticity), and that the message has not been
     /// tampered with (integrity).
     // TODO: add VerificationError
-    pub fn verify(&self, msg: &[u8], sig: &Signature) -> Result<(), SigningError> {
+    pub fn verify(&self, msg: &[u8], sig: &Signature) -> Result<(), VerificationError> {
         use PublicKey::*;
         match self {
             Ed25519(pk) => pk.verify(msg, sig.to_vec()),
@@ -111,6 +111,17 @@ impl PublicKey {
     pub fn to_peer_id(&self) -> PeerId {
         PeerId::from_public_key(self.clone().into())
     }
+
+    pub fn get_key_format(&self) -> KeyFormat {
+        use PublicKey::*;
+
+        match self {
+            Ed25519(_) => KeyFormat::Ed25519,
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(_) => KeyFormat::Rsa,
+            Secp256k1(_) => KeyFormat::Secp256k1,
+        }
+    }
 }
 
 impl From<libp2p_core::identity::PublicKey> for PublicKey {
@@ -150,15 +161,12 @@ impl From<PublicKey> for libp2p_core::identity::PublicKey {
 }
 
 impl TryFrom<libp2p_core::PeerId> for PublicKey {
-    type Error = eyre::Error;
+    type Error = DecodingError;
 
-    fn try_from(peer_id: libp2p_core::PeerId) -> eyre::Result<PublicKey> {
+    fn try_from(peer_id: libp2p_core::PeerId) -> Result<Self, Self::Error> {
         Ok(peer_id
             .as_public_key()
-            .ok_or(eyre::eyre!(
-                "public key is not inlined in peer id: {}",
-                peer_id
-            ))?
+            .ok_or(DecodingError::PublicKeyNotInlined(peer_id.to_base58()))?
             .into())
     }
 }

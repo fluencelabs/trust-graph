@@ -1,0 +1,36 @@
+{
+  "name": "@fluencelabs/trust-graph",
+  "version": "0.1.12",
+  "description": "Aqua Trust Graph API library",
+  "files": [
+    "*.aqua"
+  ],
+  "dependencies": {
+    "@fluencelabs/aqua-lib": "0.2.0"
+  },
+  "scripts": {
+    "generate-aqua": "../service/build.sh",
+    "compile-aqua": "aqua -i . -o ./target/typescript",
+    "build": "npm run compile-aqua"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fluencelabs/trust-graph",
+    "directory": "aqua"
+  },
+  "keywords": [
+    "aqua",
+    "fluence",
+    "trust-graph",
+    "p2p"
+  ],
+  "author": "Fluence Labs",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fluencelabs/trust-graph/issues"
+  },
+  "homepage": "https://github.com/fluencelabs/trust-graph#readme",
+  "devDependencies": {
+    "@fluencelabs/aqua": "0.4.1-240"
+  }
+}

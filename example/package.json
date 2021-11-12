@@ -1,0 +1,26 @@
+{
+  "name": "trust-graph-aqua-example",
+  "version": "1.0.0",
+  "description": "A simple example of how to use trust-graph in TS",
+  "main": "index.js",
+  "scripts": {
+    "compile-aqua": "aqua -i aqua -o generated",
+    "prebuild": "npm run compile-aqua",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "prestart": "npm run build"
+  },
+  "author": "Fluence Labs",
+  "license": "MIT",
+  "dependencies": {
+    "@fluencelabs/aqua": "0.4.1-240",
+    "@fluencelabs/aqua-lib": "0.2.0",
+    "@fluencelabs/fluence": "0.14.3",
+    "@fluencelabs/fluence-network-environment": "^1.0.10",
+    "@fluencelabs/trust-graph": "file:../aqua",
+    "bs58": "^4.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^4.4.3"
+  }
+}

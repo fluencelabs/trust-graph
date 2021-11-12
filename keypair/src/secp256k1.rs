@@ -19,17 +19,17 @@
 // DEALINGS IN THE SOFTWARE.
 
 //! Secp256k1 keys.
-use crate::error::{DecodingError, SigningError};
+use crate::error::{DecodingError, SigningError, VerificationError};
 
-use asn1_der::{FromDerObject, DerObject};
-use rand::RngCore;
-use sha2::{Digest as ShaDigestTrait, Sha256};
-use secp256k1::Message;
-use zeroize::Zeroize;
+use asn1_der::{DerObject, FromDerObject};
 use core::fmt;
-use serde::{Deserialize, Serialize, Serializer, Deserializer};
+use rand::RngCore;
+use secp256k1::Message;
 use serde::de::Error as SerdeError;
-use serde_bytes::{Bytes as SerdeBytes, ByteBuf as SerdeByteBuf};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_bytes::{ByteBuf as SerdeByteBuf, Bytes as SerdeBytes};
+use sha2::{Digest as ShaDigestTrait, Sha256};
+use zeroize::Zeroize;
 
 /// A Secp256k1 keypair.
 #[derive(Clone)]
@@ -57,7 +57,9 @@ impl Keypair {
 
 impl fmt::Debug for Keypair {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Keypair").field("public", &self.public).finish()
+        f.debug_struct("Keypair")
+            .field("public", &self.public)
+            .finish()
     }
 }
 
@@ -106,8 +108,8 @@ impl SecretKey {
     /// error is returned.
     pub fn from_bytes(mut sk: impl AsMut<[u8]>) -> Result<Self, DecodingError> {
         let sk_bytes = sk.as_mut();
-        let secret = secp256k1::SecretKey::parse_slice(&*sk_bytes)
-            .map_err(|_| DecodingError::Secp256k1)?;
+        let secret =
+            secp256k1::SecretKey::parse_slice(&*sk_bytes).map_err(|_| DecodingError::Secp256k1)?;
         sk_bytes.zeroize();
         Ok(SecretKey(secret))
     }
@@ -119,13 +121,12 @@ impl SecretKey {
     pub fn from_der(mut der: impl AsMut<[u8]>) -> Result<SecretKey, DecodingError> {
         // TODO: Stricter parsing.
         let der_obj = der.as_mut();
-        let obj: Vec<DerObject> = FromDerObject::deserialize((&*der_obj).iter())
-            .map_err(|_| DecodingError::Secp256k1)?;
+        let obj: Vec<DerObject> =
+            FromDerObject::deserialize((&*der_obj).iter()).map_err(|_| DecodingError::Secp256k1)?;
         der_obj.zeroize();
-        let sk_obj = obj.into_iter().nth(1)
-            .ok_or(DecodingError::Secp256k1)?;
-        let mut sk_bytes: Vec<u8> = FromDerObject::from_der_object(sk_obj)
-            .map_err(|_| DecodingError::Secp256k1)?;
+        let sk_obj = obj.into_iter().nth(1).ok_or(DecodingError::Secp256k1)?;
+        let mut sk_bytes: Vec<u8> =
+            FromDerObject::from_der_object(sk_obj).map_err(|_| DecodingError::Secp256k1)?;
         let sk = SecretKey::from_bytes(&mut sk_bytes)?;
         sk_bytes.zeroize();
         Ok(sk)
@@ -147,9 +148,12 @@ impl SecretKey {
     /// Sign a raw message of length 256 bits with this secret key, produces a DER-encoded
     /// ECDSA signature.
     pub fn sign_hashed(&self, msg: &[u8]) -> Result<Vec<u8>, SigningError> {
-        let m = Message::parse_slice(msg)
-            .map_err(SigningError::Secp256k1)?;
-        Ok(secp256k1::sign(&m, &self.0).0.serialize_der().as_ref().into())
+        let m = Message::parse_slice(msg).map_err(SigningError::Secp256k1)?;
+        Ok(secp256k1::sign(&m, &self.0)
+            .0
+            .serialize_der()
+            .as_ref()
+            .into())
     }
 }
 
@@ -159,15 +163,24 @@ pub struct PublicKey(secp256k1::PublicKey);
 
 impl PublicKey {
     /// Verify the Secp256k1 signature on a message using the public key.
-    pub fn verify(&self, msg: &[u8], sig: &[u8]) -> Result<(), SigningError> {
+    pub fn verify(&self, msg: &[u8], sig: &[u8]) -> Result<(), VerificationError> {
         self.verify_hashed(Sha256::digest(msg).as_ref(), sig)
     }
 
     /// Verify the Secp256k1 DER-encoded signature on a raw 256-bit message using the public key.
-    pub fn verify_hashed(&self, msg: &[u8], sig: &[u8]) -> Result<(), SigningError> {
+    pub fn verify_hashed(&self, msg: &[u8], sig: &[u8]) -> Result<(), VerificationError> {
         Message::parse_slice(msg)
-            .and_then(|m| secp256k1::Signature::parse_der(sig).map(|s| secp256k1::verify(&m, &s, &self.0)))
-            .map_err(SigningError::Secp256k1).map(|_| ())
+            .and_then(|m| {
+                secp256k1::Signature::parse_der(sig).map(|s| secp256k1::verify(&m, &s, &self.0))
+            })
+            .map_err(|e| {
+                VerificationError::Secp256k1(
+                    e,
+                    bs58::encode(sig).into_string(),
+                    bs58::encode(self.0.serialize_compressed()).into_string(),
+                )
+            })
+            .map(|_| ())
     }
 
     /// Encode the public key in compressed form, i.e. with one coordinate
@@ -190,11 +203,10 @@ impl PublicKey {
     }
 }
 
-
 impl Serialize for PublicKey {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         SerdeBytes::new(self.encode().to_vec().as_slice()).serialize(serializer)
     }
@@ -202,14 +214,13 @@ impl Serialize for PublicKey {
 
 impl<'d> Deserialize<'d> for PublicKey {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'d>,
+    where
+        D: Deserializer<'d>,
     {
         let bytes = <SerdeByteBuf>::deserialize(deserializer)?;
         PublicKey::decode(bytes.as_slice()).map_err(SerdeError::custom)
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Signature(pub Vec<u8>);

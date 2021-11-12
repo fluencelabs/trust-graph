@@ -19,6 +19,7 @@ use fluence_keypair::key_pair::KeyPair;
 use fluence_keypair::public_key::PublicKey;
 use fluence_keypair::signature::Signature;
 use serde::{Deserialize, Serialize};
+use sha2::Digest;
 use std::time::Duration;
 use thiserror::Error as ThisError;
 
@@ -28,7 +29,7 @@ pub enum RevokeError {
     IncorrectSignature(
         #[from]
         #[source]
-        fluence_keypair::error::SigningError
+        fluence_keypair::error::VerificationError,
     ),
 }
 
@@ -43,12 +44,12 @@ pub struct Revoke {
     /// the issuer of this revocation
     pub revoked_by: PublicKey,
     /// proof of this revocation
-    signature: Signature,
+    pub signature: Signature,
 }
 
 impl Revoke {
     #[allow(dead_code)]
-    fn new(
+    pub fn new(
         pk: PublicKey,
         revoked_by: PublicKey,
         revoked_at: Duration,
@@ -71,14 +72,14 @@ impl Revoke {
         Revoke::new(to_revoke, revoker.public(), revoked_at, signature)
     }
 
-    fn signature_bytes(pk: &PublicKey, revoked_at: Duration) -> Vec<u8> {
-        let mut msg = Vec::new();
+    pub fn signature_bytes(pk: &PublicKey, revoked_at: Duration) -> Vec<u8> {
+        let mut metadata = Vec::new();
         let pk_bytes = &pk.encode();
-        msg.push(pk_bytes.len() as u8);
-        msg.extend(pk_bytes);
-        msg.extend_from_slice(&(revoked_at.as_secs() as u64).to_le_bytes());
+        metadata.push(pk_bytes.len() as u8);
+        metadata.extend(pk_bytes);
+        metadata.extend_from_slice(&(revoked_at.as_secs() as u64).to_le_bytes());
 
-        msg
+        sha2::Sha256::digest(&metadata).to_vec()
     }
 
     /// Verifies that revocation is cryptographically correct.
@@ -87,7 +88,8 @@ impl Revoke {
 
         revoke
             .revoked_by
-            .verify(msg.as_slice(), &revoke.signature).map_err(IncorrectSignature)
+            .verify(msg.as_slice(), &revoke.signature)
+            .map_err(IncorrectSignature)
     }
 }
 

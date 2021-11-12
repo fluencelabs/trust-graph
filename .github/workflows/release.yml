@@ -1,0 +1,158 @@
+name: "publish-release"
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  npm-publish:
+    name: "Publish"
+    runs-on: ubuntu-latest
+    container: rust
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+### Setup
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      - name: Download jq
+        run: |
+          curl -L https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64 -o /usr/local/bin/jq
+          chmod +x /usr/local/bin/jq
+
+      - name: Download marine
+        run: bash $GITHUB_WORKSPACE/.github/download_marine.sh
+
+      - name: Cache npm
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-v01-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-v01-
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "15"
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly-2021-09-01
+          override: true
+
+### Build
+      - name: trust-graph.wasm
+        working-directory: ./service
+        run: ./build.sh
+
+      - name: Check Aqua compiles
+        working-directory: ./aqua
+        run: |
+          npm i
+          npm run build
+
+      - name: Create builtin distribution package
+        run: |
+          ./builtin-package/package.sh
+
+      - name: Build Changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v1
+        with:
+          configuration: ".github/workflows/changelog_config.json"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+## Publish
+      - name: Release
+        id: release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: trust-graph ${{ env.RELEASE_VERSION }}
+          tag_name: ${{ env.RELEASE_VERSION }}
+          files: |
+            trust-graph.tar.gz
+          body: ${{steps.changelog.outputs.changelog}}
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      ### Publish Aqua API
+      - name: Publish Aqua API
+        run: |
+          npm version ${{ env.RELEASE_VERSION }} --allow-same-version
+          npm publish --access public
+        env:
+            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: ./aqua
+
+## Update node-distro repo
+      - name: Calculate SHA256
+        run: |
+          du -hs trust-graph.tar.gz
+          echo $(sha256sum trust-graph.tar.gz)
+          echo "SHA256=$(sha256sum trust-graph.tar.gz | awk '{ print $1 }')" >> $GITHUB_ENV
+
+      - name: Get tar.gz URL
+        id: package-url
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: string
+          script: |
+            try {
+                let assets = await github.repos.listReleaseAssets({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: "${{ steps.release.outputs.id }}",
+                });
+                console.dir(assets);
+                let package = assets.data.find((a) => a.name === 'trust-graph.tar.gz');
+                let url = package.browser_download_url;
+                console.log("URL: " + url);
+                return url;
+            } catch (e) {
+              console.log("Err: " + e);
+              throw e;
+            }
+
+      - name: Update version in node-distro repo
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: update_service
+          repo: fluencelabs/node-distro
+          ref: 'main'
+          token: ${{ secrets.PERSONAL_TOKEN }}
+          inputs: '{
+            "name": "trust-graph",
+            "version": "${{ env.RELEASE_VERSION }}",
+            "url": "${{ steps.package-url.outputs.result }}",
+            "sha256": "${{ env.SHA256 }}"
+          }'
+
+      - name: Log notice
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+              console.dir(core);
+              core.info("trust-graph was updated to ${{ env.RELEASE_VERSION }} in node-distro repo");

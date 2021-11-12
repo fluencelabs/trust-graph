@@ -74,6 +74,47 @@ impl Certificate {
         Self { chain }
     }
 
+    pub fn new_from_root_trust(root_trust: Trust, issued_trust: Trust, cur_time: Duration) -> Result<Self, CertificateError> {
+        Trust::verify(&root_trust, &root_trust.issued_for, cur_time).map_err(MalformedRoot)?;
+        Trust::verify(&issued_trust, &root_trust.issued_for, cur_time).map_err(|e| VerificationError(1, e))?;
+
+        Ok(Self { chain: vec![root_trust, issued_trust] })
+    }
+
+    pub fn issue_with_trust(issued_by: PublicKey, trust: Trust, extend_cert: &Certificate, cur_time: Duration) -> Result<Self, CertificateError> {
+        if trust.expires_at.lt(&trust.issued_at) {
+            return Err(ExpirationError {
+                expires_at: format!("{:?}", trust.expires_at),
+                issued_at: format!("{:?}", trust.issued_at),
+            });
+        }
+
+        Certificate::verify(extend_cert, &[extend_cert.chain[0].issued_for.clone()], cur_time)?;
+        // check if `issued_by` is allowed to issue a certificate (i.e., there’s a trust for it in a chain)
+        let mut previous_trust_num: i32 = -1;
+        for pk_id in 0..extend_cert.chain.len() {
+            if extend_cert.chain[pk_id].issued_for == issued_by {
+                previous_trust_num = pk_id as i32;
+            }
+        }
+
+        if previous_trust_num == -1 {
+            return Err(KeyInCertificateError);
+        };
+
+        // splitting old chain to add new trust after given public key
+        let mut new_chain = extend_cert
+            .chain
+            .split_at((previous_trust_num + 1) as usize)
+            .0
+            .to_vec();
+
+        new_chain.push(trust);
+
+        Ok(Self { chain: new_chain })
+    }
+
+
     /// Creates new certificate with root trust (self-signed public key) from a key pair.
     #[allow(dead_code)]
     pub fn issue_root(

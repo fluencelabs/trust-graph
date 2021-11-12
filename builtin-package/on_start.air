@@ -1,0 +1,31 @@
+(seq
+    (seq
+        (call relay ("trust-graph" "add_root") ["12D3KooWNbZKaPWRZ8wgjGvrxdJFz9Fq5uVwkR6ERV1f74HhPdyB" 2] add_root_res)
+        (xor
+            (match add_root_res.$.success! true
+                (null)
+           )
+           (call relay ("op" "return") [add_root_res.$.error!])
+        )
+    )
+    (seq
+        (fold certs i
+            (seq
+                (seq
+                    (seq
+                        (call relay ("peer" "timestamp_sec") [] cur_time)
+                        (call relay ("trust-graph" "insert_cert") [i cur_time] insert_result)
+                    )
+                    (xor
+                        (match insert_result.$.success! true
+                            (null)
+                        )
+                        (call relay ("op" "return") [insert_result.$.error!])
+                    )
+                )
+                (next i)
+            )
+        )
+        (call relay ("op" "return") [true])
+    )
+)

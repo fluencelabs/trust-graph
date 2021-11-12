@@ -103,7 +103,7 @@ impl Signature {
         }
     }
 
-    pub fn from_bytes_with_public_key(key_format: KeyFormat, bytes: Vec<u8>) -> Self {
+    pub fn from_bytes(key_format: KeyFormat, bytes: Vec<u8>) -> Self {
         match key_format {
             KeyFormat::Ed25519 => Signature::Ed25519(ed25519::Signature(bytes)),
             #[cfg(not(target_arch = "wasm32"))]

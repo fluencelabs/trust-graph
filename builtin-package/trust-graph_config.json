@@ -1,0 +1,9 @@
+{
+  "name": "trust-graph",
+  "preopened_files": [
+    "/tmp"
+  ],
+  "mapped_dirs": {
+    "tmp": "./tmp"
+  }
+}

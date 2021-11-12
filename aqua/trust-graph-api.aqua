@@ -1,0 +1,101 @@
+import "trust-graph.aqua"
+import "@fluencelabs/aqua-lib/builtin.aqua"
+
+func get_trust_bytes(node: string, issued_for_peer_id: string, expires_at_sec: u64, issued_at_sec: u64) -> GetTrustBytesResult:
+    on node:
+        result <- TrustGraph.get_trust_bytes(issued_for_peer_id, expires_at_sec, issued_at_sec)
+    <- result
+
+func issue_trust(node: string, issued_for_peer_id: string, expires_at_sec: u64, issued_at_sec: u64, trust_bytes: []u8) -> IssueTrustResult:
+    on node:
+        result <- TrustGraph.issue_trust(issued_for_peer_id, expires_at_sec, issued_at_sec, trust_bytes)
+    <- result
+
+func verify_trust(node: string, trust: Trust, issuer_peer_id: string) -> VerifyTrustResult:
+    on node:
+        timestamp_sec <- Peer.timestamp_sec()
+        result <- TrustGraph.verify_trust(trust, issuer_peer_id, timestamp_sec)
+    <- result
+
+func add_trust(node: string, trust: Trust, issuer_peer_id: string) -> AddTrustResult:
+    on node:
+        timestamp_sec <- Peer.timestamp_sec()
+        result <- TrustGraph.add_trust(trust, issuer_peer_id, timestamp_sec)
+    <- result
+
+func add_root(node: string, peer_id: string, weight_factor: u32) -> AddRootResult:
+    on node:
+        result <- TrustGraph.add_root(peer_id, weight_factor)
+    <- result
+
+func get_weight(node: string, peer_id: string) -> WeightResult:
+    on node:
+        timestamp_sec <- Peer.timestamp_sec()
+        result <- TrustGraph.get_weight(peer_id, timestamp_sec)
+    <- result
+
+func get_all_certs(node: string, issued_for: string) -> AllCertsResult:
+    on node:
+        timestamp_sec <- Peer.timestamp_sec()
+        result <- TrustGraph.get_all_certs(issued_for, timestamp_sec)
+    <- result
+
+func get_host_certs(node: string, issued_for: string) -> AllCertsResult:
+    on node:
+        timestamp_sec <- Peer.timestamp_sec()
+        result <- TrustGraph.get_host_certs(timestamp_sec)
+    <- result
+
+func get_host_certs_from(node: string, issuer: string) -> AllCertsResult:
+    on node:
+        timestamp_sec <- Peer.timestamp_sec()
+        result <- TrustGraph.get_host_certs_from(issuer, timestamp_sec)
+    <- result
+
+func insert_cert(node: string, certificate: Certificate) -> InsertResult:
+    on node:
+        timestamp_sec <- Peer.timestamp_sec()
+        result <- TrustGraph.insert_cert(certificate, timestamp_sec)
+    <- result
+
+func get_revoke_bytes(node: string, revoked_peer_id: string, revoked_at: u64) -> GetRevokeBytesResult:
+    on node:
+        result <- TrustGraph.get_revoke_bytes(revoked_peer_id, revoked_at)
+    <- result
+
+func issue_revocation(node: string, revoked_peer_id: string, revoked_by_peer_id: string, revoked_at_sec: u64, signature_bytes: []u8) -> IssueRevocationResult:
+    on node:
+        result <- TrustGraph.issue_revocation(revoked_peer_id, revoked_by_peer_id, revoked_at_sec, signature_bytes)
+    <- result
+
+func revoke(node: string, revoke: Revoke) -> RevokeResult:
+    on node:
+        timestamp_sec <- Peer.timestamp_sec()
+        result <- TrustGraph.revoke(revoke, timestamp_sec)
+    <- result
+
+service TrustOp("op"):
+  array_length(a: []Trust) -> u64
+
+service BoolOp("op"):
+  array_length(a: []bool) -> u64
+
+-- https://github.com/fluencelabs/trust-graph/issues/26
+func isFluencePeer() -> bool:
+    certs_result <- get_host_certs_from(HOST_PEER_ID, "12D3KooWM45u7AQxsb4MuQJNYT3NWHHMLU7JTbBV66RTfF3KSzdR")
+    resultBox: *bool
+    if certs_result.success:
+        for cert  <- certs_result.certificates:
+            len <- TrustOp.array_length(cert.chain)
+            if len == 3:
+                if cert.chain!0.issued_for == "12D3KooWNbZKaPWRZ8wgjGvrxdJFz9Fq5uVwkR6ERV1f74HhPdyB":
+                    if cert.chain!1.issued_for == "12D3KooWM45u7AQxsb4MuQJNYT3NWHHMLU7JTbBV66RTfF3KSzdR":
+                        resultBox <<- true
+
+    result_len <- BoolOp.array_length(resultBox)
+    result: *bool
+    if result_len == 0:
+        result <<- false
+    else:
+        result <<- true
+    <- result!

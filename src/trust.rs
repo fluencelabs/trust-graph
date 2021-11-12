@@ -22,6 +22,7 @@ use fluence_keypair::key_pair::KeyPair;
 use fluence_keypair::public_key::PublicKey;
 use fluence_keypair::signature::Signature;
 use serde::{Deserialize, Serialize};
+use sha2::Digest;
 use std::convert::TryInto;
 use std::num::ParseIntError;
 use std::time::Duration;
@@ -67,7 +68,7 @@ pub enum TrustError {
     SignatureError(
         #[from]
         #[source]
-        fluence_keypair::error::SigningError,
+        fluence_keypair::error::VerificationError,
     ),
 
     /// Errors occurred on trust decoding from different formats
@@ -113,7 +114,7 @@ impl Trust {
         expires_at: Duration,
         issued_at: Duration,
     ) -> Self {
-        let msg = Self::metadata_bytes(&issued_for, expires_at, issued_at);
+        let msg = Self::signature_bytes(&issued_for, expires_at, issued_at);
 
         let signature = issued_by.sign(msg.as_slice()).unwrap();
 
@@ -136,12 +137,12 @@ impl Trust {
         }
 
         let msg: &[u8] =
-            &Self::metadata_bytes(&trust.issued_for, trust.expires_at, trust.issued_at);
+            &Self::signature_bytes(&trust.issued_for, trust.expires_at, trust.issued_at);
 
         KeyPair::verify(issued_by, msg, &trust.signature).map_err(SignatureError)
     }
 
-    fn metadata_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> Vec<u8> {
+    pub fn signature_bytes(pk: &PublicKey, expires_at: Duration, issued_at: Duration) -> Vec<u8> {
         let pk_encoded = pk.encode();
         let expires_at_encoded: [u8; EXPIRATION_LEN] = (expires_at.as_secs() as u64).to_le_bytes();
         let issued_at_encoded: [u8; ISSUED_LEN] = (issued_at.as_secs() as u64).to_le_bytes();
@@ -151,7 +152,7 @@ impl Trust {
         metadata.extend_from_slice(&expires_at_encoded[0..EXPIRATION_LEN]);
         metadata.extend_from_slice(&issued_at_encoded[0..ISSUED_LEN]);
 
-        metadata
+        sha2::Sha256::digest(&metadata).to_vec()
     }
 
     /// Encode the trust into a byte array
