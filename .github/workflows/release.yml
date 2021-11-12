@@ -55,6 +55,7 @@ jobs:
         with:
           profile: minimal
           toolchain: nightly-2021-09-01
+          target: wasm32-wasi
           override: true
 
 ### Build
