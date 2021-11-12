@@ -65,8 +65,12 @@ mod service_tests {
     }
 
     fn get_correct_timestamp_cp(arg_number: usize) -> CallParameters {
+        get_correct_timestamp_cp_with_host_id(arg_number, HOST_ID.to_string())
+    }
+
+    fn get_correct_timestamp_cp_with_host_id(arg_number: usize, host_id: String) -> CallParameters {
         let mut cp = CallParameters {
-            host_id: HOST_ID.to_string(),
+            host_id: host_id.clone(),
             ..CallParameters::default()
         };
 
@@ -75,7 +79,7 @@ mod service_tests {
         }
 
         cp.tetraplets.push(vec![SecurityTetraplet {
-            peer_pk: HOST_ID.to_string(),
+            peer_pk: host_id,
             service_id: TRUSTED_TIMESTAMP_SERVICE_ID.to_string(),
             function_name: TRUSTED_TIMESTAMP_FUNCTION_NAME.to_string(),
             json_path: "".to_string(),
@@ -95,7 +99,7 @@ mod service_tests {
         issued_at_sec: u64,
         expires_at_sec: u64,
         weight_factor: u32,
-    ) {
+    ) -> Trust {
         let result = trust_graph.add_root(issuer_kp.get_peer_id().to_base58(), weight_factor);
         assert!(result.success, "{}", result.error);
         add_trust(
@@ -104,7 +108,7 @@ mod service_tests {
             &issuer_kp.get_peer_id(),
             issued_at_sec,
             expires_at_sec,
-        );
+        )
     }
 
     fn issue_trust(
@@ -759,5 +763,84 @@ mod service_tests {
 
         let weight_after = get_weight(&mut trust_graph, other_peer_kp.get_peer_id(), cur_time);
         assert_eq!(weight_after, weight_before);
+    }
+
+    #[test]
+    fn test_get_one_host_cert() {
+        let mut trust_graph = ServiceInterface::new();
+        clear_env();
+        let (key_pairs, trusts) =
+            generate_trust_chain_with_len(&mut trust_graph, 5, HashMap::new());
+
+        let cur_time = current_time();
+        let root_peer_id = key_pairs[0].get_peer_id();
+        add_root_peer_id(&mut trust_graph, root_peer_id, 1);
+
+        for auth in trusts.iter() {
+            add_trust_checked(&mut trust_graph, auth.trust.clone(), auth.issuer, cur_time);
+        }
+
+        let mut cp = get_correct_timestamp_cp_with_host_id(
+            0,
+            key_pairs.last().unwrap().get_peer_id().to_base58(),
+        );
+        let certs = trust_graph.get_host_certs_cp(cur_time, cp);
+
+        assert!(certs.success, "{}", certs.error);
+        let certs = certs.certificates;
+        assert_eq!(certs.len(), 1);
+
+        for (i, trust) in certs[0].chain.iter().enumerate() {
+            assert_eq!(*trust, trusts[i].trust);
+        }
+    }
+
+    #[test]
+    fn test_get_one_host_cert_from_second_root() {
+        let mut trust_graph = ServiceInterface::new();
+        clear_env();
+        let (key_pairs, mut trusts) =
+            generate_trust_chain_with_len(&mut trust_graph, 5, HashMap::new());
+
+        let cur_time = current_time();
+        let root1_peer_id = key_pairs[0].get_peer_id();
+        add_root_peer_id(&mut trust_graph, root1_peer_id, 1);
+
+        for auth in trusts.iter() {
+            add_trust_checked(&mut trust_graph, auth.trust.clone(), auth.issuer, cur_time);
+        }
+
+        // add second root
+        let root2_peer_id = key_pairs[3].get_peer_id();
+        let root2_trust = add_root_with_trust(
+            &mut trust_graph,
+            &key_pairs[3],
+            cur_time,
+            cur_time + 999999,
+            1,
+        );
+        // insert self-signed trust
+        trusts.insert(
+            4,
+            Auth {
+                issuer: root2_peer_id,
+                trust: root2_trust,
+            },
+        );
+
+        let mut cp = get_correct_timestamp_cp_with_host_id(
+            1,
+            key_pairs.last().unwrap().get_peer_id().to_base58(),
+        );
+        let certs = trust_graph.get_host_certs_from_cp(root2_peer_id.to_base58(), cur_time, cp);
+
+        assert!(certs.success, "{}", certs.error);
+        let certs = certs.certificates;
+        assert_eq!(certs.len(), 1);
+        assert_eq!(certs[0].chain.len(), 2);
+
+        for (i, trust) in certs[0].chain.iter().enumerate() {
+            assert_eq!(*trust, trusts[i + 4].trust);
+        }
     }
 }

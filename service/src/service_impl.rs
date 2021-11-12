@@ -115,6 +115,19 @@ pub fn get_all_certs_impl(
     timestamp_sec: u64,
 ) -> Result<Vec<Certificate>, ServiceError> {
     check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
+    get_certs_helper(issued_for, timestamp_sec)
+}
+
+pub fn get_host_certs_impl(timestamp_sec: u64) -> Result<Vec<Certificate>, ServiceError> {
+    let cp = marine_rs_sdk::get_call_parameters();
+    check_timestamp_tetraplets(&cp, 0)?;
+    get_certs_helper(cp.host_id, timestamp_sec)
+}
+
+pub fn get_certs_helper(
+    issued_for: String,
+    timestamp_sec: u64,
+) -> Result<Vec<Certificate>, ServiceError> {
     let mut tg = get_data().lock();
 
     let public_key = extract_public_key(issued_for)?;

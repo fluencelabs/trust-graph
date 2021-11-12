@@ -5,11 +5,11 @@ use crate::results::{
     WeightResult,
 };
 use crate::service_impl::{
-    add_root_impl, add_trust_impl, get_all_certs_impl, get_revoke_bytes_impl, get_trust_bytes_impl,
-    get_weight_impl, insert_cert_impl, insert_cert_impl_raw, issue_revocation_impl,
-    issue_trust_impl, revoke_impl, verify_trust_impl, ServiceError,
+    add_root_impl, add_trust_impl, get_all_certs_impl, get_host_certs_impl, get_revoke_bytes_impl,
+    get_trust_bytes_impl, get_weight_impl, insert_cert_impl, insert_cert_impl_raw,
+    issue_revocation_impl, issue_trust_impl, revoke_impl, verify_trust_impl, ServiceError,
 };
-use marine_rs_sdk::{marine, CallParameters};
+use marine_rs_sdk::{get_call_parameters, marine, CallParameters};
 use trust_graph::MAX_WEIGHT_FACTOR;
 
 #[marine]
@@ -49,6 +49,24 @@ fn insert_cert(certificate: Certificate, timestamp_sec: u64) -> InsertResult {
 #[marine]
 fn get_all_certs(issued_for: String, timestamp_sec: u64) -> AllCertsResult {
     get_all_certs_impl(issued_for, timestamp_sec).into()
+}
+
+#[marine]
+fn get_host_certs(timestamp_sec: u64) -> AllCertsResult {
+    get_host_certs_impl(timestamp_sec).into()
+}
+
+#[marine]
+fn get_host_certs_from(issuer: String, timestamp_sec: u64) -> AllCertsResult {
+    let host_id = get_call_parameters().host_id;
+    get_all_certs_impl(host_id, timestamp_sec)
+        .map(|certs| {
+            certs
+                .into_iter()
+                .filter(|cert| cert.chain[0].issued_for == issuer)
+                .collect()
+        })
+        .into()
 }
 
 #[marine]

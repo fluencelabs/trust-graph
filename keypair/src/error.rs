@@ -77,8 +77,11 @@ pub enum SigningError {
 pub enum VerificationError {
     #[error("Failed to verify signature {1} with {2} ed25519 public key: {0}")]
     Ed25519(#[source] ed25519_dalek::ed25519::Error, String, String),
+
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("Failed to verify signature {1} with {2} RSA public key: {0}")]
     Rsa(#[source] ring::error::Unspecified, String, String),
+
     #[error("Failed to verify signature {1} with {2} secp256k1 public key: {0}")]
     Secp256k1(#[source] secp256k1::Error, String, String),
 }
