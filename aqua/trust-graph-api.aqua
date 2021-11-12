@@ -40,6 +40,18 @@ func get_all_certs(node: string, issued_for: string) -> AllCertsResult:
         result <- TrustGraph.get_all_certs(issued_for, timestamp_sec)
     <- result
 
+func get_host_certs(node: string, issued_for: string) -> AllCertsResult:
+    on node:
+        timestamp_sec <- Peer.timestamp_sec()
+        result <- TrustGraph.get_host_certs(timestamp_sec)
+    <- result
+
+func get_host_certs_from(node: string, issuer: string) -> AllCertsResult:
+    on node:
+        timestamp_sec <- Peer.timestamp_sec()
+        result <- TrustGraph.get_host_certs_from(issuer, timestamp_sec)
+    <- result
+
 func insert_cert(node: string, certificate: Certificate) -> InsertResult:
     on node:
         timestamp_sec <- Peer.timestamp_sec()
@@ -68,10 +80,9 @@ service TrustOp("op"):
 service BoolOp("op"):
   array_length(a: []bool) -> u64
 
--- TODO: major part of the code will be moved into the service
 -- https://github.com/fluencelabs/trust-graph/issues/26
-func isFluencePeer(node: string, peer_id: string) -> bool:
-    certs_result <- get_all_certs(node, peer_id)
+func isFluencePeer() -> bool:
+    certs_result <- get_host_certs_from(HOST_PEER_ID, "12D3KooWM45u7AQxsb4MuQJNYT3NWHHMLU7JTbBV66RTfF3KSzdR")
     resultBox: *bool
     if certs_result.success:
         for cert  <- certs_result.certificates:

@@ -63,7 +63,7 @@ fn get_host_certs_from(issuer: String, timestamp_sec: u64) -> AllCertsResult {
         .map(|certs| {
             certs
                 .into_iter()
-                .filter(|cert| cert.chain[0].issued_for == issuer)
+                .filter(|cert| cert.chain.iter().any(|t| t.issued_for == issuer))
                 .collect()
         })
         .into()

@@ -796,51 +796,37 @@ mod service_tests {
     }
 
     #[test]
-    fn test_get_one_host_cert_from_second_root() {
+    fn test_get_one_host_cert_from() {
         let mut trust_graph = ServiceInterface::new();
         clear_env();
         let (key_pairs, mut trusts) =
             generate_trust_chain_with_len(&mut trust_graph, 5, HashMap::new());
 
         let cur_time = current_time();
-        let root1_peer_id = key_pairs[0].get_peer_id();
-        add_root_peer_id(&mut trust_graph, root1_peer_id, 1);
+        let root_peer_id = key_pairs[0].get_peer_id();
+        add_root_peer_id(&mut trust_graph, root_peer_id, 1);
 
         for auth in trusts.iter() {
             add_trust_checked(&mut trust_graph, auth.trust.clone(), auth.issuer, cur_time);
         }
 
-        // add second root
-        let root2_peer_id = key_pairs[3].get_peer_id();
-        let root2_trust = add_root_with_trust(
-            &mut trust_graph,
-            &key_pairs[3],
-            cur_time,
-            cur_time + 999999,
-            1,
-        );
-        // insert self-signed trust
-        trusts.insert(
-            4,
-            Auth {
-                issuer: root2_peer_id,
-                trust: root2_trust,
-            },
-        );
-
         let mut cp = get_correct_timestamp_cp_with_host_id(
             1,
             key_pairs.last().unwrap().get_peer_id().to_base58(),
         );
-        let certs = trust_graph.get_host_certs_from_cp(root2_peer_id.to_base58(), cur_time, cp);
+        let certs = trust_graph.get_host_certs_from_cp(
+            key_pairs[3].get_peer_id().to_base58(),
+            cur_time,
+            cp,
+        );
 
         assert!(certs.success, "{}", certs.error);
         let certs = certs.certificates;
         assert_eq!(certs.len(), 1);
-        assert_eq!(certs[0].chain.len(), 2);
+        assert_eq!(certs[0].chain.len(), 5);
 
         for (i, trust) in certs[0].chain.iter().enumerate() {
-            assert_eq!(*trust, trusts[i + 4].trust);
+            assert_eq!(*trust, trusts[i].trust);
         }
     }
 }
