@@ -1,5 +1,5 @@
 use crate::dto::{Certificate, Revoke, Trust};
-use crate::service_impl::ServiceError;
+use crate::error::ServiceError;
 use marine_rs_sdk::marine;
 
 #[marine]
