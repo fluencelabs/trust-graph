@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![feature(try_blocks)]
 
 use crate::storage_impl::create_tables;
 use marine_rs_sdk::module_manifest;
