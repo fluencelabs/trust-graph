@@ -20,8 +20,9 @@ use crate::TRUSTED_TIMESTAMP;
 use fluence_keypair::PublicKey;
 use libp2p_core::PeerId;
 use marine_rs_sdk::CallParameters;
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 use std::convert::TryFrom;
+use std::ops::Deref;
 use std::str::FromStr;
 use trust_graph::TrustGraph;
 
@@ -48,16 +49,15 @@ fn parse_peer_id(peer_id: String) -> Result<PeerId, ServiceError> {
         .map_err(|e| ServiceError::PeerIdParseError(format!("{:?}", e)))
 }
 
-#[allow(dead_code)]
 thread_local!(static INSTANCE: RefCell<TrustGraph<SQLiteStorage>> = RefCell::new(TrustGraph::new(
     SQLiteStorage::new(marine_sqlite_connector::open(DB_PATH).unwrap()),
 )));
 
 pub fn with_tg<F, T>(func: F) -> T
 where
-    F: FnOnce(&RefCell<TrustGraph<SQLiteStorage>>) -> T,
+    F: FnOnce(RefMut<TrustGraph<SQLiteStorage>>) -> T,
 {
-    INSTANCE.with(|tg| func(tg))
+    INSTANCE.with(|tg| func(tg.deref().borrow_mut()))
 }
 
 pub fn wrapped_try<F, T>(func: F) -> T
