@@ -9,7 +9,6 @@ use crate::results::{
 use crate::storage_impl::SQLiteStorage;
 use fluence_keypair::Signature;
 use marine_rs_sdk::{get_call_parameters, marine, CallParameters};
-use std::cell::RefMut;
 use std::convert::{TryFrom, TryInto};
 use std::str::FromStr;
 use std::time::Duration;
@@ -26,7 +25,7 @@ fn add_root(peer_id: String, weight_factor: u32) -> AddRootResult {
     let call_parameters: CallParameters = marine_rs_sdk::get_call_parameters();
     let init_peer_id = call_parameters.init_peer_id;
     if call_parameters.service_creator_peer_id == init_peer_id {
-        with_tg(|mut tg| {
+        with_tg(|tg| {
             let public_key = extract_public_key(peer_id)?;
             tg.add_root_weight_factor(public_key, weight_factor)?;
             Ok(())
@@ -44,7 +43,7 @@ fn add_root(peer_id: String, weight_factor: u32) -> AddRootResult {
 /// add a certificate in string representation to trust graph if it is valid
 /// see `trust_graph::Certificate` class for string encoding/decoding
 fn insert_cert_raw(certificate: String, timestamp_sec: u64) -> InsertResult {
-    with_tg(|mut tg| {
+    with_tg(|tg| {
         let certificate = trust_graph::Certificate::from_str(&certificate)?;
         let timestamp_sec = Duration::from_secs(timestamp_sec);
         tg.add(certificate, timestamp_sec)?;
@@ -57,7 +56,7 @@ fn insert_cert_raw(certificate: String, timestamp_sec: u64) -> InsertResult {
 /// add a certificate in JSON representation to trust graph if it is valid
 /// see `dto::Certificate` class for structure
 fn insert_cert(certificate: Certificate, timestamp_sec: u64) -> InsertResult {
-    with_tg(|mut tg| {
+    with_tg(|tg| {
         let timestamp_sec = Duration::from_secs(timestamp_sec);
         tg.add(
             trust_graph::Certificate::try_from(certificate)?,
@@ -68,21 +67,21 @@ fn insert_cert(certificate: Certificate, timestamp_sec: u64) -> InsertResult {
     .into()
 }
 
-fn get_certs_helper(
+fn get_certs(
     tg: &mut TrustGraph<SQLiteStorage>,
     issued_for: String,
     timestamp_sec: u64,
-) -> Result<Vec<Certificate>, ServiceError> {
+) -> Result<impl Iterator<Item = Certificate>, ServiceError> {
     let public_key = extract_public_key(issued_for)?;
     let certs = tg.get_all_certs(public_key, Duration::from_secs(timestamp_sec))?;
-    Ok(certs.into_iter().map(|c| c.into()).collect())
+    Ok(certs.into_iter().map(|c| c.into()))
 }
 
 #[marine]
 fn get_all_certs(issued_for: String, timestamp_sec: u64) -> AllCertsResult {
     with_tg(|tg| {
         check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
-        get_certs_helper(tg, issued_for, timestamp_sec)
+        get_certs(tg, issued_for, timestamp_sec).map(|iter| iter.collect())
     })
     .into()
 }
@@ -92,7 +91,7 @@ fn get_host_certs(timestamp_sec: u64) -> AllCertsResult {
     with_tg(|tg| {
         let cp = marine_rs_sdk::get_call_parameters();
         check_timestamp_tetraplets(&cp, 0)?;
-        get_certs_helper(tg, cp.host_id, timestamp_sec)
+        get_certs(tg, cp.host_id, timestamp_sec).map(|iter| iter.collect())
     })
     .into()
 }
@@ -102,9 +101,8 @@ fn get_host_certs_from(issuer: String, timestamp_sec: u64) -> AllCertsResult {
     with_tg(|tg| {
         let cp = get_call_parameters();
         check_timestamp_tetraplets(&cp, 1)?;
-        get_certs_helper(tg, cp.host_id, timestamp_sec).map(|c| {
-            c.into_iter()
-                .filter(|cert: &Certificate| cert.chain.iter().any(|t| t.issued_for == issuer))
+        get_certs(tg, cp.host_id, timestamp_sec).map(|c| {
+            c.filter(|cert: &Certificate| cert.chain.iter().any(|t| t.issued_for == issuer))
                 .collect()
         })
     })
@@ -113,7 +111,7 @@ fn get_host_certs_from(issuer: String, timestamp_sec: u64) -> AllCertsResult {
 
 #[marine]
 fn get_weight(peer_id: String, timestamp_sec: u64) -> WeightResult {
-    with_tg(|mut tg| {
+    with_tg(|tg| {
         check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
         let public_key = extract_public_key(peer_id.clone())?;
         let weight = tg.weight(public_key, Duration::from_secs(timestamp_sec))?;
@@ -181,7 +179,7 @@ fn verify_trust(trust: Trust, issuer_peer_id: String, timestamp_sec: u64) -> Ver
 
 #[marine]
 fn add_trust(trust: Trust, issuer_peer_id: String, timestamp_sec: u64) -> AddTrustResult {
-    with_tg(|mut tg| {
+    with_tg(|tg| {
         let public_key = extract_public_key(issuer_peer_id)?;
         check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 2)?;
 
@@ -231,7 +229,7 @@ fn issue_revocation(
 
 #[marine]
 fn revoke(revoke: Revoke, timestamp_sec: u64) -> RevokeResult {
-    with_tg(|mut tg| {
+    with_tg(|tg| {
         check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
 
         if revoke.revoked_at > timestamp_sec {
