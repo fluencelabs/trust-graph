@@ -69,7 +69,7 @@ fn insert_cert(certificate: Certificate, timestamp_sec: u64) -> InsertResult {
 }
 
 fn get_certs_helper(
-    mut tg: RefMut<TrustGraph<SQLiteStorage>>,
+    tg: &mut TrustGraph<SQLiteStorage>,
     issued_for: String,
     timestamp_sec: u64,
 ) -> Result<Vec<Certificate>, ServiceError> {

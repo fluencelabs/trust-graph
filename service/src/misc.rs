@@ -20,9 +20,9 @@ use crate::TRUSTED_TIMESTAMP;
 use fluence_keypair::PublicKey;
 use libp2p_core::PeerId;
 use marine_rs_sdk::CallParameters;
-use std::cell::{RefCell, RefMut};
+use std::cell::RefCell;
 use std::convert::TryFrom;
-use std::ops::Deref;
+use std::ops::DerefMut;
 use std::str::FromStr;
 use trust_graph::TrustGraph;
 
@@ -55,9 +55,9 @@ thread_local!(static INSTANCE: RefCell<TrustGraph<SQLiteStorage>> = RefCell::new
 
 pub fn with_tg<F, T>(func: F) -> T
 where
-    F: FnOnce(RefMut<TrustGraph<SQLiteStorage>>) -> T,
+    F: FnOnce(&mut TrustGraph<SQLiteStorage>) -> T,
 {
-    INSTANCE.with(|tg| func(tg.deref().borrow_mut()))
+    INSTANCE.with(|tg| func(tg.borrow_mut().deref_mut()))
 }
 
 pub fn wrapped_try<F, T>(func: F) -> T
