@@ -58,7 +58,6 @@ where
     F: FnOnce(&RefCell<TrustGraph<SQLiteStorage>>) -> T,
 {
     INSTANCE.with(|tg| func(tg))
-    // func(&mut *get_data())
 }
 
 pub fn wrapped_try<F, T>(func: F) -> T
