@@ -17,10 +17,9 @@
 #[cfg(test)]
 mod service_tests {
     marine_rs_sdk_test::include_test_env!("/marine_test_env.rs");
-    use crate::service_impl::{
-        ServiceError, TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID,
-    };
+    use crate::error::ServiceError;
     use crate::storage_impl::DB_PATH;
+    use crate::{TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID};
     use fluence_keypair::KeyPair;
     use libp2p_core::PeerId;
     use marine_rs_sdk::{CallParameters, SecurityTetraplet};
@@ -780,7 +779,7 @@ mod service_tests {
             add_trust_checked(&mut trust_graph, auth.trust.clone(), auth.issuer, cur_time);
         }
 
-        let mut cp = get_correct_timestamp_cp_with_host_id(
+        let cp = get_correct_timestamp_cp_with_host_id(
             0,
             key_pairs.last().unwrap().get_peer_id().to_base58(),
         );
@@ -799,7 +798,7 @@ mod service_tests {
     fn test_get_one_host_cert_from() {
         let mut trust_graph = ServiceInterface::new();
         clear_env();
-        let (key_pairs, mut trusts) =
+        let (key_pairs, trusts) =
             generate_trust_chain_with_len(&mut trust_graph, 5, HashMap::new());
 
         let cur_time = current_time();
@@ -810,7 +809,7 @@ mod service_tests {
             add_trust_checked(&mut trust_graph, auth.trust.clone(), auth.issuer, cur_time);
         }
 
-        let mut cp = get_correct_timestamp_cp_with_host_id(
+        let cp = get_correct_timestamp_cp_with_host_id(
             1,
             key_pairs.last().unwrap().get_peer_id().to_base58(),
         );
