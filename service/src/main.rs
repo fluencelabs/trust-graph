@@ -14,8 +14,7 @@ mod service_api;
 mod storage_impl;
 mod tests;
 
-pub static TRUSTED_TIMESTAMP_SERVICE_ID: &str = "peer";
-pub static TRUSTED_TIMESTAMP_FUNCTION_NAME: &str = "timestamp_sec";
+pub static TRUSTED_TIMESTAMP: (&str, &str) = ("peer", "timestamp_sec");
 
 pub fn main() {
     WasmLoggerBuilder::new()

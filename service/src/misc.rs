@@ -15,13 +15,14 @@
  */
 use crate::error::ServiceError;
 use crate::error::ServiceError::*;
-use crate::storage_impl::{get_data, SQLiteStorage};
-use crate::{TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID};
+use crate::storage_impl::{SQLiteStorage, DB_PATH};
+use crate::TRUSTED_TIMESTAMP;
 use fluence_keypair::PublicKey;
 use libp2p_core::PeerId;
 use marine_rs_sdk::CallParameters;
-use parking_lot::MutexGuard;
+use std::cell::RefCell;
 use std::convert::TryFrom;
+use std::ops::DerefMut;
 use std::str::FromStr;
 use trust_graph::TrustGraph;
 
@@ -33,13 +34,14 @@ pub(crate) fn check_timestamp_tetraplets(
     let tetraplets = call_parameters
         .tetraplets
         .get(arg_number)
-        .ok_or(InvalidTimestampTetraplet)?;
-    let tetraplet = tetraplets.get(0).ok_or(InvalidTimestampTetraplet)?;
-    (tetraplet.service_id == TRUSTED_TIMESTAMP_SERVICE_ID
-        && tetraplet.function_name == TRUSTED_TIMESTAMP_FUNCTION_NAME
+        .ok_or_else(|| InvalidTimestampTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
+    let tetraplet = tetraplets
+        .get(0)
+        .ok_or_else(|| InvalidTimestampTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
+    (TRUSTED_TIMESTAMP.eq(&(&tetraplet.service_id, &tetraplet.function_name))
         && tetraplet.peer_pk == call_parameters.host_id)
         .then(|| ())
-        .ok_or(InvalidTimestampTetraplet)
+        .ok_or_else(|| InvalidTimestampTetraplet(format!("{:?}", tetraplet)))
 }
 
 fn parse_peer_id(peer_id: String) -> Result<PeerId, ServiceError> {
@@ -47,13 +49,15 @@ fn parse_peer_id(peer_id: String) -> Result<PeerId, ServiceError> {
         .map_err(|e| ServiceError::PeerIdParseError(format!("{:?}", e)))
 }
 
+thread_local!(static INSTANCE: RefCell<TrustGraph<SQLiteStorage>> = RefCell::new(TrustGraph::new(
+    SQLiteStorage::new(marine_sqlite_connector::open(DB_PATH).unwrap()),
+)));
+
 pub fn with_tg<F, T>(func: F) -> T
 where
-    F: FnOnce(MutexGuard<TrustGraph<SQLiteStorage>>) -> T,
+    F: FnOnce(&mut TrustGraph<SQLiteStorage>) -> T,
 {
-    let tg = get_data().lock();
-
-    func(tg)
+    INSTANCE.with(|tg| func(tg.borrow_mut().deref_mut()))
 }
 
 pub fn wrapped_try<F, T>(func: F) -> T

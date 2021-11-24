@@ -19,7 +19,7 @@ mod service_tests {
     marine_rs_sdk_test::include_test_env!("/marine_test_env.rs");
     use crate::error::ServiceError;
     use crate::storage_impl::DB_PATH;
-    use crate::{TRUSTED_TIMESTAMP_FUNCTION_NAME, TRUSTED_TIMESTAMP_SERVICE_ID};
+    use crate::TRUSTED_TIMESTAMP;
     use fluence_keypair::KeyPair;
     use libp2p_core::PeerId;
     use marine_rs_sdk::{CallParameters, SecurityTetraplet};
@@ -79,8 +79,8 @@ mod service_tests {
 
         cp.tetraplets.push(vec![SecurityTetraplet {
             peer_pk: host_id,
-            service_id: TRUSTED_TIMESTAMP_SERVICE_ID.to_string(),
-            function_name: TRUSTED_TIMESTAMP_FUNCTION_NAME.to_string(),
+            service_id: TRUSTED_TIMESTAMP.0.to_string(),
+            function_name: TRUSTED_TIMESTAMP.1.to_string(),
             json_path: "".to_string(),
         }]);
 
