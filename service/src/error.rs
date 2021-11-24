@@ -55,8 +55,8 @@ pub enum ServiceError {
         #[source]
         TrustError,
     ),
-    #[error("you should use host peer.timestamp_sec to pass timestamp")]
-    InvalidTimestampTetraplet,
+    #[error("you should use host peer.timestamp_sec to pass timestamp: {0}")]
+    InvalidTimestampTetraplet(String),
     #[error("{0} can't be issued later than the current timestamp")]
     InvalidTimestamp(String),
     #[error("Root could add only by trust graph service owner")]

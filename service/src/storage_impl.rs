@@ -10,8 +10,6 @@ use core::convert::TryFrom;
 use fluence_keypair::error::DecodingError;
 use fluence_keypair::Signature;
 use marine_sqlite_connector::{Connection, Error as InternalSqliteError, Value};
-use once_cell::sync::OnceCell;
-use parking_lot::Mutex;
 use rmp_serde::decode::Error as RmpDecodeError;
 use rmp_serde::encode::Error as RmpEncodeError;
 use std::convert::From;
@@ -20,11 +18,8 @@ use std::time::Duration;
 use thiserror::Error as ThisError;
 use trust_graph::{
     Auth, PublicKeyHashable as PK, PublicKeyHashable, Revoke, Storage, StorageError, Trust,
-    TrustGraph, TrustRelation, WeightFactor,
+    TrustRelation, WeightFactor,
 };
-
-#[allow(dead_code)]
-static INSTANCE: OnceCell<Mutex<TrustGraph<SQLiteStorage>>> = OnceCell::new();
 
 static AUTH_TYPE: i64 = 0;
 static REVOKE_TYPE: i64 = 1;
@@ -54,14 +49,6 @@ pub fn create_tables() {
         );",
         )
         .unwrap();
-}
-
-#[allow(dead_code)]
-pub fn get_data() -> &'static Mutex<TrustGraph<SQLiteStorage>> {
-    INSTANCE.get_or_init(|| {
-        let connection = marine_sqlite_connector::open(DB_PATH).unwrap();
-        Mutex::new(TrustGraph::new(SQLiteStorage::new(connection)))
-    })
 }
 
 pub struct SQLiteStorage {
