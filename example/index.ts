@@ -14,21 +14,9 @@
  * limitations under the License.
  */
 
-import {
-    get_trust_bytes,
-    issue_trust,
-    verify_trust,
-    add_trust,
-    add_root,
-    get_weight,
-    timestamp_sec,
-    get_all_certs,
-    get_revoke_bytes,
-    issue_revocation,
-    revoke
-} from "./generated/export";
+import * as tg from "./generated/export";
 import { Fluence, KeyPair } from "@fluencelabs/fluence";
-import { Node } from "@fluencelabs/fluence-network-environment";
+import { krasnodar, Node } from "@fluencelabs/fluence-network-environment";
 import assert from "assert";
 const bs58 = require('bs58');
 
@@ -45,29 +33,40 @@ let local: Node[] = [
     },
 ];
 
-async function add_trust_helper(node: string, issuer_kp: KeyPair, issuer_peer_id: string, issued_for_peer_id: string, expires_at_sec: number, issued_at_sec: number) {
-    let trust_metadata = await get_trust_bytes(node, issued_for_peer_id, expires_at_sec, issued_at_sec);
+async function is_fluence_peer(relay: string) {
+   let result =  await tg.isFluencePeer(relay);
+
+    if (result) {
+        console.log("Current relay %s identified as Fluence Labs' peer", relay)
+    } else {
+        console.log("Current relay %s is not Fluence Labs' peer", relay)
+    }
+
+}
+
+async function add_trust_helper(relay: string, issuer_kp: KeyPair, issuer_peer_id: string, issued_for_peer_id: string, expires_at_sec: number, issued_at_sec: number) {
+    let trust_metadata = await tg.get_trust_bytes(relay, issued_for_peer_id, expires_at_sec, issued_at_sec);
     const signed_metadata = await issuer_kp.Libp2pPeerId.privKey.sign(Uint8Array.from(trust_metadata.result));
 
-    let trust = await issue_trust(node, issued_for_peer_id, expires_at_sec, issued_at_sec, Array.from(signed_metadata));
-    console.log("Issued trust %s", trust.trust);
+    let trust = await tg.issue_trust(relay, issued_for_peer_id, expires_at_sec, issued_at_sec, Array.from(signed_metadata));
+    assert(trust.success)
 
-    let result = await verify_trust(node, trust.trust, issuer_peer_id);
-    console.log("Verify trust result: %s", result);
+    let result = await tg.verify_trust(relay, trust.trust, issuer_peer_id);
+    assert(result.success)
 
-    let result_add = await add_trust(node, trust.trust, issuer_peer_id);
-    console.log("Add trust result: %s", result_add);
+    let result_add = await tg.add_trust(relay, trust.trust, issuer_peer_id);
+    assert(result_add.success)
 }
 
 async function revoke_helper(node: string, issuer_kp: KeyPair, revoked_by_peer_id: string, revoked_peer_id: string, revoked_at_sec: number) {
-    let trust_metadata = await get_revoke_bytes(node, revoked_peer_id, revoked_at_sec);
+    let trust_metadata = await tg.get_revoke_bytes(node, revoked_peer_id, revoked_at_sec);
     const signed_metadata = await issuer_kp.Libp2pPeerId.privKey.sign(Uint8Array.from(trust_metadata.result));
 
-    let revocation = await issue_revocation(node, revoked_peer_id, revoked_by_peer_id, revoked_at_sec, Array.from(signed_metadata));
-    console.log("Issued revocation %s", revocation.revoke);
+    let revocation = await tg.issue_revocation(node, revoked_peer_id, revoked_by_peer_id, revoked_at_sec, Array.from(signed_metadata));
+    assert(revocation.success)
 
-    let result_add = await revoke(node, revocation.revoke);
-    console.log("Revoke result: %s", result_add);
+    let result_add = await tg.revoke(node, revocation.revoke);
+    assert(result_add.success)
 }
 
 async function main() {
@@ -75,44 +74,61 @@ async function main() {
     // key from local-network/builtins_secret_key.ed25519 to connect as builtins owner
     let sk = bs58.decode("5FwE32bDcphFzuMca7Y2qW1gdR64fTBYoRNvD4MLE1hecDGhCMQGKn8aseMr5wRo4Xo2CRFdrEAawUNLYkgQD78K").slice(0, 32); // first 32 bytes - secret key, second - public key
     let builtins_keypair = await KeyPair.fromEd25519SK(sk);
+
     await Fluence.start({ connectTo: local[0], KeyPair: builtins_keypair});
     console.log(
         "📗 created a fluence peer %s with relay %s",
         Fluence.getStatus().peerId,
         Fluence.getStatus().relayPeerId
     );
-    const issued_timestamp_sec = await timestamp_sec(local[0].peerId);
-    const expires_at_sec = issued_timestamp_sec + 999999999;
+    let relay = local[0].peerId
+    let nodeA = local[0].peerId
+    let nodeB = local[1].peerId
+
+    // keypair if nodeA specified in local-network/docker-compose.yml
     const issuer_kp = await KeyPair.fromEd25519SK(bs58.decode("29Apzfedhw2Jxh94Jj4rNSmavQ1TkNe8ALYRA7bMegobwp423aLrURxLk32WtXgXHDqoSz7GAT9fQfoMhVd1e5Ww"));
 
-    let add_root_result = await add_root(local[0].peerId, local[0].peerId, 2);
-    console.log("Add root weight result: %s", add_root_result);
+    // set nodeA as a root
+    let add_root_result = await tg.add_root(relay, nodeA, 2);
+    assert(add_root_result.success)
 
-    // add root trust
-    await add_trust_helper(local[0].peerId, issuer_kp, local[0].peerId, local[0].peerId, expires_at_sec, issued_timestamp_sec);
+    // add self-signed root trust
+    const issued_timestamp_sec = await tg.timestamp_sec(relay);
+    const expires_at_sec = issued_timestamp_sec + 999999999;
+    await add_trust_helper(relay, issuer_kp, nodeA, nodeB, expires_at_sec, issued_timestamp_sec);
 
-    let root_weight_result = await get_weight(local[0].peerId, local[0].peerId);
-    console.log("Root weight: %s", root_weight_result);
+    let root_weight_result = await tg.get_weight(relay, nodeA);
+    assert(root_weight_result.success)
+    console.log("Root weight (nodeA) is: %s", root_weight_result.weight);
 
-    // issue trust by local[0].peerId for local[1].peerId and add to tg
-    await add_trust_helper(local[0].peerId, issuer_kp, local[0].peerId, local[1].peerId, expires_at_sec, issued_timestamp_sec);
-    let weight_result = await get_weight(local[0].peerId, local[1].peerId);
-    console.log("Trust weight: %s", weight_result);
+    // issue trust by nodeA to nodeB and add to tg
+    await add_trust_helper(relay, issuer_kp, nodeA, nodeB, expires_at_sec, issued_timestamp_sec);
+    let weight_result = await tg.get_weight(relay, nodeB);
+    console.log("Weight of nodeB: is %s", weight_result.weight);
 
     assert(root_weight_result.weight / 2 === weight_result.weight);
 
-    let certs = await get_all_certs(local[0].peerId, local[1].peerId);
-    console.log("Certs: %s", JSON.stringify(certs.certificates));
+    let certs = await tg.get_all_certs(relay, nodeB);
     assert(certs.certificates.length === 1);
+    console.log("There is one cert for nodeB with chain len %s", certs.certificates[0].chain.length);
+    console.log("It contains self-signed nodeA root trust and nodeA->nodeB trust");
 
     // wait to create revoke after trust (because timestamp in secs)
     await new Promise(f => setTimeout(f, 1000));
 
-    // revoke local[1].peerId trust
-    await revoke_helper(local[0].peerId, issuer_kp, local[0].peerId, local[1].peerId, await timestamp_sec(local[0].peerId));
+    console.log("Now we will revoke trust for nodeB")
+    // revoke nodeB by nodeA
+    await revoke_helper(relay, issuer_kp, nodeA, nodeB, await tg.timestamp_sec(relay));
 
-    let empty_certs = await get_all_certs(local[0].peerId, local[1].peerId);
+    let empty_certs = await tg.get_all_certs(relay, nodeB);
     assert(empty_certs.certificates.length === 0);
+    console.log("Now there is no certs for nodeB");
+
+    console.log("Let's check if our node is Fluence Labs peer");
+    await is_fluence_peer(relay);
+
+    console.log("Now let's check some krasnodar's node");
+    await is_fluence_peer(krasnodar[0].peerId);
 
     return;
 }

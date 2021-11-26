@@ -46,10 +46,9 @@ func get_host_certs(node: string, issued_for: string) -> AllCertsResult:
         result <- TrustGraph.get_host_certs(timestamp_sec)
     <- result
 
-func get_host_certs_from(node: string, issuer: string) -> AllCertsResult:
-    on node:
-        timestamp_sec <- Peer.timestamp_sec()
-        result <- TrustGraph.get_host_certs_from(issuer, timestamp_sec)
+func get_host_certs_from(issuer: string) -> AllCertsResult:
+    timestamp_sec <- Peer.timestamp_sec()
+    result <- TrustGraph.get_host_certs_from(issuer, timestamp_sec)
     <- result
 
 func insert_cert(node: string, certificate: Certificate) -> InsertResult:
@@ -75,27 +74,27 @@ func revoke(node: string, revoke: Revoke) -> RevokeResult:
     <- result
 
 service TrustOp("op"):
-  array_length(a: []Trust) -> u64
+  array_length(a: []Trust) -> u32
 
 service BoolOp("op"):
-  array_length(a: []bool) -> u64
+  array_length(a: []bool) -> u32
 
--- https://github.com/fluencelabs/trust-graph/issues/26
-func isFluencePeer() -> bool:
-    certs_result <- get_host_certs_from(HOST_PEER_ID, "12D3KooWM45u7AQxsb4MuQJNYT3NWHHMLU7JTbBV66RTfF3KSzdR")
-    resultBox: *bool
-    if certs_result.success:
-        for cert  <- certs_result.certificates:
-            len <- TrustOp.array_length(cert.chain)
-            if len == 3:
-                if cert.chain!0.issued_for == "12D3KooWNbZKaPWRZ8wgjGvrxdJFz9Fq5uVwkR6ERV1f74HhPdyB":
-                    if cert.chain!1.issued_for == "12D3KooWM45u7AQxsb4MuQJNYT3NWHHMLU7JTbBV66RTfF3KSzdR":
-                        resultBox <<- true
+func isFluencePeer(node: string) -> bool:
+    on node:
+        certs_result <- get_host_certs_from("12D3KooWM45u7AQxsb4MuQJNYT3NWHHMLU7JTbBV66RTfF3KSzdR")
+        resultBox: *bool
+        if certs_result.success:
+            for cert  <- certs_result.certificates:
+                len <- TrustOp.array_length(cert.chain)
+                if len == 3:
+                    if cert.chain!0.issued_for == "12D3KooWNbZKaPWRZ8wgjGvrxdJFz9Fq5uVwkR6ERV1f74HhPdyB":
+                        if cert.chain!1.issued_for == "12D3KooWM45u7AQxsb4MuQJNYT3NWHHMLU7JTbBV66RTfF3KSzdR":
+                            resultBox <<- true
 
-    result_len <- BoolOp.array_length(resultBox)
-    result: *bool
-    if result_len == 0:
-        result <<- false
-    else:
-        result <<- true
+        result_len <- BoolOp.array_length(resultBox)
+        result: *bool
+        if result_len == 0:
+            result <<- false
+        else:
+            result <<- true
     <- result!
