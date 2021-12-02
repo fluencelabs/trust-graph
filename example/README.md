@@ -4,7 +4,7 @@
 3. Go back to `../example`
 4. Run `npm run start`
 
-## Step-by-step guide
+## How to use
 1. Add the following to your dependencies
    - `@fluencelabs/trust-graph`
    - `@fluencelabs/aqua`
@@ -18,4 +18,5 @@
    import { Fluence, KeyPair } from "@fluencelabs/fluence";
    import { krasnodar, Node } from "@fluencelabs/fluence-network-environment";
    ```
-3. Add root and issue self-signed root trust
+3. Add root and issue self-signed root trust.
+4. For now, you can sign trusts/revocations only on js side with KeyPair.
