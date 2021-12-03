@@ -3,7 +3,8 @@
    - Run `docker compose up -d` to start Fluence node
    - Go back to `../admin`
 2. Put `root_secret_key.ed25519` and `issuer_secret_key.ed25519` to folder
-3. Run `npm run start {env}` where `{env}` should be `testnet`/`krasnodar`/`stage` or `local`
+3. Run `npm i`
+4. Run `npm run start {env}` where `{env}` should be `testnet`/`krasnodar`/`stage` or `local`
 
 `root_secret_key.ed25519` and `issuer_secret_key.ed25519` are secret and owned by Fluence Labs team. Root key is for
 all Fluence Labs relations. Trust from issuer key to any peer id means that this peer is official Fluence Labs peer.
