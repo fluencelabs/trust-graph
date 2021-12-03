@@ -14,17 +14,17 @@ Low-level API is defined in the [trust-graph-api.aqua](./aqua/trust-graph-api.aq
 
 ## Directory structure
 
-- `src` is the main project with all trust graph logic
+- [`src`](./src) is the main project with all trust graph logic
 
-- `keypair` directory is an abstracted cryptographical layer (key pairs, public keys, signatures, etc.)
+- [`keypair`](./keypair) directory is an abstracted cryptographical layer (key pairs, public keys, signatures, etc.)
 
-- `service` is a package that provides `marine` API and could be compiled to a Wasm file. It is uses `SQLite` as storage.
+- [`service`](./service) is a package that provides `marine` API and could be compiled to a Wasm file. It is uses `SQLite` as storage.
 
-- `example` is a `js` script that shows how to issue, sign trusts/revocations, export certificates and distinguish Fluence nodes
+- [`example`](./example) is a `js` script that shows how to issue, sign trusts/revocations, export certificates and distinguish Fluence nodes
 
-- `builtin-package` contains blueprint, configs and scripts for generation builtin package locally or via CI
+- [`builtin-package`](./builtin-package) contains blueprint, configs and scripts for generation builtin package locally or via CI
 
-- `admin` is a `js` script used to generate `builtin-package/on_start.json` which contains certificates for Fluence Labs nodes
+- [`admin`](./admin) is a `js` script used to generate `builtin-package/on_start.json` which contains certificates for Fluence Labs nodes
 
 ## Learn Aqua
 
