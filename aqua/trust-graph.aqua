@@ -38,7 +38,7 @@ data InsertResult:
   success: bool
   error: string
 
-data Revoke:
+data Revocation:
   revoked_peer_id: string
   revoked_at: u64
   signature: string
@@ -48,7 +48,7 @@ data Revoke:
 data IssueRevocationResult:
   success: bool
   error: string
-  revoke: Revoke
+  revocation: Revocation
 
 data IssueTrustResult:
   success: bool
@@ -83,5 +83,5 @@ service TrustGraph("trust-graph"):
   insert_cert_raw(certificate: string, timestamp_sec: u64) -> InsertResult
   issue_revocation(revoked_peer_id: string, revoked_by_peer_id: string, revoked_at_sec: u64, signature_bytes: []u8) -> IssueRevocationResult
   issue_trust(issued_for_peer_id: string, expires_at_sec: u64, issued_at_sec: u64, trust_bytes: []u8) -> IssueTrustResult
-  revoke(revoke: Revoke, timestamp_sec: u64) -> RevokeResult
+  revoke(revoke: Revocation, timestamp_sec: u64) -> RevokeResult
   verify_trust(trust: Trust, issuer_peer_id: string, timestamp_sec: u64) -> VerifyTrustResult

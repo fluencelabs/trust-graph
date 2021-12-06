@@ -1,4 +1,4 @@
-use crate::dto::{Certificate, Revoke, Trust};
+use crate::dto::{Certificate, Revocation, Trust};
 use crate::error::ServiceError;
 use marine_rs_sdk::marine;
 
@@ -216,21 +216,21 @@ impl From<Result<Vec<u8>, ServiceError>> for GetRevokeBytesResult {
 pub struct IssueRevocationResult {
     pub success: bool,
     pub error: String,
-    pub revoke: Revoke,
+    pub revocation: Revocation,
 }
 
-impl From<Result<Revoke, ServiceError>> for IssueRevocationResult {
-    fn from(result: Result<Revoke, ServiceError>) -> Self {
+impl From<Result<Revocation, ServiceError>> for IssueRevocationResult {
+    fn from(result: Result<Revocation, ServiceError>) -> Self {
         match result {
-            Ok(revoke) => IssueRevocationResult {
+            Ok(revocation) => IssueRevocationResult {
                 success: true,
                 error: "".to_string(),
-                revoke,
+                revocation,
             },
             Err(e) => IssueRevocationResult {
                 success: false,
                 error: format!("{}", e),
-                revoke: Revoke::default(),
+                revocation: Revocation::default(),
             },
         }
     }

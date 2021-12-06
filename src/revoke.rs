@@ -36,7 +36,7 @@ pub enum RevokeError {
 /// "A document" that cancels trust created before.
 /// TODO delete pk from Revoke (it is already in a trust node)
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Revoke {
+pub struct Revocation {
     /// who is revoked
     pub pk: PublicKey,
     /// date when revocation was created
@@ -47,7 +47,7 @@ pub struct Revoke {
     pub signature: Signature,
 }
 
-impl Revoke {
+impl Revocation {
     #[allow(dead_code)]
     pub fn new(
         pk: PublicKey,
@@ -66,10 +66,10 @@ impl Revoke {
     /// Creates new revocation signed by a revoker.
     #[allow(dead_code)]
     pub fn create(revoker: &KeyPair, to_revoke: PublicKey, revoked_at: Duration) -> Self {
-        let msg = Revoke::signature_bytes(&to_revoke, revoked_at);
+        let msg = Revocation::signature_bytes(&to_revoke, revoked_at);
         let signature = revoker.sign(&msg).unwrap();
 
-        Revoke::new(to_revoke, revoker.public(), revoked_at, signature)
+        Revocation::new(to_revoke, revoker.public(), revoked_at, signature)
     }
 
     pub fn signature_bytes(pk: &PublicKey, revoked_at: Duration) -> Vec<u8> {
@@ -83,8 +83,8 @@ impl Revoke {
     }
 
     /// Verifies that revocation is cryptographically correct.
-    pub fn verify(revoke: &Revoke) -> Result<(), RevokeError> {
-        let msg = Revoke::signature_bytes(&revoke.pk, revoke.revoked_at);
+    pub fn verify(revoke: &Revocation) -> Result<(), RevokeError> {
+        let msg = Revocation::signature_bytes(&revoke.pk, revoke.revoked_at);
 
         revoke
             .revoked_by
@@ -104,9 +104,9 @@ mod tests {
 
         let duration = Duration::new(100, 0);
 
-        let revoke = Revoke::create(&revoker, to_revoke.public(), duration);
+        let revoke = Revocation::create(&revoker, to_revoke.public(), duration);
 
-        assert_eq!(Revoke::verify(&revoke).is_ok(), true);
+        assert_eq!(Revocation::verify(&revoke).is_ok(), true);
     }
 
     #[test]
@@ -116,16 +116,16 @@ mod tests {
 
         let duration = Duration::new(100, 0);
 
-        let revoke = Revoke::create(&revoker, to_revoke.public(), duration);
+        let revoke = Revocation::create(&revoker, to_revoke.public(), duration);
 
         let duration2 = Duration::new(95, 0);
-        let corrupted_revoke = Revoke::new(
+        let corrupted_revoke = Revocation::new(
             to_revoke.public(),
             revoker.public(),
             duration2,
             revoke.signature,
         );
 
-        assert_eq!(Revoke::verify(&corrupted_revoke).is_ok(), false);
+        assert_eq!(Revocation::verify(&corrupted_revoke).is_ok(), false);
     }
 }

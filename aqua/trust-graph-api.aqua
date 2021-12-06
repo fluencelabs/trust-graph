@@ -68,10 +68,10 @@ func issue_revocation(node: string, revoked_peer_id: string, revoked_by_peer_id:
         result <- TrustGraph.issue_revocation(revoked_peer_id, revoked_by_peer_id, revoked_at_sec, signature_bytes)
     <- result
 
-func revoke(node: string, revoke: Revoke) -> RevokeResult:
+func revoke(node: string, revocation: Revocation) -> RevokeResult:
     on node:
         timestamp_sec <- Peer.timestamp_sec()
-        result <- TrustGraph.revoke(revoke, timestamp_sec)
+        result <- TrustGraph.revoke(revocation, timestamp_sec)
     <- result
 
 service TrustOp("op"):

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use crate::revoke::Revoke;
+use crate::revoke::Revocation;
 use crate::trust::Trust;
 use failure::_core::time::Duration;
 use fluence_keypair::public_key::PublicKey;
@@ -33,7 +33,7 @@ pub struct Auth {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TrustRelation {
     Auth(Auth),
-    Revoke(Revoke),
+    Revoke(Revocation),
 }
 
 impl TrustRelation {

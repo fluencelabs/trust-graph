@@ -470,6 +470,54 @@ mod service_tests {
     }
 
     #[test]
+    fn revoke_test_updated() {
+        let mut trust_graph = marine_test_env::trust_graph::ServiceInterface::new();
+        clear_env();
+
+        let (key_pairs, trusts) =
+            generate_trust_chain_with_len(&mut trust_graph, 5, HashMap::new());
+        let mut cur_time = current_time();
+
+        let root_peer_id = key_pairs[0].get_peer_id();
+        add_root_peer_id(&mut trust_graph, root_peer_id, 2);
+        add_trusts(&mut trust_graph, &trusts, cur_time);
+
+        let target_peer_id = key_pairs[4].get_peer_id();
+        let revoked_by = &key_pairs[1];
+        let weight = get_weight(&mut trust_graph, target_peer_id, cur_time);
+        assert_ne!(weight, 0u32);
+
+        cur_time += 1;
+        // [1] revokes [4]
+        revoke(&mut trust_graph, &revoked_by, &target_peer_id, cur_time);
+
+        // now there are no path from root to [4]
+        let weight = get_weight(&mut trust_graph, target_peer_id, cur_time);
+        assert_eq!(weight, 0u32);
+
+        // [0] trusts [2]
+        add_trust(
+            &mut trust_graph,
+            &key_pairs[0],
+            &key_pairs[2].get_peer_id(),
+            cur_time,
+            cur_time + 99999,
+        );
+        // [2] trusts [4]
+        add_trust(
+            &mut trust_graph,
+            &key_pairs[2],
+            &target_peer_id,
+            cur_time,
+            cur_time + 99999,
+        );
+
+        // now we have [0] -> [2] -> [4] path
+        let weight = get_weight(&mut trust_graph, target_peer_id, cur_time);
+        assert_ne!(weight, 0u32);
+    }
+
+    #[test]
     fn test_add_one_trust_to_cert_last() {
         let mut trust_graph = ServiceInterface::new();
         let (key_pairs, mut trusts) =

@@ -64,9 +64,9 @@ async function revoke_helper(node: string, issuer_kp: KeyPair, revoked_by_peer_i
     const signed_metadata = await issuer_kp.Libp2pPeerId.privKey.sign(Uint8Array.from(trust_metadata.result));
 
     let revocation = await issue_revocation(node, revoked_peer_id, revoked_by_peer_id, revoked_at_sec, Array.from(signed_metadata));
-    console.log("Issued revocation %s", revocation.revoke);
+    console.log("Issued revocation %s", revocation.revocation);
 
-    let result_add = await revoke(node, revocation.revoke);
+    let result_add = await revoke(node, revocation.revocation);
     console.log("Revoke result: %s", result_add);
 }
 
