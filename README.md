@@ -1,6 +1,10 @@
 # Trust Graph
 
-The network-wide peer relationship layer is used to manage connectivity and permissions. Peers keep the distributed graph of relationships, basically a Web of Trust. That graph is used is used to prioritize connections from known peers and avoid Sybil attacks. Also, TrustGraph may be used at the application level in various ways such as prioritization of service execution on authorized peers or a tighter connection of a single company’s peers.
+Trust Graph is network-wide peer relationship layer. It's designed to be used to prioritize resources and control permissions in open networks. Being a decentralized graph of relationships, basically a Web of Trust, Trust Graph is distributed among all network peers. 
+
+Specifically, Trust Graph is used is used to prioritize connections from known peers to counteract Sybil attacks while still keeping network open by reserving resources for unknown peers. 
+
+At the same time, Trust Graph can be used at the application level in various ways such as prioritization of service execution on authorized peers or to define an interconnected subnetwork among peers of a single protocol.
 
 ## How to Use it in TypeScript
 
