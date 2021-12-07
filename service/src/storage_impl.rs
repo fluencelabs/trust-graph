@@ -106,7 +106,10 @@ impl SQLiteStorage {
         let mut relations: Vec<TrustRelation> = vec![];
 
         while let Some(row) = cursor.next()? {
-            relations.push(parse_relation(row)?);
+            match parse_relation(row) {
+                Ok(r) => relations.push(r),
+                Err(e) => log::error!("parse_relation: {:?}", e),
+            }
         }
 
         Ok(relations)
