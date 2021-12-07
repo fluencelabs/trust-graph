@@ -85,6 +85,32 @@ impl SQLiteStorage {
 
         Ok(())
     }
+
+    fn get_relations(
+        &self,
+        issued_for: &PublicKeyHashable,
+        relation_type: i64,
+    ) -> Result<Vec<TrustRelation>, SQLiteStorageError> {
+        let mut cursor = self
+            .connection
+            .prepare(
+                "SELECT relation_type, issued_for, issued_by, issued_at, expires_at, signature \
+             FROM trust_relations WHERE issued_for = ? and relation_type = ?",
+            )?
+            .cursor();
+
+        cursor.bind(&[
+            Value::String(format!("{}", issued_for)),
+            Value::Integer(relation_type),
+        ])?;
+        let mut relations: Vec<TrustRelation> = vec![];
+
+        while let Some(row) = cursor.next()? {
+            relations.push(parse_relation(row)?);
+        }
+
+        Ok(relations)
+    }
 }
 
 #[derive(ThisError, Debug)]
@@ -189,50 +215,36 @@ impl Storage for SQLiteStorage {
     }
 
     /// return all auths issued for pk
-    fn get_authorizations(&self, pk: &PublicKeyHashable) -> Result<Vec<Auth>, Self::Error> {
-        let mut cursor = self
-            .connection
-            .prepare(
-                "SELECT relation_type, issued_for, issued_by, issued_at, expires_at, signature \
-             FROM trust_relations WHERE issued_for = ? and relation_type = ?",
-            )?
-            .cursor();
+    fn get_authorizations(&self, issued_for: &PublicKeyHashable) -> Result<Vec<Auth>, Self::Error> {
+        Ok(self
+            .get_relations(issued_for, AUTH_TYPE)?
+            .into_iter()
+            .fold(vec![], |mut acc, r| {
+                match r {
+                    TrustRelation::Auth(a) => acc.push(a),
+                    _ => (),
+                };
 
-        cursor.bind(&[Value::String(format!("{}", pk)), Value::Integer(AUTH_TYPE)])?;
-        let mut auths: Vec<Auth> = vec![];
-
-        while let Some(row) = cursor.next()? {
-            if let TrustRelation::Auth(auth) = parse_relation(row)? {
-                auths.push(auth);
-            }
-        }
-
-        Ok(auths)
+                acc
+            }))
     }
 
     /// return all revocations issued for pk
-    fn get_revocations(&self, pk: &PublicKeyHashable) -> Result<Vec<Revocation>, Self::Error> {
-        let mut cursor = self
-            .connection
-            .prepare(
-                "SELECT relation_type, issued_for, issued_by, issued_at, expires_at, signature \
-             FROM trust_relations WHERE issued_for = ? and relation_type = ?",
-            )?
-            .cursor();
+    fn get_revocations(
+        &self,
+        issued_for: &PublicKeyHashable,
+    ) -> Result<Vec<Revocation>, Self::Error> {
+        Ok(self
+            .get_relations(issued_for, REVOCATION_TYPE)?
+            .into_iter()
+            .fold(vec![], |mut acc, r| {
+                match r {
+                    TrustRelation::Revocation(revocation) => acc.push(revocation),
+                    _ => (),
+                };
 
-        cursor.bind(&[
-            Value::String(format!("{}", pk)),
-            Value::Integer(REVOCATION_TYPE),
-        ])?;
-        let mut auths: Vec<Revocation> = vec![];
-
-        while let Some(row) = cursor.next()? {
-            if let TrustRelation::Revocation(auth) = parse_relation(row)? {
-                auths.push(auth);
-            }
-        }
-
-        Ok(auths)
+                acc
+            }))
     }
 
     fn insert(&mut self, relation: TrustRelation) -> Result<(), Self::Error> {
