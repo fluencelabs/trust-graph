@@ -16,6 +16,7 @@
 
 use crate::certificate::CertificateError::CertificateLengthError;
 use crate::certificate::{Certificate, CertificateError};
+use crate::chain::Chain;
 use crate::public_key_hashable::PublicKeyHashable as PK;
 use crate::revoke::Revocation;
 use crate::revoke::RevokeError;
@@ -27,6 +28,7 @@ use crate::trust_graph_storage::Storage;
 use crate::trust_relation::Auth;
 use crate::{StorageError, TrustError};
 use fluence_keypair::public_key::PublicKey;
+use nonempty::NonEmpty;
 use std::borrow::Borrow;
 use std::collections::{HashSet, VecDeque};
 use std::convert::{From, Into};
@@ -93,7 +95,7 @@ impl From<TrustGraphError> for String {
 }
 
 pub fn get_weight_from_factor(wf: WeightFactor) -> u32 {
-    2u32.pow(MAX_WEIGHT_FACTOR.checked_sub(wf).unwrap_or(0u32))
+    2u32.pow(MAX_WEIGHT_FACTOR.saturating_sub(wf))
 }
 
 impl<S> TrustGraph<S>
@@ -244,33 +246,6 @@ where
         pk: &PK,
         roots: HashSet<&PK>,
     ) -> Result<Vec<Vec<Auth>>, TrustGraphError> {
-        #[derive(Clone)]
-        struct Chain {
-            auths: Vec<Auth>,
-            revoked_by: HashSet<PK>,
-        }
-        impl Chain {
-            fn new(auths: Vec<Auth>, revocations: Vec<Revocation>) -> Self {
-                let mut chain = Self {
-                    auths,
-                    revoked_by: Default::default(),
-                };
-                chain.add_revocations(revocations);
-
-                chain
-            }
-            fn can_be_extended_by(&self, pk: &PublicKey) -> bool {
-                !self.revoked_by.contains(pk.as_ref())
-                    && !self.auths.iter().any(|a| a.trust.issued_for.eq(pk))
-            }
-
-            fn add_revocations(&mut self, revocations: Vec<Revocation>) {
-                revocations.into_iter().for_each(move |r| {
-                    self.revoked_by.insert(r.revoked_by.clone().into());
-                });
-            }
-        }
-
         // queue to collect all chains in the trust graph (each chain is a path in the trust graph)
         let mut chains_queue: VecDeque<Chain> = VecDeque::new();
 
@@ -279,7 +254,7 @@ where
 
         // put all auth in the queue as the first possible paths through the graph
         for auth in node_auths {
-            chains_queue.push_back(Chain::new(vec![auth], node_revocations.clone()));
+            chains_queue.push_back(Chain::new(NonEmpty::new(auth), node_revocations.clone()));
         }
 
         // List of all chains that converge (terminate) to known roots
@@ -290,10 +265,7 @@ where
                 .pop_front()
                 .expect("`chains_queue` always has at least one element");
 
-            let last = cur_chain
-                .auths
-                .last()
-                .expect("`cur_chain` always has at least one element");
+            let last = cur_chain.auths.last();
 
             let auths = self
                 .storage
@@ -321,7 +293,7 @@ where
             let converges_to_root = roots.contains(issued_by);
 
             if self_signed && converges_to_root && cur_chain.auths.len() > 1 {
-                terminated_chains.push(cur_chain.auths);
+                terminated_chains.push(cur_chain.auths.into());
             }
         }
 
@@ -365,9 +337,9 @@ where
     }
 
     /// Mark public key as revoked.
-    pub fn revoke(&mut self, revoke: Revocation) -> Result<(), TrustGraphError> {
-        Revocation::verify(&revoke)?;
+    pub fn revoke(&mut self, revocation: Revocation) -> Result<(), TrustGraphError> {
+        Revocation::verify(&revocation)?;
 
-        Ok(self.storage.revoke(revoke)?)
+        Ok(self.storage.revoke(revocation)?)
     }
 }

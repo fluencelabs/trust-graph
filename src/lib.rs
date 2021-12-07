@@ -29,6 +29,7 @@
 
 mod certificate;
 pub mod certificate_serde;
+mod chain;
 mod misc;
 mod public_key_hashable;
 mod revoke;

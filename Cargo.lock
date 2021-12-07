@@ -1593,6 +1593,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "nonempty"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9e591e719385e6ebaeb5ce5d3887f7d5676fceca6411d1925ccc95745f3d6f7"
+
+[[package]]
 name = "num-integer"
 version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2514,6 +2520,7 @@ dependencies = [
  "fluence-fork-libp2p-core",
  "fluence-keypair",
  "log",
+ "nonempty",
  "rand 0.7.3",
  "ref-cast",
  "serde",

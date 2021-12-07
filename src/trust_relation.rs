@@ -41,7 +41,7 @@ impl TrustRelation {
     pub fn issued_at(&self) -> Duration {
         match self {
             TrustRelation::Auth(auth) => auth.trust.issued_at,
-            TrustRelation::Revocation(revoke) => revoke.revoked_at,
+            TrustRelation::Revocation(r) => r.revoked_at,
         }
     }
 
@@ -49,20 +49,21 @@ impl TrustRelation {
     pub fn issued_by(&self) -> &PublicKey {
         match self {
             TrustRelation::Auth(auth) => &auth.issued_by,
-            TrustRelation::Revocation(revoke) => &revoke.revoked_by,
+            TrustRelation::Revocation(r) => &r.revoked_by,
         }
     }
 
     pub fn issued_for(&self) -> &PublicKey {
         match self {
             TrustRelation::Auth(auth) => &auth.trust.issued_for,
-            TrustRelation::Revocation(revoke) => &revoke.pk,
+            TrustRelation::Revocation(r) => &r.pk,
         }
     }
 
     pub fn expires_at(&self) -> Duration {
         match self {
             TrustRelation::Auth(auth) => auth.trust.expires_at,
+            // revocations never expire
             TrustRelation::Revocation(_) => Duration::from_secs(0),
         }
     }
@@ -70,7 +71,7 @@ impl TrustRelation {
     pub fn signature(&self) -> &Signature {
         match self {
             TrustRelation::Auth(auth) => &auth.trust.signature,
-            TrustRelation::Revocation(revoke) => &revoke.signature,
+            TrustRelation::Revocation(r) => &r.signature,
         }
     }
 }

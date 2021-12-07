@@ -98,7 +98,7 @@ impl Signature {
 
     pub fn get_raw_signature(&self) -> RawSignature {
         RawSignature {
-            bytes: self.to_vec().clone().to_vec(),
+            bytes: self.to_vec().to_vec(),
             sig_type: self.get_signature_type(),
         }
     }

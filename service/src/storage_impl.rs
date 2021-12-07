@@ -220,10 +220,9 @@ impl Storage for SQLiteStorage {
             .get_relations(issued_for, AUTH_TYPE)?
             .into_iter()
             .fold(vec![], |mut acc, r| {
-                match r {
-                    TrustRelation::Auth(a) => acc.push(a),
-                    _ => (),
-                };
+                if let TrustRelation::Auth(a) = r {
+                    acc.push(a);
+                }
 
                 acc
             }))
@@ -238,10 +237,9 @@ impl Storage for SQLiteStorage {
             .get_relations(issued_for, REVOCATION_TYPE)?
             .into_iter()
             .fold(vec![], |mut acc, r| {
-                match r {
-                    TrustRelation::Revocation(revocation) => acc.push(revocation),
-                    _ => (),
-                };
+                if let TrustRelation::Revocation(revocation) = r {
+                    acc.push(revocation);
+                }
 
                 acc
             }))
