@@ -33,7 +33,7 @@ pub struct Auth {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TrustRelation {
     Auth(Auth),
-    Revoke(Revocation),
+    Revocation(Revocation),
 }
 
 impl TrustRelation {
@@ -41,7 +41,7 @@ impl TrustRelation {
     pub fn issued_at(&self) -> Duration {
         match self {
             TrustRelation::Auth(auth) => auth.trust.issued_at,
-            TrustRelation::Revoke(revoke) => revoke.revoked_at,
+            TrustRelation::Revocation(revoke) => revoke.revoked_at,
         }
     }
 
@@ -49,28 +49,28 @@ impl TrustRelation {
     pub fn issued_by(&self) -> &PublicKey {
         match self {
             TrustRelation::Auth(auth) => &auth.issued_by,
-            TrustRelation::Revoke(revoke) => &revoke.revoked_by,
+            TrustRelation::Revocation(revoke) => &revoke.revoked_by,
         }
     }
 
     pub fn issued_for(&self) -> &PublicKey {
         match self {
             TrustRelation::Auth(auth) => &auth.trust.issued_for,
-            TrustRelation::Revoke(revoke) => &revoke.pk,
+            TrustRelation::Revocation(revoke) => &revoke.pk,
         }
     }
 
     pub fn expires_at(&self) -> Duration {
         match self {
             TrustRelation::Auth(auth) => auth.trust.expires_at,
-            TrustRelation::Revoke(_) => Duration::from_secs(0),
+            TrustRelation::Revocation(_) => Duration::from_secs(0),
         }
     }
 
     pub fn signature(&self) -> &Signature {
         match self {
             TrustRelation::Auth(auth) => &auth.trust.signature,
-            TrustRelation::Revoke(revoke) => &revoke.signature,
+            TrustRelation::Revocation(revoke) => &revoke.signature,
         }
     }
 }

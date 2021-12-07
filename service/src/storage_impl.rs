@@ -72,7 +72,7 @@ impl SQLiteStorage {
                 }
             }
 
-            Some(TrustRelation::Revoke(revoke)) => {
+            Some(TrustRelation::Revocation(revoke)) => {
                 if revoke.revoked_at < relation.issued_at() {
                     self.insert(relation)?;
                 }
@@ -143,7 +143,7 @@ fn parse_relation(row: &[Value]) -> Result<TrustRelation, SQLiteStorageError> {
             issued_by: issued_by.into(),
         }))
     } else {
-        Ok(TrustRelation::Revoke(Revocation {
+        Ok(TrustRelation::Revocation(Revocation {
             pk: issued_for.into(),
             revoked_at: issued_at,
             revoked_by: issued_by.into(),
@@ -227,7 +227,7 @@ impl Storage for SQLiteStorage {
         let mut auths: Vec<Revocation> = vec![];
 
         while let Some(row) = cursor.next()? {
-            if let TrustRelation::Revoke(auth) = parse_relation(row)? {
+            if let TrustRelation::Revocation(auth) = parse_relation(row)? {
                 auths.push(auth);
             }
         }
@@ -242,7 +242,7 @@ impl Storage for SQLiteStorage {
 
         let relation_type = match relation {
             TrustRelation::Auth(_) => AUTH_TYPE,
-            TrustRelation::Revoke(_) => REVOCATION_TYPE,
+            TrustRelation::Revocation(_) => REVOCATION_TYPE,
         };
 
         statement.bind(1, &Value::Integer(relation_type))?;
@@ -319,7 +319,7 @@ impl Storage for SQLiteStorage {
     }
 
     fn revoke(&mut self, revoke: Revocation) -> Result<(), Self::Error> {
-        self.update_relation(TrustRelation::Revoke(revoke))
+        self.update_relation(TrustRelation::Revocation(revoke))
     }
 
     fn update_auth(&mut self, auth: Auth, _cur_time: Duration) -> Result<(), Self::Error> {

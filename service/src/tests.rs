@@ -23,7 +23,7 @@ mod service_tests {
     use fluence_keypair::KeyPair;
     use libp2p_core::PeerId;
     use marine_rs_sdk::{CallParameters, SecurityTetraplet};
-    use marine_test_env::trust_graph::{Certificate, Revoke, ServiceInterface, Trust};
+    use marine_test_env::trust_graph::{Certificate, Revocation, ServiceInterface, Trust};
     use rusqlite::Connection;
     use std::collections::HashMap;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -200,7 +200,7 @@ mod service_tests {
         issuer_kp: &KeyPair,
         revoked_peer_id: &PeerId,
         revoked_at_sec: u64,
-    ) -> Revoke {
+    ) -> Revocation {
         let result = trust_graph.get_revoke_bytes(revoked_peer_id.to_base58(), revoked_at_sec);
         assert!(result.success, "{}", result.error);
 
@@ -214,14 +214,14 @@ mod service_tests {
         assert!(issue_result.success, "{}", issue_result.error);
 
         let revoke_result = trust_graph.revoke_cp(
-            issue_result.revoke.clone(),
+            issue_result.revocation.clone(),
             revoked_at_sec,
             get_correct_timestamp_cp(1),
         );
 
         assert!(revoke_result.success, "{}", revoke_result.error);
 
-        issue_result.revoke
+        issue_result.revocation
     }
 
     fn generate_trust_chain_with(
