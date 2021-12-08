@@ -337,6 +337,8 @@ where
     }
 
     /// Mark public key as revoked.
+    /// Every chain that contains path from `revoked_by` to revoked `pk`
+    /// will be excluded from valid certificates until revocation canceled by giving trust
     pub fn revoke(&mut self, revocation: Revocation) -> Result<(), TrustGraphError> {
         Revocation::verify(&revocation)?;
 

@@ -436,41 +436,43 @@ mod service_tests {
         assert_eq!(certs.len(), 0);
     }
 
+    ///
     #[test]
-    fn revoke_test() {
+    fn trust_direct_revoke_test() {
         let mut trust_graph = marine_test_env::trust_graph::ServiceInterface::new();
         clear_env();
 
-        let root_kp = KeyPair::generate_ed25519();
+        let peerA_kp = KeyPair::generate_ed25519();
         let mut cur_time = 100u64;
-        add_root_with_trust(&mut trust_graph, &root_kp, cur_time, cur_time + 9999, 4u32);
+        add_root_with_trust(&mut trust_graph, &peerA_kp, cur_time, cur_time + 9999, 4u32);
 
-        let trust_kp = KeyPair::generate_ed25519();
+        let peerB_kp = KeyPair::generate_ed25519();
         add_trust(
             &mut trust_graph,
-            &root_kp,
-            &trust_kp.get_peer_id(),
+            &peerA_kp,
+            &peerB_kp.get_peer_id(),
             cur_time,
             cur_time + 99999,
         );
 
-        let weight = get_weight(&mut trust_graph, trust_kp.get_peer_id(), cur_time);
+        let weight = get_weight(&mut trust_graph, peerB_kp.get_peer_id(), cur_time);
         assert_ne!(weight, 0u32);
 
         cur_time += 1;
+        // A revokes B and cancels trust
         revoke(
             &mut trust_graph,
-            &root_kp,
-            &trust_kp.get_peer_id(),
+            &peerA_kp,
+            &peerB_kp.get_peer_id(),
             cur_time,
         );
 
-        let weight = get_weight(&mut trust_graph, trust_kp.get_peer_id(), cur_time);
+        let weight = get_weight(&mut trust_graph, peerB_kp.get_peer_id(), cur_time);
         assert_eq!(weight, 0u32);
     }
 
     #[test]
-    fn revoke_test_updated() {
+    fn indirect_revoke_test() {
         let mut trust_graph = marine_test_env::trust_graph::ServiceInterface::new();
         clear_env();
 
