@@ -436,7 +436,10 @@ mod service_tests {
         assert_eq!(certs.len(), 0);
     }
 
-    ///
+    /// 1. peer `A` gives trusts to `B`
+    /// 2. weight of `B` is not 0
+    /// 3. peer `A` revokes `B`
+    /// 4. there is no path from `A` to `B`, weight of `A` is 0
     #[test]
     fn trust_direct_revoke_test() {
         let mut trust_graph = marine_test_env::trust_graph::ServiceInterface::new();
@@ -471,6 +474,12 @@ mod service_tests {
         assert_eq!(weight, 0u32);
     }
 
+    /// There is chain of trusts [0] -> [1] -> [2] -> [3] -> [4]
+    /// 1. [1] revokes [4]
+    /// 2. there is no path from [0] to [4], weight of [4] is 0
+    /// 3. [0] gives trust to [2]
+    /// 4. now there is path [0] -> [2] -> [3] -> [4]
+    /// 5. weight of [4] is not 0
     #[test]
     fn indirect_revoke_test() {
         let mut trust_graph = marine_test_env::trust_graph::ServiceInterface::new();
