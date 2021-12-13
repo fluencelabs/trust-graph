@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-use crate::revoke::Revoke;
+use crate::revoke::Revocation;
 use crate::trust::Trust;
 use failure::_core::time::Duration;
 use fluence_keypair::public_key::PublicKey;
@@ -33,7 +33,7 @@ pub struct Auth {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TrustRelation {
     Auth(Auth),
-    Revoke(Revoke),
+    Revocation(Revocation),
 }
 
 impl TrustRelation {
@@ -41,7 +41,7 @@ impl TrustRelation {
     pub fn issued_at(&self) -> Duration {
         match self {
             TrustRelation::Auth(auth) => auth.trust.issued_at,
-            TrustRelation::Revoke(revoke) => revoke.revoked_at,
+            TrustRelation::Revocation(r) => r.revoked_at,
         }
     }
 
@@ -49,28 +49,29 @@ impl TrustRelation {
     pub fn issued_by(&self) -> &PublicKey {
         match self {
             TrustRelation::Auth(auth) => &auth.issued_by,
-            TrustRelation::Revoke(revoke) => &revoke.revoked_by,
+            TrustRelation::Revocation(r) => &r.revoked_by,
         }
     }
 
     pub fn issued_for(&self) -> &PublicKey {
         match self {
             TrustRelation::Auth(auth) => &auth.trust.issued_for,
-            TrustRelation::Revoke(revoke) => &revoke.pk,
+            TrustRelation::Revocation(r) => &r.pk,
         }
     }
 
     pub fn expires_at(&self) -> Duration {
         match self {
             TrustRelation::Auth(auth) => auth.trust.expires_at,
-            TrustRelation::Revoke(_) => Duration::from_secs(0),
+            // revocations never expire
+            TrustRelation::Revocation(_) => Duration::from_secs(0),
         }
     }
 
     pub fn signature(&self) -> &Signature {
         match self {
             TrustRelation::Auth(auth) => &auth.trust.signature,
-            TrustRelation::Revoke(revoke) => &revoke.signature,
+            TrustRelation::Revocation(r) => &r.signature,
         }
     }
 }

@@ -17,12 +17,12 @@ use std::str::FromStr;
 use std::time::Duration;
 use thiserror::Error as ThisError;
 use trust_graph::{
-    Auth, PublicKeyHashable as PK, PublicKeyHashable, Revoke, Storage, StorageError, Trust,
+    Auth, PublicKeyHashable as PK, PublicKeyHashable, Revocation, Storage, StorageError, Trust,
     TrustRelation, WeightFactor,
 };
 
 static AUTH_TYPE: i64 = 0;
-static REVOKE_TYPE: i64 = 1;
+static REVOCATION_TYPE: i64 = 1;
 pub static DB_PATH: &str = "/tmp/trust-graph.sqlite";
 
 pub fn create_tables() {
@@ -72,7 +72,7 @@ impl SQLiteStorage {
                 }
             }
 
-            Some(TrustRelation::Revoke(revoke)) => {
+            Some(TrustRelation::Revocation(revoke)) => {
                 if revoke.revoked_at < relation.issued_at() {
                     self.insert(relation)?;
                 }
@@ -84,6 +84,35 @@ impl SQLiteStorage {
         }
 
         Ok(())
+    }
+
+    fn get_relations(
+        &self,
+        issued_for: &PublicKeyHashable,
+        relation_type: i64,
+    ) -> Result<Vec<TrustRelation>, SQLiteStorageError> {
+        let mut cursor = self
+            .connection
+            .prepare(
+                "SELECT relation_type, issued_for, issued_by, issued_at, expires_at, signature \
+             FROM trust_relations WHERE issued_for = ? and relation_type = ?",
+            )?
+            .cursor();
+
+        cursor.bind(&[
+            Value::String(format!("{}", issued_for)),
+            Value::Integer(relation_type),
+        ])?;
+        let mut relations: Vec<TrustRelation> = vec![];
+
+        while let Some(row) = cursor.next()? {
+            match parse_relation(row) {
+                Ok(r) => relations.push(r),
+                Err(e) => log::error!("parse_relation: {:?}", e),
+            }
+        }
+
+        Ok(relations)
     }
 }
 
@@ -143,7 +172,7 @@ fn parse_relation(row: &[Value]) -> Result<TrustRelation, SQLiteStorageError> {
             issued_by: issued_by.into(),
         }))
     } else {
-        Ok(TrustRelation::Revoke(Revoke {
+        Ok(TrustRelation::Revocation(Revocation {
             pk: issued_for.into(),
             revoked_at: issued_at,
             revoked_by: issued_by.into(),
@@ -189,25 +218,34 @@ impl Storage for SQLiteStorage {
     }
 
     /// return all auths issued for pk
-    fn get_authorizations(&self, pk: &PublicKeyHashable) -> Result<Vec<Auth>, Self::Error> {
-        let mut cursor = self
-            .connection
-            .prepare(
-                "SELECT relation_type, issued_for, issued_by, issued_at, expires_at, signature \
-             FROM trust_relations WHERE issued_for = ? and relation_type = ?",
-            )?
-            .cursor();
+    fn get_authorizations(&self, issued_for: &PublicKeyHashable) -> Result<Vec<Auth>, Self::Error> {
+        Ok(self
+            .get_relations(issued_for, AUTH_TYPE)?
+            .into_iter()
+            .fold(vec![], |mut acc, r| {
+                if let TrustRelation::Auth(a) = r {
+                    acc.push(a);
+                }
 
-        cursor.bind(&[Value::String(format!("{}", pk)), Value::Integer(AUTH_TYPE)])?;
-        let mut auths: Vec<Auth> = vec![];
+                acc
+            }))
+    }
 
-        while let Some(row) = cursor.next()? {
-            if let TrustRelation::Auth(auth) = parse_relation(row)? {
-                auths.push(auth);
-            }
-        }
+    /// return all revocations issued for pk
+    fn get_revocations(
+        &self,
+        issued_for: &PublicKeyHashable,
+    ) -> Result<Vec<Revocation>, Self::Error> {
+        Ok(self
+            .get_relations(issued_for, REVOCATION_TYPE)?
+            .into_iter()
+            .fold(vec![], |mut acc, r| {
+                if let TrustRelation::Revocation(revocation) = r {
+                    acc.push(revocation);
+                }
 
-        Ok(auths)
+                acc
+            }))
     }
 
     fn insert(&mut self, relation: TrustRelation) -> Result<(), Self::Error> {
@@ -217,7 +255,7 @@ impl Storage for SQLiteStorage {
 
         let relation_type = match relation {
             TrustRelation::Auth(_) => AUTH_TYPE,
-            TrustRelation::Revoke(_) => REVOKE_TYPE,
+            TrustRelation::Revocation(_) => REVOCATION_TYPE,
         };
 
         statement.bind(1, &Value::Integer(relation_type))?;
@@ -293,8 +331,8 @@ impl Storage for SQLiteStorage {
         Ok(roots)
     }
 
-    fn revoke(&mut self, revoke: Revoke) -> Result<(), Self::Error> {
-        self.update_relation(TrustRelation::Revoke(revoke))
+    fn revoke(&mut self, revoke: Revocation) -> Result<(), Self::Error> {
+        self.update_relation(TrustRelation::Revocation(revoke))
     }
 
     fn update_auth(&mut self, auth: Auth, _cur_time: Duration) -> Result<(), Self::Error> {

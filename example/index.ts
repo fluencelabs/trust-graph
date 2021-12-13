@@ -65,7 +65,7 @@ async function revoke_helper(node: string, issuer_kp: KeyPair, revoked_by_peer_i
     let revocation = await tg.issue_revocation(node, revoked_peer_id, revoked_by_peer_id, revoked_at_sec, Array.from(signed_metadata));
     assert(revocation.success)
 
-    let result_add = await tg.revoke(node, revocation.revoke);
+    let result_add = await tg.revoke(node, revocation.revocation);
     assert(result_add.success)
 }
 

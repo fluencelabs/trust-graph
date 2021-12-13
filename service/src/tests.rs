@@ -23,7 +23,7 @@ mod service_tests {
     use fluence_keypair::KeyPair;
     use libp2p_core::PeerId;
     use marine_rs_sdk::{CallParameters, SecurityTetraplet};
-    use marine_test_env::trust_graph::{Certificate, Revoke, ServiceInterface, Trust};
+    use marine_test_env::trust_graph::{Certificate, Revocation, ServiceInterface, Trust};
     use rusqlite::Connection;
     use std::collections::HashMap;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -200,7 +200,7 @@ mod service_tests {
         issuer_kp: &KeyPair,
         revoked_peer_id: &PeerId,
         revoked_at_sec: u64,
-    ) -> Revoke {
+    ) -> Revocation {
         let result = trust_graph.get_revoke_bytes(revoked_peer_id.to_base58(), revoked_at_sec);
         assert!(result.success, "{}", result.error);
 
@@ -214,14 +214,14 @@ mod service_tests {
         assert!(issue_result.success, "{}", issue_result.error);
 
         let revoke_result = trust_graph.revoke_cp(
-            issue_result.revoke.clone(),
+            issue_result.revocation.clone(),
             revoked_at_sec,
             get_correct_timestamp_cp(1),
         );
 
         assert!(revoke_result.success, "{}", revoke_result.error);
 
-        issue_result.revoke
+        issue_result.revocation
     }
 
     fn generate_trust_chain_with(
@@ -436,37 +436,96 @@ mod service_tests {
         assert_eq!(certs.len(), 0);
     }
 
+    /// 1. peer `A` gives trusts to `B`
+    /// 2. weight of `B` is not 0
+    /// 3. peer `A` revokes `B`
+    /// 4. there is no path from `A` to `B`, weight of `A` is 0
     #[test]
-    fn revoke_test() {
+    fn trust_direct_revoke_test() {
         let mut trust_graph = marine_test_env::trust_graph::ServiceInterface::new();
         clear_env();
 
-        let root_kp = KeyPair::generate_ed25519();
+        let peerA_kp = KeyPair::generate_ed25519();
         let mut cur_time = 100u64;
-        add_root_with_trust(&mut trust_graph, &root_kp, cur_time, cur_time + 9999, 4u32);
+        add_root_with_trust(&mut trust_graph, &peerA_kp, cur_time, cur_time + 9999, 4u32);
 
-        let trust_kp = KeyPair::generate_ed25519();
+        let peerB_kp = KeyPair::generate_ed25519();
         add_trust(
             &mut trust_graph,
-            &root_kp,
-            &trust_kp.get_peer_id(),
+            &peerA_kp,
+            &peerB_kp.get_peer_id(),
             cur_time,
             cur_time + 99999,
         );
 
-        let weight = get_weight(&mut trust_graph, trust_kp.get_peer_id(), cur_time);
+        let weight = get_weight(&mut trust_graph, peerB_kp.get_peer_id(), cur_time);
         assert_ne!(weight, 0u32);
 
         cur_time += 1;
+        // A revokes B and cancels trust
         revoke(
             &mut trust_graph,
-            &root_kp,
-            &trust_kp.get_peer_id(),
+            &peerA_kp,
+            &peerB_kp.get_peer_id(),
             cur_time,
         );
 
-        let weight = get_weight(&mut trust_graph, trust_kp.get_peer_id(), cur_time);
+        let weight = get_weight(&mut trust_graph, peerB_kp.get_peer_id(), cur_time);
         assert_eq!(weight, 0u32);
+    }
+
+    /// There is chain of trusts [0] -> [1] -> [2] -> [3] -> [4]
+    /// 1. [1] revokes [4]
+    /// 2. there is no path from [0] to [4], weight of [4] is 0
+    /// 3. [0] gives trust to [2]
+    /// 4. now there is path [0] -> [2] -> [3] -> [4]
+    /// 5. weight of [4] is not 0
+    #[test]
+    fn indirect_revoke_test() {
+        let mut trust_graph = marine_test_env::trust_graph::ServiceInterface::new();
+        clear_env();
+
+        let (key_pairs, trusts) =
+            generate_trust_chain_with_len(&mut trust_graph, 5, HashMap::new());
+        let mut cur_time = current_time();
+
+        let root_peer_id = key_pairs[0].get_peer_id();
+        add_root_peer_id(&mut trust_graph, root_peer_id, 2);
+        add_trusts(&mut trust_graph, &trusts, cur_time);
+
+        let target_peer_id = key_pairs[4].get_peer_id();
+        let revoked_by = &key_pairs[1];
+        let weight = get_weight(&mut trust_graph, target_peer_id, cur_time);
+        assert_ne!(weight, 0u32);
+
+        cur_time += 1;
+        // [1] revokes [4]
+        revoke(&mut trust_graph, &revoked_by, &target_peer_id, cur_time);
+
+        // now there are no path from root to [4]
+        let weight = get_weight(&mut trust_graph, target_peer_id, cur_time);
+        assert_eq!(weight, 0u32);
+
+        // [0] trusts [2]
+        add_trust(
+            &mut trust_graph,
+            &key_pairs[0],
+            &key_pairs[2].get_peer_id(),
+            cur_time,
+            cur_time + 99999,
+        );
+        // [2] trusts [4]
+        add_trust(
+            &mut trust_graph,
+            &key_pairs[2],
+            &target_peer_id,
+            cur_time,
+            cur_time + 99999,
+        );
+
+        // now we have [0] -> [2] -> [4] path
+        let weight = get_weight(&mut trust_graph, target_peer_id, cur_time);
+        assert_ne!(weight, 0u32);
     }
 
     #[test]

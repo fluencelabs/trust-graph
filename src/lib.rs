@@ -29,6 +29,7 @@
 
 mod certificate;
 pub mod certificate_serde;
+mod chain;
 mod misc;
 mod public_key_hashable;
 mod revoke;
@@ -40,7 +41,7 @@ mod trust_relation;
 pub use crate::certificate::{Certificate, CertificateError};
 pub use crate::misc::current_time;
 pub use crate::public_key_hashable::PublicKeyHashable;
-pub use crate::revoke::Revoke;
+pub use crate::revoke::Revocation;
 pub use crate::trust::{Trust, TrustError};
 pub use crate::trust_graph::{TrustGraph, TrustGraphError, WeightFactor, MAX_WEIGHT_FACTOR};
 pub use crate::trust_graph_storage::{Storage, StorageError};

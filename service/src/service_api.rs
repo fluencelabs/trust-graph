@@ -1,4 +1,4 @@
-use crate::dto::{Certificate, Revoke, Trust};
+use crate::dto::{Certificate, Revocation, Trust};
 use crate::error::ServiceError;
 use crate::misc::{check_timestamp_tetraplets, extract_public_key, with_tg, wrapped_try};
 use crate::results::{
@@ -201,7 +201,7 @@ fn add_trust(trust: Trust, issuer_peer_id: String, timestamp_sec: u64) -> AddTru
 fn get_revoke_bytes(revoked_peer_id: String, revoked_at: u64) -> GetRevokeBytesResult {
     wrapped_try(|| {
         let public_key = extract_public_key(revoked_peer_id)?;
-        Ok(trust_graph::Revoke::signature_bytes(
+        Ok(trust_graph::Revocation::signature_bytes(
             &public_key,
             Duration::from_secs(revoked_at),
         ))
@@ -222,13 +222,13 @@ fn issue_revocation(
 
         let revoked_at = Duration::from_secs(revoked_at_sec);
         let signature = Signature::from_bytes(revoked_by_pk.get_key_format(), signature_bytes);
-        Ok(trust_graph::Revoke::new(revoked_pk, revoked_by_pk, revoked_at, signature).into())
+        Ok(trust_graph::Revocation::new(revoked_pk, revoked_by_pk, revoked_at, signature).into())
     })
     .into()
 }
 
 #[marine]
-fn revoke(revoke: Revoke, timestamp_sec: u64) -> RevokeResult {
+fn revoke(revoke: Revocation, timestamp_sec: u64) -> RevokeResult {
     with_tg(|tg| {
         check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
 

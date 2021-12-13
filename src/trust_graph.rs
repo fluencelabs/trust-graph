@@ -16,8 +16,9 @@
 
 use crate::certificate::CertificateError::CertificateLengthError;
 use crate::certificate::{Certificate, CertificateError};
+use crate::chain::Chain;
 use crate::public_key_hashable::PublicKeyHashable as PK;
-use crate::revoke::Revoke;
+use crate::revoke::Revocation;
 use crate::revoke::RevokeError;
 use crate::trust::Trust;
 use crate::trust_graph::TrustGraphError::{
@@ -27,6 +28,7 @@ use crate::trust_graph_storage::Storage;
 use crate::trust_relation::Auth;
 use crate::{StorageError, TrustError};
 use fluence_keypair::public_key::PublicKey;
+use nonempty::NonEmpty;
 use std::borrow::Borrow;
 use std::collections::{HashSet, VecDeque};
 use std::convert::{From, Into};
@@ -93,7 +95,7 @@ impl From<TrustGraphError> for String {
 }
 
 pub fn get_weight_from_factor(wf: WeightFactor) -> u32 {
-    2u32.pow(MAX_WEIGHT_FACTOR.checked_sub(wf).unwrap_or(0u32))
+    2u32.pow(MAX_WEIGHT_FACTOR.saturating_sub(wf))
 }
 
 impl<S> TrustGraph<S>
@@ -245,12 +247,14 @@ where
         roots: HashSet<&PK>,
     ) -> Result<Vec<Vec<Auth>>, TrustGraphError> {
         // queue to collect all chains in the trust graph (each chain is a path in the trust graph)
-        let mut chains_queue: VecDeque<Vec<Auth>> = VecDeque::new();
+        let mut chains_queue: VecDeque<Chain> = VecDeque::new();
 
         let node_auths: Vec<Auth> = self.storage.get_authorizations(pk)?;
+        let node_revocations = self.storage.get_revocations(pk)?;
+
         // put all auth in the queue as the first possible paths through the graph
         for auth in node_auths {
-            chains_queue.push_back(vec![auth]);
+            chains_queue.push_back(Chain::new(NonEmpty::new(auth), node_revocations.clone()));
         }
 
         // List of all chains that converge (terminate) to known roots
@@ -261,22 +265,21 @@ where
                 .pop_front()
                 .expect("`chains_queue` always has at least one element");
 
-            let last = cur_chain
-                .last()
-                .expect("`cur_chain` always has at least one element");
+            let last = cur_chain.auths.last();
 
             let auths = self
                 .storage
                 .get_authorizations(&last.issued_by.clone().into())?;
 
             for auth in auths {
-                // if there is auth, that we not visited in the current chain, copy chain and append this auth
-                if !cur_chain
-                    .iter()
-                    .any(|a| a.trust.issued_for == auth.issued_by)
-                {
+                // if there is auth, that we not visited in the current chain and no revocations to any chain member --  copy chain and append this auth
+                if cur_chain.can_be_extended_by(&auth.issued_by) {
                     let mut new_chain = cur_chain.clone();
-                    new_chain.push(auth);
+                    new_chain.add_revocations(
+                        self.storage
+                            .get_revocations(&auth.issued_by.clone().into())?,
+                    );
+                    new_chain.auths.push(auth);
                     chains_queue.push_back(new_chain);
                 }
             }
@@ -289,8 +292,8 @@ where
             let issued_by: &PK = last.issued_by.as_ref();
             let converges_to_root = roots.contains(issued_by);
 
-            if self_signed && converges_to_root && cur_chain.len() > 1 {
-                terminated_chains.push(cur_chain);
+            if self_signed && converges_to_root && cur_chain.auths.len() > 1 {
+                terminated_chains.push(cur_chain.auths.into());
             }
         }
 
@@ -334,9 +337,11 @@ where
     }
 
     /// Mark public key as revoked.
-    pub fn revoke(&mut self, revoke: Revoke) -> Result<(), TrustGraphError> {
-        Revoke::verify(&revoke)?;
+    /// Every chain that contains path from `revoked_by` to revoked `pk`
+    /// will be excluded from valid certificates until revocation canceled by giving trust
+    pub fn revoke(&mut self, revocation: Revocation) -> Result<(), TrustGraphError> {
+        Revocation::verify(&revocation)?;
 
-        Ok(self.storage.revoke(revoke)?)
+        Ok(self.storage.revoke(revocation)?)
     }
 }
