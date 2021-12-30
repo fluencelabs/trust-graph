@@ -1,10 +1,13 @@
-import get_trust_bytes, issue_trust, verify_trust, add_trust, add_root, get_weight, get_all_certs, insert_cert, get_revoke_bytes, issue_revocation, revoke, isFluencePeer from "../../aqua/trust-graph-api.aqua"
+import "@fluencelabs/trust-graph/export.aqua"
 
-export get_trust_bytes, issue_trust, verify_trust, add_trust, add_root, get_weight, get_all_certs, insert_cert, get_revoke_bytes, issue_revocation, revoke, isFluencePeer
+export issue_trust_wrapped as issue_trust, verify_trust_wrapped as verify_trust, add_trust_wrapped as add_trust, import_trust_wrapped as import_trust
+export add_root_trust_wrapped as add_root_trust, add_root_wrapped as add_root, get_weight_wrapped as get_weight, get_all_certs_wrapped as get_all_certs, insert_cert_wrapped as insert_cert
+export issue_revocation_wrapped as issue_revocation, revoke_wrapped as revoke, isFluencePeer_wrapped as isFluencePeer
 
-import "@fluencelabs/aqua-lib/builtin.aqua"
+import Peer from "@fluencelabs/aqua-lib/builtin.aqua"
 
-func timestamp_sec(node: string) -> u64:
-    on node:
+func timestamp_sec() -> u64:
+    on HOST_PEER_ID:
         result <- Peer.timestamp_sec()
     <- result
+

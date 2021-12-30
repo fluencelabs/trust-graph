@@ -321,7 +321,6 @@ impl Storage for SQLiteStorage {
         let mut roots = vec![];
 
         while let Some(row) = cursor.next()? {
-            log::info!("row: {:?}", row);
             let pk = row[0].as_string().ok_or(PublicKeyConversion)?;
             let pk: PK = PK::from_str(pk).map_err(|e| PublicKeyFromStr(e.to_string()))?;
 

@@ -13,9 +13,9 @@
   "author": "Fluence Labs",
   "license": "MIT",
   "dependencies": {
-    "@fluencelabs/aqua": "0.5.0-247",
-    "@fluencelabs/aqua-lib": "0.2.1",
-    "@fluencelabs/fluence": "0.15.1",
+    "@fluencelabs/aqua": "file:../../aqua/npm",
+    "@fluencelabs/aqua-lib": "^0.3.1",
+    "@fluencelabs/fluence": "0.0.1-update-avm-to-0-19-8-612.0",
     "@fluencelabs/fluence-network-environment": "^1.0.10",
     "@fluencelabs/trust-graph": "file:../aqua",
     "bs58": "^4.0.1"

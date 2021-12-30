@@ -201,7 +201,7 @@ mod service_tests {
         revoked_peer_id: &PeerId,
         revoked_at_sec: u64,
     ) -> Revocation {
-        let result = trust_graph.get_revoke_bytes(revoked_peer_id.to_base58(), revoked_at_sec);
+        let result = trust_graph.get_revocation_bytes(revoked_peer_id.to_base58(), revoked_at_sec);
         assert!(result.success, "{}", result.error);
 
         let revoke_bytes = issuer_kp.sign(&result.result).unwrap().to_vec().to_vec();

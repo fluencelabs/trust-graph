@@ -198,7 +198,7 @@ fn add_trust(trust: Trust, issuer_peer_id: String, timestamp_sec: u64) -> AddTru
 }
 
 #[marine]
-fn get_revoke_bytes(revoked_peer_id: String, revoked_at: u64) -> GetRevokeBytesResult {
+fn get_revocation_bytes(revoked_peer_id: String, revoked_at: u64) -> GetRevokeBytesResult {
     wrapped_try(|| {
         let public_key = extract_public_key(revoked_peer_id)?;
         Ok(trust_graph::Revocation::signature_bytes(
