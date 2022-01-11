@@ -31,6 +31,6 @@
   },
   "homepage": "https://github.com/fluencelabs/trust-graph#readme",
   "devDependencies": {
-    "@fluencelabs/aqua": "file:../../aqua/npm"
+    "@fluencelabs/aqua": "^0.5.2-257"
   }
 }
