@@ -157,13 +157,3 @@ func isFluencePeer() -> ?bool, ?string:
     else:
         error <<- certs_result.error
     <- result, error
-
--- labels: example with 3 node trusts/revocations, execution of some conditional code
--- weights:
---    if registry is ready:
---      - can't add record
---      - after issuing trust you can
---    if not:
---      - price-oracle average: on local tg get weight, check tetraplets, calculate average, etc
--- weights: demo with connectivity [later]
--- permissions control - registry
