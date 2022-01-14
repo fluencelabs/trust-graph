@@ -1193,7 +1193,7 @@ checksum = "f98a04dce437184842841303488f70d0188c5f51437d2a834dc097eafa909a01"
 [[package]]
 name = "libp2p-core"
 version = "0.31.0"
-source = "git+https://github.com/fluencelabs/rust-libp2p?branch=local_closest_peers#dbe55b2996c0f80f5f4eb6151109bbc1064aae3b"
+source = "git+https://github.com/fluencelabs/rust-libp2p?branch=libp2p_core_disable_default_features#27cff9445797f95b36607dd763ce18cf3833653c"
 dependencies = [
  "asn1_der 0.7.5",
  "bs58 0.4.0",
@@ -1666,7 +1666,7 @@ dependencies = [
 [[package]]
 name = "multistream-select"
 version = "0.11.0"
-source = "git+https://github.com/fluencelabs/rust-libp2p?branch=local_closest_peers#dbe55b2996c0f80f5f4eb6151109bbc1064aae3b"
+source = "git+https://github.com/fluencelabs/rust-libp2p?branch=libp2p_core_disable_default_features#27cff9445797f95b36607dd763ce18cf3833653c"
 dependencies = [
  "bytes",
  "futures",

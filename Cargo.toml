@@ -32,4 +32,4 @@ members = [
 ]
 
 [patch.crates-io]
-libp2p-core = { git = "https://github.com/fluencelabs/rust-libp2p", branch = "local_closest_peers" }
+libp2p-core = { git = "https://github.com/fluencelabs/rust-libp2p", branch = "libp2p_core_disable_default_features" }
