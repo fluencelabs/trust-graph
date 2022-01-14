@@ -1163,9 +1163,8 @@ checksum = "f98a04dce437184842841303488f70d0188c5f51437d2a834dc097eafa909a01"
 
 [[package]]
 name = "libp2p-core"
-version = "0.30.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bef22d9bba1e8bcb7ec300073e6802943fe8abb8190431842262b5f1c30abba1"
+version = "0.30.1"
+source = "git+https://github.com/fluencelabs/rust-libp2p?branch=upstream_master#e93321fb266c09ffe57bdc565483b51f6cbda33f"
 dependencies = [
  "asn1_der 0.7.5",
  "bs58 0.4.0",
@@ -1174,6 +1173,7 @@ dependencies = [
  "fnv",
  "futures",
  "futures-timer",
+ "instant",
  "lazy_static",
  "libsecp256k1 0.7.0",
  "log",
@@ -1637,8 +1637,7 @@ dependencies = [
 [[package]]
 name = "multistream-select"
 version = "0.10.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56a336acba8bc87c8876f6425407dbbe6c417bf478b22015f8fb0994ef3bc0ab"
+source = "git+https://github.com/fluencelabs/rust-libp2p?branch=upstream_master#e93321fb266c09ffe57bdc565483b51f6cbda33f"
 dependencies = [
  "bytes",
  "futures",
