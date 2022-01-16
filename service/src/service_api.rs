@@ -71,17 +71,40 @@ fn get_certs(
     tg: &mut TrustGraph<SQLiteStorage>,
     issued_for: String,
     timestamp_sec: u64,
-) -> Result<impl Iterator<Item = Certificate>, ServiceError> {
+) -> Result<Vec<Certificate>, ServiceError> {
     let public_key = extract_public_key(issued_for)?;
     let certs = tg.get_all_certs(public_key, Duration::from_secs(timestamp_sec))?;
-    Ok(certs.into_iter().map(|c| c.into()))
+    Ok(certs.into_iter().map(|c| c.into()).collect())
+}
+
+fn get_certs_from(
+    tg: &mut TrustGraph<SQLiteStorage>,
+    issued_for: String,
+    issuer: String,
+    timestamp_sec: u64,
+) -> Result<Vec<Certificate>, ServiceError> {
+    let issued_for_pk = extract_public_key(issued_for)?;
+    let issuer_pk = extract_public_key(issuer)?;
+    let certs =
+        tg.get_all_certs_from(issued_for_pk, issuer_pk, Duration::from_secs(timestamp_sec))?;
+    Ok(certs.into_iter().map(|c| c.into()).collect())
 }
 
 #[marine]
 fn get_all_certs(issued_for: String, timestamp_sec: u64) -> AllCertsResult {
     with_tg(|tg| {
         check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
-        get_certs(tg, issued_for, timestamp_sec).map(|iter| iter.collect())
+        get_certs(tg, issued_for, timestamp_sec)
+    })
+    .into()
+}
+
+#[marine]
+fn get_all_certs_from(issued_for: String, issuer: String, timestamp_sec: u64) -> AllCertsResult {
+    with_tg(|tg| {
+        let cp = get_call_parameters();
+        check_timestamp_tetraplets(&cp, 1)?;
+        get_certs_from(tg, issued_for, issuer, timestamp_sec)
     })
     .into()
 }
@@ -91,7 +114,7 @@ fn get_host_certs(timestamp_sec: u64) -> AllCertsResult {
     with_tg(|tg| {
         let cp = marine_rs_sdk::get_call_parameters();
         check_timestamp_tetraplets(&cp, 0)?;
-        get_certs(tg, cp.host_id, timestamp_sec).map(|iter| iter.collect())
+        get_certs(tg, cp.host_id, timestamp_sec)
     })
     .into()
 }
@@ -101,10 +124,7 @@ fn get_host_certs_from(issuer: String, timestamp_sec: u64) -> AllCertsResult {
     with_tg(|tg| {
         let cp = get_call_parameters();
         check_timestamp_tetraplets(&cp, 1)?;
-        get_certs(tg, cp.host_id, timestamp_sec).map(|c| {
-            c.filter(|cert: &Certificate| cert.chain.iter().any(|t| t.issued_for == issuer))
-                .collect()
-        })
+        get_certs_from(tg, cp.host_id, issuer, timestamp_sec)
     })
     .into()
 }
@@ -115,6 +135,20 @@ fn get_weight(peer_id: String, timestamp_sec: u64) -> WeightResult {
         check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
         let public_key = extract_public_key(peer_id.clone())?;
         let weight = tg.weight(public_key, Duration::from_secs(timestamp_sec))?;
+        Ok(weight)
+    })
+    .map(|w| (w, peer_id))
+    .into()
+}
+
+#[marine]
+fn get_weight_from(peer_id: String, issuer: String, timestamp_sec: u64) -> WeightResult {
+    with_tg(|tg| {
+        check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
+        let issued_for_pk = extract_public_key(peer_id.clone())?;
+        let issuer_pk = extract_public_key(issuer)?;
+        let weight =
+            tg.weight_from(issued_for_pk, issuer_pk, Duration::from_secs(timestamp_sec))?;
         Ok(weight)
     })
     .map(|w| (w, peer_id))

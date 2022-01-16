@@ -13,12 +13,15 @@ service TrustedComputation("op"):
 
 func trusted_computation(node: string) -> ?u64:
     result: ?u64
-    on node:
-        certs_result <- get_host_certs_from(%init_peer_id%)
+    -- on our trusted relay
+    on HOST_PEER_ID:
+        -- get all certificates issued for given node by our client's peer id
+        certs_result <- get_all_certs_from(node, %init_peer_id%)
         if certs_result.success:
             len <- CertOp.array_length(certs_result.certificates)
-
-            if len != 0:
-                result <- TrustedComputation.identity(5)
+    -- if there is any certificate node is trusted and computation is possible
+    if len != 0:
+        on node:
+            result <- TrustedComputation.identity(5)
 
     <- result

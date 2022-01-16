@@ -19,6 +19,7 @@ import * as tg from "./generated/export";
 import {Fluence, FluencePeer, KeyPair} from "@fluencelabs/fluence";
 import {krasnodar, Node, testNet, stage} from "@fluencelabs/fluence-network-environment";
 import assert from "assert";
+import {add_root_trust} from "./generated/export";
 const bs58 = require('bs58');
 
 let local: Node[] = [
@@ -39,47 +40,34 @@ let local: Node[] = [
     },
 ];
 
-async function add_roots() {
-    let current_time = await tg.timestamp_sec();
-    let far_future = current_time + 9999999;
+async function revoke_all(relay: string) {
     for (var node of local) {
-        let error = await tg.add_root_trust(node.peerId, 2, far_future);
-        console.log("Added root trust for %s", node.peerId)
+        let error = await tg.revoke(relay, node.peerId);
         assert(error == null);
     }
 }
-
-async function is_fluence_peer(node: string) {
-   let [result, error] =  await tg.isFluencePeer(node);
-
-   console.log("%s %s", result, error);
-   if (error !== null) {
-       console.error("Something went wrong: %s", error);
-   } else {
-       assert(result !== null);
-       if (result) {
-           console.log("Current relay %s identified as Fluence Labs' peer", Fluence.getStatus().relayPeerId)
-       } else {
-           console.log("Current relay %s is not Fluence Labs' peer", Fluence.getStatus().relayPeerId)
-       }
-   }
+async function add_root(relay: string) {
+    let current_time = await tg.timestamp_sec();
+    let far_future = current_time + 9999999;
+    let error = await tg.add_root_trust(relay, 2, far_future);
+    assert(error == null);
 }
 
-async function add_new_trust_checked(node: string, issued_for_peer_id: string, expires_at_sec: number) {
-    let error = await tg.add_trust(node, issued_for_peer_id, expires_at_sec);
+async function add_new_trust_checked(relay: string, issued_for_peer_id: string, expires_at_sec: number) {
+    let error = await tg.add_trust(relay, issued_for_peer_id, expires_at_sec);
     if (error !== null) {
         console.error("%s", error);
     } else {
-        console.log("Trust to node %s successfully added", node)
+        console.log("Trust issued for %s successfully added", issued_for_peer_id)
     }
 }
 
-async function revoke_checked(node: string, revoked_peer_id: string) {
-    let error = await tg.revoke(node, revoked_peer_id);
+async function revoke_checked(relay: string, revoked_peer_id: string) {
+    let error = await tg.revoke(relay, revoked_peer_id);
     if (error !== null) {
-        console.error("%s", error);
+        console.log("%s", error);
     } else {
-        console.log("Trust to node %s revoked", node)
+        console.log("Trust issued for %s revoked", revoked_peer_id)
     }
 }
 
@@ -87,48 +75,61 @@ async function exec_trusted_computation(node: string) {
     let result = await trusted_computation(node)
 
     if (result !== null) {
-        console.log("Trusted computation on node %s successful, result is %s", node, result)
+        console.log("📗 Trusted computation on node %s successful, result is %s", node, result)
     } else {
-        console.log("Trusted computation on node %s failed", node)
+        console.log("📕 Trusted computation on node %s failed", node)
     }
 }
 
 async function main() {
+    console.log("In this example we try to execute some trusted computations based on trusts");
     console.log("📘 Will connect to local nodes");
     // key from local-network/builtins_secret_key.ed25519 to connect as builtins owner
     let sk = bs58.decode("5FwE32bDcphFzuMca7Y2qW1gdR64fTBYoRNvD4MLE1hecDGhCMQGKn8aseMr5wRo4Xo2CRFdrEAawUNLYkgQD78K").slice(0, 32); // first 32 bytes - secret key, second - public key
     let builtins_keypair = await KeyPair.fromEd25519SK(sk);
 
-    await Fluence.start({ connectTo: local[0], KeyPair: builtins_keypair});
+    let relay = local[0];
+    await Fluence.start({ connectTo: relay, KeyPair: builtins_keypair});
     console.log(
         "📗 created a fluence peer %s with relay %s",
         Fluence.getStatus().peerId,
         Fluence.getStatus().relayPeerId
     );
 
-    await add_roots();
-    let nodeA = local[0].peerId
-    let nodeB = local[1].peerId
-    let nodeC = local[2].peerId
-    await revoke_checked(nodeB, nodeB);
-    await exec_trusted_computation(nodeA);
-    await exec_trusted_computation(nodeB);
-    await exec_trusted_computation(nodeC);
-
     let current_time = await tg.timestamp_sec();
     let far_future = current_time + 9999999;
 
-    await add_new_trust_checked(nodeB, nodeB, far_future);
+    // clear all trusts from our peer id on relay
+    await revoke_all(relay.peerId);
+    // wait to be sure that last revocation will be older than future trusts at least on 1 second (because timestamp in secs)
+    await new Promise(f => setTimeout(f, 1000));
 
-    await exec_trusted_computation(nodeA);
-    await exec_trusted_computation(nodeB);
-    await exec_trusted_computation(nodeC);
+    // set our peer id as root to our relay
+    await add_root(relay.peerId);
 
-    await revoke_checked(nodeB, nodeB);
+    let nodeA = local[0].peerId
+    let nodeB = local[1].peerId
+    let nodeC = local[2].peerId
 
-    await exec_trusted_computation(nodeA);
-    await exec_trusted_computation(nodeB);
-    await exec_trusted_computation(nodeC);
+    // try to exec computation on every node, will fail
+    await exec_trusted_computation(nodeA); // fail
+    await exec_trusted_computation(nodeB); // fail
+    await exec_trusted_computation(nodeC); // fail
+
+    console.log("🌀 Issue trust to nodeB: %s", nodeB);
+    await add_new_trust_checked(relay.peerId, nodeB, far_future);
+
+    await exec_trusted_computation(nodeA); // fail
+    await exec_trusted_computation(nodeB); // success
+    await exec_trusted_computation(nodeC); // fail
+
+    await new Promise(f => setTimeout(f, 1000));
+    console.log("🚫 Revoke trust to nodeB");
+    await revoke_checked(relay.peerId, nodeB);
+
+    await exec_trusted_computation(nodeA); // fail
+    await exec_trusted_computation(nodeB); // fail
+    await exec_trusted_computation(nodeC); // fail
     return;
 }
 

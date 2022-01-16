@@ -198,6 +198,29 @@ where
         Ok(max_weight)
     }
 
+    /// Get the maximum weight of trust for one public key.
+    /// for all chains which contain `issuer`
+    pub fn weight_from<P>(
+        &mut self,
+        issued_for: P,
+        issuer: P,
+        cur_time: Duration,
+    ) -> Result<u32, TrustGraphError>
+    where
+        P: Borrow<PublicKey>,
+    {
+        let mut max_weight = 0;
+
+        // get all possible certificates from the given public key to all roots in the graph
+        // which contain `issuer`
+        let certs = self.get_all_certs_from(issued_for, issuer, cur_time)?;
+        if let Some(weight_factor) = self.certificates_weight_factor(certs)? {
+            max_weight = std::cmp::max(max_weight, get_weight_from_factor(weight_factor))
+        }
+
+        Ok(max_weight)
+    }
+
     /// Calculate weight from given certificates
     /// Returns None if there is no such public key
     /// or some trust between this key and a root key is revoked.
@@ -298,6 +321,27 @@ where
         }
 
         Ok(terminated_chains)
+    }
+
+    /// Get all possible certificates where `issued_for` will be the last element of the chain,
+    /// all certificates contain `issuer`
+    /// and one of the destinations is the root of this chain.
+    pub fn get_all_certs_from<P>(
+        &mut self,
+        issued_for: P,
+        issuer: P,
+        cur_time: Duration,
+    ) -> Result<Vec<Certificate>, TrustGraphError>
+    where
+        P: Borrow<PublicKey>,
+    {
+        self.get_all_certs(issued_for, cur_time).map(|c| {
+            c.into_iter()
+                .filter(|cert: &Certificate| {
+                    cert.chain.iter().any(|t| t.issued_for.eq(issuer.borrow()))
+                })
+                .collect()
+        })
     }
 
     /// Get all possible certificates where `issued_for` will be the last element of the chain

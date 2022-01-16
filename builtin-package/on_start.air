@@ -1,6 +1,9 @@
 (seq
     (seq
-        (call relay ("trust-graph" "add_root") ["12D3KooWNbZKaPWRZ8wgjGvrxdJFz9Fq5uVwkR6ERV1f74HhPdyB" 2] add_root_res)
+        (seq
+            (call relay ("trust-graph" "get_weight_factor") [5] weight_factor)
+            (call relay ("trust-graph" "add_root") ["12D3KooWNbZKaPWRZ8wgjGvrxdJFz9Fq5uVwkR6ERV1f74HhPdyB" weight_factor] add_root_res)
+        )
         (xor
             (match add_root_res.$.success! true
                 (null)

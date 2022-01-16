@@ -1,0 +1,8 @@
+import "trust-graph.aqua"
+
+-- helpers for isFluencePeer
+service TrustOp("op"):
+  array_length(a: []Trust) -> u32
+
+service BoolOp("op"):
+  array_length(a: []bool) -> u32

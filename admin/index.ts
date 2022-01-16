@@ -52,21 +52,27 @@ async function main(environment: Node[]) {
 
     let root_sk_b58 = fs.readFileSync("./root_secret_key.ed25519").toString();
     let issuer_sk_b58 = fs.readFileSync("./issuer_secret_key.ed25519").toString();
+    let example_sk_b58 = fs.readFileSync("../example_secret_key.ed25519").toString();
     let root_kp = await KeyPair.fromEd25519SK(bs58.decode(root_sk_b58));
     let issuer_kp = await KeyPair.fromEd25519SK(bs58.decode(issuer_sk_b58));
+    let example_kp = await KeyPair.fromEd25519SK(bs58.decode(example_sk_b58));
     console.log("Root private key: %s", root_sk_b58);
     console.log("Root peer id: %s", root_kp.Libp2pPeerId.toB58String());
     console.log("Issuer private key: %s", issuer_sk_b58);
 
     let cur_time = await timestamp_sec(node);
     let expires_at = cur_time + 60 * 60 * 24 * 365;
+    let certificates = [];
     let common_chain = [] as any;
     // self-signed root trust
     common_chain.push(await issue_trust_helper(node, root_kp,  root_kp.Libp2pPeerId.toB58String(), root_kp.Libp2pPeerId.toB58String(), expires_at, cur_time));
     // from root to issuer
     common_chain.push(await issue_trust_helper(node, root_kp, root_kp.Libp2pPeerId.toB58String(), issuer_kp.Libp2pPeerId.toB58String(), expires_at, cur_time));
+    // from root to example
+    let trust = await issue_trust_helper(node, root_kp, root_kp.Libp2pPeerId.toB58String(), example_kp.Libp2pPeerId.toB58String(), expires_at, cur_time);
+    let cert = {chain: [...common_chain, trust]};
+    certificates.push(cert);
 
-    let certificates = [];
     for (let i = 0; i < krasnodar.length; i++)  {
         // from issuer to node
         let trust = await issue_trust_helper(node, issuer_kp, issuer_kp.Libp2pPeerId.toB58String(), krasnodar[i].peerId, expires_at, cur_time);
