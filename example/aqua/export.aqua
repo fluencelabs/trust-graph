@@ -1,24 +1,13 @@
-use add_root_trust, add_trust, revoke from "@fluencelabs/trust-graph/trust-graph-api.aqua" as TrustGraph
+import add_root_trust, add_trust, revoke from "@fluencelabs/trust-graph/trust-graph-api.aqua"
 export add_root_trust, add_trust, revoke
 import Peer from "@fluencelabs/aqua-lib/builtin.aqua"
 
--- here we define wrappers with `on` for export functions used in script
-func add_root_trust(node: string, max_chain_len: u32, expires_at_sec: u64) -> ?string:
-    on node:
-        error <- TrustGraph.add_root_trust(max_chain_len, expires_at_sec)
-    <- error
-
-func add_trust(node: string, issued_for_peer_id: string, expires_at_sec: u64) -> ?string:
-    on node:
-        error <- TrustGraph.add_trust(issued_for_peer_id, expires_at_sec)
-    <- error
-
-func revoke(node: string, revoked_peer_id: string) -> ?string:
-    on node:
-        error <- TrustGraph.revoke(revoked_peer_id)
-    <- error
+alias PeerId: string
 
 func timestamp_sec() -> u64:
     on HOST_PEER_ID:
         result <- Peer.timestamp_sec()
     <- result
+
+service Sig:
+    sign(msg: []u8) -> []u8

@@ -293,7 +293,7 @@ impl Storage for SQLiteStorage {
         }
     }
 
-    fn add_root_weight_factor(
+    fn set_root_weight_factor(
         &mut self,
         pk: PK,
         weight_factor: WeightFactor,

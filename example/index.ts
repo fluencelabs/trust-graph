@@ -19,7 +19,7 @@ import * as tg from "./generated/export";
 import {Fluence, FluencePeer, KeyPair} from "@fluencelabs/fluence";
 import {krasnodar, Node, testNet, stage} from "@fluencelabs/fluence-network-environment";
 import assert from "assert";
-import {add_root_trust} from "./generated/export";
+import {add_root_trust, registerSig} from "./generated/export";
 const bs58 = require('bs58');
 
 let local: Node[] = [
@@ -40,21 +40,22 @@ let local: Node[] = [
     },
 ];
 
-async function revoke_all(relay: string) {
+async function revoke_all(relay: string, revoked_by: string) {
     for (var node of local) {
-        let error = await tg.revoke(relay, node.peerId);
+        let error = await tg.revoke(relay, revoked_by, node.peerId);
+        console.log(error)
         assert(error == null);
     }
 }
-async function add_root(relay: string) {
+async function add_root(relay: string, peer_id: string) {
     let current_time = await tg.timestamp_sec();
     let far_future = current_time + 9999999;
-    let error = await tg.add_root_trust(relay, 2, far_future);
+    let error = await tg.add_root_trust(relay, peer_id, 2, far_future);
     assert(error == null);
 }
 
-async function add_new_trust_checked(relay: string, issued_for_peer_id: string, expires_at_sec: number) {
-    let error = await tg.add_trust(relay, issued_for_peer_id, expires_at_sec);
+async function add_new_trust_checked(relay: string, issuer: string, issued_for_peer_id: string, expires_at_sec: number) {
+    let error = await tg.add_trust(relay, issuer, issued_for_peer_id, expires_at_sec);
     if (error !== null) {
         console.error("%s", error);
     } else {
@@ -62,8 +63,8 @@ async function add_new_trust_checked(relay: string, issued_for_peer_id: string, 
     }
 }
 
-async function revoke_checked(relay: string, revoked_peer_id: string) {
-    let error = await tg.revoke(relay, revoked_peer_id);
+async function revoke_checked(relay: string, revoked_by: string, revoked_peer_id: string) {
+    let error = await tg.revoke(relay, revoked_by, revoked_peer_id);
     if (error !== null) {
         console.log("%s", error);
     } else {
@@ -95,17 +96,19 @@ async function main() {
         Fluence.getStatus().peerId,
         Fluence.getStatus().relayPeerId
     );
+    let local_peer_id = Fluence.getStatus().peerId;
+    assert(local_peer_id !== null);
 
     let current_time = await tg.timestamp_sec();
     let far_future = current_time + 9999999;
 
     // clear all trusts from our peer id on relay
-    await revoke_all(relay.peerId);
+    await revoke_all(relay.peerId, local_peer_id);
     // wait to be sure that last revocation will be older than future trusts at least on 1 second (because timestamp in secs)
     await new Promise(f => setTimeout(f, 1000));
 
     // set our peer id as root to our relay
-    await add_root(relay.peerId);
+    await add_root(relay.peerId, local_peer_id);
 
     let nodeA = local[0].peerId
     let nodeB = local[1].peerId
@@ -117,7 +120,7 @@ async function main() {
     await exec_trusted_computation(nodeC); // fail
 
     console.log("🌀 Issue trust to nodeB: %s", nodeB);
-    await add_new_trust_checked(relay.peerId, nodeB, far_future);
+    await add_new_trust_checked(relay.peerId, local_peer_id, nodeB, far_future);
 
     await exec_trusted_computation(nodeA); // fail
     await exec_trusted_computation(nodeB); // success
@@ -125,7 +128,7 @@ async function main() {
 
     await new Promise(f => setTimeout(f, 1000));
     console.log("🚫 Revoke trust to nodeB");
-    await revoke_checked(relay.peerId, nodeB);
+    await revoke_checked(relay.peerId, local_peer_id, nodeB);
 
     await exec_trusted_computation(nodeA); // fail
     await exec_trusted_computation(nodeB); // fail

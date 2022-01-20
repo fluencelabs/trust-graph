@@ -1,6 +1,6 @@
 {
   "name": "@fluencelabs/trust-graph",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Aqua Trust Graph API library",
   "files": [
     "*.aqua"

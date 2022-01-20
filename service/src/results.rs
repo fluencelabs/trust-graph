@@ -60,9 +60,9 @@ pub struct AllCertsResult {
 impl From<Result<Vec<Certificate>, ServiceError>> for AllCertsResult {
     fn from(result: Result<Vec<Certificate>, ServiceError>) -> Self {
         match result {
-            Ok(certs) => AllCertsResult {
+            Ok(certificates) => AllCertsResult {
                 success: true,
-                certificates: certs,
+                certificates,
                 error: "".to_string(),
             },
             Err(e) => AllCertsResult {
@@ -75,19 +75,19 @@ impl From<Result<Vec<Certificate>, ServiceError>> for AllCertsResult {
 }
 
 #[marine]
-pub struct AddRootResult {
+pub struct SetRootResult {
     pub success: bool,
     pub error: String,
 }
 
-impl From<Result<(), ServiceError>> for AddRootResult {
+impl From<Result<(), ServiceError>> for SetRootResult {
     fn from(result: Result<(), ServiceError>) -> Self {
         match result {
-            Ok(()) => AddRootResult {
+            Ok(()) => SetRootResult {
                 success: true,
                 error: "".to_string(),
             },
-            Err(e) => AddRootResult {
+            Err(e) => SetRootResult {
                 success: false,
                 error: format!("{}", e),
             },
@@ -251,6 +251,30 @@ impl From<Result<(), ServiceError>> for RevokeResult {
             },
             Err(e) => RevokeResult {
                 success: false,
+                error: format!("{}", e),
+            },
+        }
+    }
+}
+
+#[marine]
+pub struct ExportRevocationsResult {
+    pub success: bool,
+    pub revocations: Vec<Revocation>,
+    pub error: String,
+}
+
+impl From<Result<Vec<Revocation>, ServiceError>> for ExportRevocationsResult {
+    fn from(result: Result<Vec<Revocation>, ServiceError>) -> Self {
+        match result {
+            Ok(revocations) => ExportRevocationsResult {
+                success: true,
+                revocations,
+                error: "".to_string(),
+            },
+            Err(e) => ExportRevocationsResult {
+                success: false,
+                revocations: vec![],
                 error: format!("{}", e),
             },
         }

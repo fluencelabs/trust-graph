@@ -94,6 +94,10 @@ impl From<TrustGraphError> for String {
     }
 }
 
+fn get_weight_factor(max_chain_len: u32) -> u32 {
+    MAX_WEIGHT_FACTOR.checked_sub(max_chain_len).unwrap_or(0u32)
+}
+
 pub fn get_weight_from_factor(wf: WeightFactor) -> u32 {
     2u32.pow(MAX_WEIGHT_FACTOR.saturating_sub(wf))
 }
@@ -107,12 +111,10 @@ where
     }
 
     /// Insert new root weight
-    pub fn add_root_weight_factor(
-        &mut self,
-        pk: PublicKey,
-        weight: WeightFactor,
-    ) -> Result<(), TrustGraphError> {
-        Ok(self.storage.add_root_weight_factor(pk.into(), weight)?)
+    pub fn set_root(&mut self, pk: PublicKey, max_chain_len: u32) -> Result<(), TrustGraphError> {
+        Ok(self
+            .storage
+            .set_root_weight_factor(pk.into(), get_weight_factor(max_chain_len))?)
     }
 
     pub fn add_trust<T, P>(
@@ -387,5 +389,12 @@ where
         Revocation::verify(&revocation)?;
 
         Ok(self.storage.revoke(revocation)?)
+    }
+
+    pub fn get_revocations<P>(&self, issued_for: P) -> Result<Vec<Revocation>, TrustGraphError>
+    where
+        P: Borrow<PublicKey>,
+    {
+        Ok(self.storage.get_revocations(issued_for.borrow().as_ref())?)
     }
 }

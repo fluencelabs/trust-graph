@@ -49,7 +49,6 @@ async function main(environment: Node[]) {
         Fluence.getStatus().peerId,
         Fluence.getStatus().relayPeerId
     );
-
     let root_sk_b58 = fs.readFileSync("./root_secret_key.ed25519").toString();
     let issuer_sk_b58 = fs.readFileSync("./issuer_secret_key.ed25519").toString();
     let example_sk_b58 = fs.readFileSync("../example_secret_key.ed25519").toString();

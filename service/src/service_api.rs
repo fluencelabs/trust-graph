@@ -2,9 +2,9 @@ use crate::dto::{Certificate, Revocation, Trust};
 use crate::error::ServiceError;
 use crate::misc::{check_timestamp_tetraplets, extract_public_key, with_tg, wrapped_try};
 use crate::results::{
-    AddRootResult, AddTrustResult, AllCertsResult, GetRevokeBytesResult, GetTrustBytesResult,
-    InsertResult, IssueRevocationResult, IssueTrustResult, RevokeResult, VerifyTrustResult,
-    WeightResult,
+    AddTrustResult, AllCertsResult, ExportRevocationsResult, GetRevokeBytesResult,
+    GetTrustBytesResult, InsertResult, IssueRevocationResult, IssueTrustResult, RevokeResult,
+    SetRootResult, VerifyTrustResult, WeightResult,
 };
 use crate::storage_impl::SQLiteStorage;
 use fluence_keypair::Signature;
@@ -12,27 +12,22 @@ use marine_rs_sdk::{get_call_parameters, marine, CallParameters};
 use std::convert::{TryFrom, TryInto};
 use std::str::FromStr;
 use std::time::Duration;
-use trust_graph::{TrustGraph, MAX_WEIGHT_FACTOR};
+use trust_graph::TrustGraph;
 
 #[marine]
-fn get_weight_factor(max_chain_len: u32) -> u32 {
-    MAX_WEIGHT_FACTOR.checked_sub(max_chain_len).unwrap_or(0u32)
-}
-
-#[marine]
-/// could add only a owner of a trust graph service
-fn add_root(peer_id: String, weight_factor: u32) -> AddRootResult {
+/// could set only a owner of a trust graph service
+fn set_root(peer_id: String, max_chain_len: u32) -> SetRootResult {
     let call_parameters: CallParameters = marine_rs_sdk::get_call_parameters();
     let init_peer_id = call_parameters.init_peer_id;
     if call_parameters.service_creator_peer_id == init_peer_id {
         with_tg(|tg| {
             let public_key = extract_public_key(peer_id)?;
-            tg.add_root_weight_factor(public_key, weight_factor)?;
+            tg.set_root(public_key, max_chain_len)?;
             Ok(())
         })
         .into()
     } else {
-        return AddRootResult {
+        return SetRootResult {
             success: false,
             error: ServiceError::NotOwner.to_string(),
         };
@@ -221,12 +216,11 @@ fn add_trust(trust: Trust, issuer_peer_id: String, timestamp_sec: u64) -> AddTru
             return Err(ServiceError::InvalidTimestamp("trust".to_string()));
         }
 
-        tg.add_trust(
+        Ok(tg.add_trust(
             &trust.try_into()?,
             public_key,
             Duration::from_secs(timestamp_sec),
-        )
-        .map_err(ServiceError::TGError)
+        )?)
     })
     .into()
 }
@@ -245,8 +239,8 @@ fn get_revocation_bytes(revoked_peer_id: String, revoked_at: u64) -> GetRevokeBy
 
 #[marine]
 fn issue_revocation(
-    revoked_peer_id: String,
     revoked_by_peer_id: String,
+    revoked_peer_id: String,
     revoked_at_sec: u64,
     signature_bytes: Vec<u8>,
 ) -> IssueRevocationResult {
@@ -256,7 +250,7 @@ fn issue_revocation(
 
         let revoked_at = Duration::from_secs(revoked_at_sec);
         let signature = Signature::from_bytes(revoked_by_pk.get_key_format(), signature_bytes);
-        Ok(trust_graph::Revocation::new(revoked_pk, revoked_by_pk, revoked_at, signature).into())
+        Ok(trust_graph::Revocation::new(revoked_by_pk, revoked_pk, revoked_at, signature).into())
     })
     .into()
 }
@@ -270,7 +264,20 @@ fn revoke(revoke: Revocation, timestamp_sec: u64) -> RevokeResult {
             return Err(ServiceError::InvalidTimestamp("revoke".to_string()));
         }
 
-        tg.revoke(revoke.try_into()?).map_err(ServiceError::TGError)
+        Ok(tg.revoke(revoke.try_into()?)?)
+    })
+    .into()
+}
+
+#[marine]
+fn export_revocations(issued_for: String) -> ExportRevocationsResult {
+    with_tg(|tg| {
+        let issued_for_pk = extract_public_key(issued_for)?;
+        Ok(tg
+            .get_revocations(issued_for_pk)?
+            .into_iter()
+            .map(|r| r.into())
+            .collect())
     })
     .into()
 }

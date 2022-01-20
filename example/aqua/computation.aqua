@@ -19,9 +19,9 @@ func trusted_computation(node: string) -> ?u64:
         certs_result <- get_all_certs_from(node, %init_peer_id%)
         if certs_result.success:
             len <- CertOp.array_length(certs_result.certificates)
-    -- if there is any certificate node is trusted and computation is possible
-    if len != 0:
-        on node:
-            result <- TrustedComputation.identity(5)
+        -- if there is any certificate node is trusted and computation is possible
+        if len != 0:
+            on node:
+                result <- TrustedComputation.identity(5)
 
     <- result

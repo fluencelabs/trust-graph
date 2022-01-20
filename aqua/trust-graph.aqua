@@ -1,9 +1,5 @@
 module TrustGraph declares *
 
-data AddRootResult:
-  success: bool
-  error: string
-
 data AddTrustResult:
   success: bool
   error: string
@@ -24,6 +20,18 @@ data AllCertsResult:
   certificates: []Certificate
   error: string
 
+data Revocation:
+  revoked_peer_id: string
+  revoked_at: u64
+  signature: string
+  sig_type: string
+  revoked_by: string
+
+data ExportRevocationsResult:
+  success: bool
+  revocations: []Revocation
+  error: string
+
 data GetRevokeBytesResult:
   success: bool
   error: string
@@ -37,13 +45,6 @@ data GetTrustBytesResult:
 data InsertResult:
   success: bool
   error: string
-
-data Revocation:
-  revoked_peer_id: string
-  revoked_at: u64
-  signature: string
-  sig_type: string
-  revoked_by: string
 
 data IssueRevocationResult:
   success: bool
@@ -59,6 +60,10 @@ data RevokeResult:
   success: bool
   error: string
 
+data SetRootResult:
+  success: bool
+  error: string
+
 data VerifyTrustResult:
   success: bool
   error: string
@@ -70,8 +75,8 @@ data WeightResult:
   error: string
 
 service TrustGraph("trust-graph"):
-  add_root(peer_id: string, weight_factor: u32) -> AddRootResult
   add_trust(trust: Trust, issuer_peer_id: string, timestamp_sec: u64) -> AddTrustResult
+  export_revocations(issued_for: string) -> ExportRevocationsResult
   get_all_certs(issued_for: string, timestamp_sec: u64) -> AllCertsResult
   get_all_certs_from(issued_for: string, issuer: string, timestamp_sec: u64) -> AllCertsResult
   get_host_certs(timestamp_sec: u64) -> AllCertsResult
@@ -79,11 +84,11 @@ service TrustGraph("trust-graph"):
   get_revocation_bytes(revoked_peer_id: string, revoked_at: u64) -> GetRevokeBytesResult
   get_trust_bytes(issued_for_peer_id: string, expires_at_sec: u64, issued_at_sec: u64) -> GetTrustBytesResult
   get_weight(peer_id: string, timestamp_sec: u64) -> WeightResult
-  get_weight_factor(max_chain_len: u32) -> u32
   get_weight_from(peer_id: string, issuer: string, timestamp_sec: u64) -> WeightResult
   insert_cert(certificate: Certificate, timestamp_sec: u64) -> InsertResult
   insert_cert_raw(certificate: string, timestamp_sec: u64) -> InsertResult
-  issue_revocation(revoked_peer_id: string, revoked_by_peer_id: string, revoked_at_sec: u64, signature_bytes: []u8) -> IssueRevocationResult
+  issue_revocation(revoked_by_peer_id: string, revoked_peer_id: string, revoked_at_sec: u64, signature_bytes: []u8) -> IssueRevocationResult
   issue_trust(issued_for_peer_id: string, expires_at_sec: u64, issued_at_sec: u64, trust_bytes: []u8) -> IssueTrustResult
   revoke(revoke: Revocation, timestamp_sec: u64) -> RevokeResult
+  set_root(peer_id: string, max_chain_len: u32) -> SetRootResult
   verify_trust(trust: Trust, issuer_peer_id: string, timestamp_sec: u64) -> VerifyTrustResult
