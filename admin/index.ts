@@ -69,7 +69,7 @@ async function main(environment: Node[]) {
     common_chain.push(await issue_trust_helper(node, root_kp, root_kp.Libp2pPeerId.toB58String(), issuer_kp.Libp2pPeerId.toB58String(), expires_at, cur_time));
     // from root to example
     let trust = await issue_trust_helper(node, root_kp, root_kp.Libp2pPeerId.toB58String(), example_kp.Libp2pPeerId.toB58String(), expires_at, cur_time);
-    let cert = {chain: [...common_chain, trust]};
+    let cert = {chain: [common_chain[0], trust]};
     certificates.push(cert);
 
     for (let i = 0; i < krasnodar.length; i++)  {

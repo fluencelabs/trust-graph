@@ -62,5 +62,26 @@ func my_function(peer_id: string) -> u32:
    import { Fluence, KeyPair } from "@fluencelabs/fluence";
    import { krasnodar, Node } from "@fluencelabs/fluence-network-environment";
    ```
-3. Add root and issue root trust.
-4. For now, trusts/revocations can only be signed by client's private key.
+3. Create client (specify keypair if you are node owner
+[link](https://github.com/fluencelabs/node-distro/blob/main/fluence/Config.default.toml#L9))
+
+   ```typescript
+   await Fluence.start({ connectTo: relay /*, KeyPair: builtins_keypair*/});
+   ```
+4. Add root and issue root trust.
+   ```typescript
+   let peer_id = Fluence.getStatus().peerId;
+   let relay = Fluence.getStatus().relayPeerId;
+   assert(peer_id !== null);
+   assert(relay !== null);
+   let max_chain_len = 2;
+   let far_future = tg.timestamp_sec() + 9999999999;
+   let error = await tg.add_root_trust(relay, peer_id, max_chain_len, far_future);
+   assert(error == null)
+   ```
+5. For now, trusts/revocations can only be signed with the client's private key.
+   Keypair specification will be available soon.
+   ```typescript
+   // issue signed trust
+   let error = await tg.issue_trust(relay, peer_id, issued_for_peer_id, expires_at_sec);
+   ```

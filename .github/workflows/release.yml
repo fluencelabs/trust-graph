@@ -141,7 +141,7 @@ jobs:
         with:
           workflow: update_service
           repo: fluencelabs/node-distro
-          ref: 'main'
+          ref: 'tg-hl-api'
           token: ${{ secrets.PERSONAL_TOKEN }}
           inputs: '{
             "name": "trust-graph",
