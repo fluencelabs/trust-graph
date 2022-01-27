@@ -4,6 +4,11 @@ import Sig, Peer from "@fluencelabs/aqua-lib/builtin.aqua"
 alias PeerId: string
 alias Error: string
 
+-- check if error is not nil and append to error_stream
+func append_error(error_stream: *Error, error: ?Error):
+    if error != nil:
+        error_stream <<- error!
+
 -- Set peer_id as a root to TG instance on current node
 -- Self-signed trust should be added in next call for correct behaviour
 -- `max_chain_len` specifies maximum chain length after root trust,
@@ -20,7 +25,7 @@ func issue_trust(issuer: PeerId, issued_for: PeerId, expires_at_sec: u64) -> ?Tr
         bytes <- TrustGraph.get_trust_bytes(issued_for, expires_at_sec, issued_at_sec)
 
     result: ?Trust
-    error: ?string
+    error: *Error
     if bytes.success:
         if issuer != %init_peer_id%:
             Sig issuer
@@ -41,7 +46,7 @@ func issue_trust(issuer: PeerId, issued_for: PeerId, expires_at_sec: u64) -> ?Tr
 
 -- Add trust to TG instance on current node
 func import_trust(trust: Trust, issuer: PeerId) -> ?Error:
-    error: ?string
+    error: *Error
     timestamp_sec <- Peer.timestamp_sec()
     add_result <- TrustGraph.add_trust(trust, issuer, timestamp_sec)
     if add_result.success != true:
@@ -53,35 +58,33 @@ func import_trust(trust: Trust, issuer: PeerId) -> ?Error:
 func add_trust(node: PeerId, issuer: PeerId, issued_for: PeerId, expires_at_sec: u64) -> ?Error:
     trust, issue_error <- issue_trust(issuer, issued_for, expires_at_sec)
 
-    error: *?Error
-    if trust == nil:
-        error <<- issue_error
+    error: *Error
+    if issue_error != nil:
+        error <<- issue_error!
     else:
         on node:
-            error <- import_trust(trust!, issuer)
-
-    <- error!
+            import_error <- import_trust(trust!, issuer)
+            append_error(error, import_error)
+    <- error
 
 -- Set `peer_id` as a root and add self-signed trust to TG instance on `node`
 -- If `peer_id` is not %init_peer_id%, Sig service with `peer_id` as service id should be defined
 func add_root_trust(node: PeerId, peer_id: PeerId, max_chain_len: u32, expires_at_sec: u64) -> ?Error:
     trust, issue_error <- issue_trust(peer_id, peer_id, expires_at_sec)
 
-    error: *?Error
-    if trust == nil:
-        error <<- issue_error
+    error: *Error
+    if issue_error != nil:
+        error <<- issue_error!
     else:
         on node:
             set_root_result <- set_root(peer_id, max_chain_len)
             if set_root_result.success:
-                error <- import_trust(trust!, peer_id)
+                import_error <- import_trust(trust!, peer_id)
+                append_error(error, import_error)
             else:
-                -- converting string to ?string
-                tmp: *string
-                tmp <<- set_root_result.error
-                error <<- tmp
+                error <<- set_root_result.error
 
-    <- error!
+    <- error
 
 -- Check signature and expiration time of trust
 func verify_trust(trust: Trust, issuer: PeerId) -> VerifyTrustResult:
@@ -110,7 +113,7 @@ func issue_revocation(revoked_by: PeerId, revoked: PeerId) -> ?Revocation, ?Erro
         bytes <- TrustGraph.get_revocation_bytes(revoked, issued_at_sec)
 
     result: ?Revocation
-    error: ?string
+    error: *Error
     if bytes.success:
         if revoked_by != %init_peer_id%:
             Sig revoked_by
@@ -131,7 +134,7 @@ func issue_revocation(revoked_by: PeerId, revoked: PeerId) -> ?Revocation, ?Erro
 
 -- Import revocation to current node's TG instance
 func import_revocation(revocation: Revocation) -> ?Error:
-    error: ?string
+    error: *Error
     timestamp_sec <- Peer.timestamp_sec()
     add_result <- TrustGraph.revoke(revocation, timestamp_sec)
     if add_result.success != true:
@@ -145,14 +148,14 @@ func import_revocation(revocation: Revocation) -> ?Error:
 func revoke(node: PeerId, revoked_by: PeerId, revoked: PeerId) -> ?Error:
     revocation, issue_error <- issue_revocation(revoked_by, revoked)
 
-    error: *?string
+    error: *Error
     if revocation == nil:
-        error <<- issue_error
+        error <<- issue_error!
     else:
         on node:
-           error <- import_revocation(revocation!)
-
-    <- error!
+           import_error <- import_revocation(revocation!)
+           append_error(error, import_error)
+    <- error
 
 
 

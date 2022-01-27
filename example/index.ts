@@ -19,7 +19,6 @@ import * as tg from "./generated/export";
 import {Fluence, FluencePeer, KeyPair} from "@fluencelabs/fluence";
 import {krasnodar, Node, testNet, stage} from "@fluencelabs/fluence-network-environment";
 import assert from "assert";
-import {add_root_trust, registerSig} from "./generated/export";
 const bs58 = require('bs58');
 
 let local: Node[] = [

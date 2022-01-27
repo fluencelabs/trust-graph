@@ -8,6 +8,3 @@ func timestamp_sec() -> u64:
     on HOST_PEER_ID:
         result <- Peer.timestamp_sec()
     <- result
-
-service Sig:
-    sign(msg: []u8) -> []u8
