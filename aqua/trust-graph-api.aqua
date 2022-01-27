@@ -1,5 +1,4 @@
 import "trust-graph.aqua"
-import "misc.aqua"
 import Sig, Peer from "@fluencelabs/aqua-lib/builtin.aqua"
 
 alias PeerId: string
@@ -186,22 +185,3 @@ func insert_cert(certificate: Certificate) -> InsertResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.insert_cert(certificate, timestamp_sec)
     <- result
-
--- returns `true` if current node is identified as official Fluence Labs peer
--- returns `false` otherwise
-func isFluencePeer() -> ?bool, ?Error:
-    certs_result <- get_host_certs_from("12D3KooWM45u7AQxsb4MuQJNYT3NWHHMLU7JTbBV66RTfF3KSzdR")
-    result: ?bool
-    error: ?string
-    if certs_result.success:
-        for cert  <- certs_result.certificates:
-            len <- TrustOp.array_length(cert.chain)
-            if len == 3:
-                if cert.chain!0.issued_for == "12D3KooWNbZKaPWRZ8wgjGvrxdJFz9Fq5uVwkR6ERV1f74HhPdyB":
-                    if cert.chain!1.issued_for == "12D3KooWM45u7AQxsb4MuQJNYT3NWHHMLU7JTbBV66RTfF3KSzdR":
-                        result <<- true
-        if result == nil:
-            result <<- false
-    else:
-        error <<- certs_result.error
-    <- result, error
