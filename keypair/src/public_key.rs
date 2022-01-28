@@ -109,7 +109,7 @@ impl PublicKey {
     }
 
     pub fn to_peer_id(&self) -> PeerId {
-        PeerId::from_public_key(self.clone().into())
+        PeerId::from_public_key(&self.clone().into())
     }
 
     pub fn get_key_format(&self) -> KeyFormat {
@@ -164,10 +164,21 @@ impl TryFrom<libp2p_core::PeerId> for PublicKey {
     type Error = DecodingError;
 
     fn try_from(peer_id: libp2p_core::PeerId) -> Result<Self, Self::Error> {
-        Ok(peer_id
-            .as_public_key()
+        Ok(as_public_key(&peer_id)
             .ok_or(DecodingError::PublicKeyNotInlined(peer_id.to_base58()))?
             .into())
+    }
+}
+
+/// Convert PeerId to libp2p's PublicKey
+fn as_public_key(peer_id: &PeerId) -> Option<libp2p_core::PublicKey> {
+    use libp2p_core::multihash;
+
+    let mhash = peer_id.as_ref();
+
+    match multihash::Code::try_from(mhash.code()) {
+        Ok(multihash::Code::Identity) => libp2p_core::PublicKey::from_protobuf_encoding(mhash.digest()).ok(),
+        _ => None,
     }
 }
 
