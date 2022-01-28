@@ -30,6 +30,3 @@ members = [
     "keypair",
     "service"
 ]
-
-[patch.crates-io]
-libp2p-core = { git = "https://github.com/libp2p/rust-libp2p", branch = "master" }

@@ -1193,7 +1193,8 @@ checksum = "f98a04dce437184842841303488f70d0188c5f51437d2a834dc097eafa909a01"
 [[package]]
 name = "libp2p-core"
 version = "0.31.0"
-source = "git+https://github.com/libp2p/rust-libp2p?branch=master#320a1cde001381335f6c502f892259e701b13093"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a24250cce58fb6ccb32e26647c1c25b48b6f7bd2d6fb3d6dba72001a6694b385"
 dependencies = [
  "asn1_der 0.7.5",
  "bs58 0.4.0",
@@ -1666,7 +1667,8 @@ dependencies = [
 [[package]]
 name = "multistream-select"
 version = "0.11.0"
-source = "git+https://github.com/libp2p/rust-libp2p?branch=master#320a1cde001381335f6c502f892259e701b13093"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "363a84be6453a70e63513660f4894ef815daf88e3356bffcda9ca27d810ce83b"
 dependencies = [
  "bytes",
  "futures",
