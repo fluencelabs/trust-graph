@@ -752,7 +752,7 @@ dependencies = [
 
 [[package]]
 name = "fluence-keypair"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "asn1_der 0.6.3",
  "bs58 0.3.1",
