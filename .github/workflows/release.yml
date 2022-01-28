@@ -54,7 +54,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly-2021-09-01
+          toolchain: nightly-2022-01-16
           target: wasm32-wasi
           override: true
 
