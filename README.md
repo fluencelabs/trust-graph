@@ -77,11 +77,16 @@ func my_function(peer_id: string) -> u32:
    let max_chain_len = 2;
    let far_future = tg.timestamp_sec() + 9999999999;
    let error = await tg.add_root_trust(relay, peer_id, max_chain_len, far_future);
-   assert(error == null)
+   if (error !== null) {
+    console.log(error);
+   }
    ```
 5. For now, trusts/revocations can only be signed with the client's private key.
    Keypair specification will be available soon.
    ```typescript
    // issue signed trust
    let error = await tg.issue_trust(relay, peer_id, issued_for_peer_id, expires_at_sec);
+   if (error !== null) {
+    console.log(error);
+   }
    ```

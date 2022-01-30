@@ -6,3 +6,8 @@ service TrustOp("op"):
 
 service BoolOp("op"):
   array_length(a: []bool) -> u32
+
+-- check if error is not nil and append to error_stream
+func append_error(error_stream: *Error, error: ?Error):
+    if error != nil:
+        error_stream <<- error!

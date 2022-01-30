@@ -1,15 +1,12 @@
-import "trust-graph.aqua"
 import Sig, Peer from "@fluencelabs/aqua-lib/builtin.aqua"
+import "misc.aqua"
+import "trust-graph.aqua"
 
 alias PeerId: string
 alias Error: string
 
--- check if error is not nil and append to error_stream
-func append_error(error_stream: *Error, error: ?Error):
-    if error != nil:
-        error_stream <<- error!
-
--- Set peer_id as a root to TG instance on current node
+-- Call context: any node with registered `trust-graph` service
+-- Set `peer_id` as a root
 -- Self-signed trust should be added in next call for correct behaviour
 -- `max_chain_len` specifies maximum chain length after root trust,
 -- if `max_chain_len` is zero there is no trusts except self-signed root trust in certificates for this root
@@ -17,9 +14,13 @@ func set_root(peer_id: PeerId, max_chain_len: u32) -> SetRootResult:
     result <- TrustGraph.set_root(peer_id, max_chain_len)
     <- result
 
--- Create and sign trust
+-- Call context: %init_peer_id%
+-- Create on relay and sign trust on client
 -- If `issuer` is not %init_peer_id%, Sig service with `issuer` peer id as service id should be defined
+-- Errors:
+--  If TrustGraph.get_trust_bytes or TrustGraph.issue_trust fails, (nil, error) is returned.
 func issue_trust(issuer: PeerId, issued_for: PeerId, expires_at_sec: u64) -> ?Trust, ?Error:
+    -- after marine-web release this will be done on %init_peer_id%
     on HOST_PEER_ID:
         issued_at_sec <- Peer.timestamp_sec()
         bytes <- TrustGraph.get_trust_bytes(issued_for, expires_at_sec, issued_at_sec)
@@ -27,6 +28,8 @@ func issue_trust(issuer: PeerId, issued_for: PeerId, expires_at_sec: u64) -> ?Tr
     result: ?Trust
     error: *Error
     if bytes.success:
+        -- for %init_peer_id% Sig service available by default and registered as "sig"
+        -- for other peer ids custom Sig service should be implemented and registered with this peer id as service id
         if issuer != %init_peer_id%:
             Sig issuer
         else:
@@ -44,7 +47,10 @@ func issue_trust(issuer: PeerId, issued_for: PeerId, expires_at_sec: u64) -> ?Tr
         error <<- bytes.error
     <- result, error
 
--- Add trust to TG instance on current node
+-- Call context: any node with registered `trust-graph` service
+-- Add trust to TG
+-- Errors:
+--  If TrustGraph.add_trust fails, error is returned.
 func import_trust(trust: Trust, issuer: PeerId) -> ?Error:
     error: *Error
     timestamp_sec <- Peer.timestamp_sec()
@@ -53,8 +59,11 @@ func import_trust(trust: Trust, issuer: PeerId) -> ?Error:
         error <<- add_result.error
     <- error
 
+-- Call context: %init_peer_id%
 -- Issue trust and add to TG instance on `node`
 -- If `issuer` is not %init_peer_id%, Sig service with `issuer` peer id as service id should be defined
+-- Errors:
+--  If issue_trust or import_trust fails, error is returned.
 func add_trust(node: PeerId, issuer: PeerId, issued_for: PeerId, expires_at_sec: u64) -> ?Error:
     trust, issue_error <- issue_trust(issuer, issued_for, expires_at_sec)
 
@@ -67,8 +76,11 @@ func add_trust(node: PeerId, issuer: PeerId, issued_for: PeerId, expires_at_sec:
             append_error(error, import_error)
     <- error
 
+-- Call context: %init_peer_id%
 -- Set `peer_id` as a root and add self-signed trust to TG instance on `node`
 -- If `peer_id` is not %init_peer_id%, Sig service with `peer_id` as service id should be defined
+-- Errors:
+--  If issue_trust, import_trust or set_root fails, error is returned.
 func add_root_trust(node: PeerId, peer_id: PeerId, max_chain_len: u32, expires_at_sec: u64) -> ?Error:
     trust, issue_error <- issue_trust(peer_id, peer_id, expires_at_sec)
 
@@ -86,28 +98,35 @@ func add_root_trust(node: PeerId, peer_id: PeerId, max_chain_len: u32, expires_a
 
     <- error
 
+-- Call context: any node with registered `trust-graph` service
 -- Check signature and expiration time of trust
 func verify_trust(trust: Trust, issuer: PeerId) -> VerifyTrustResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.verify_trust(trust, issuer, timestamp_sec)
     <- result
 
--- Get the maximum weight of trust for one peer id
+-- Call context: any node with registered `trust-graph` service
+-- Get the maximum weight of trust for `peer_id`
 -- Trust has weight if there is at least 1 trust chain from one of the roots
 func get_weight(peer_id: PeerId) -> WeightResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.get_weight(peer_id, timestamp_sec)
     <- result
 
--- Get maximum weight of trust among all chains which contain trust from `issuer`
+-- Call context: any node with registered `trust-graph` service
+-- Get maximum weight of trust for `peer_id` among all chains which contain trust from `issuer`
 func get_weight_from(peer_id: PeerId, issuer: PeerId) -> WeightResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.get_weight_from(peer_id, issuer, timestamp_sec)
     <- result
 
+-- Call context: %init_peer_id%
 -- Create revocation signed by %init_peer_id%
 -- If `revoked_by` is not %init_peer_id%, Sig service with `revoked_by` peer id as service id should be defined
+-- Errors:
+--  If TrustGraph.get_revocation_bytes or TrustGraph.issue_revocation fails, (nil, error) is returned.
 func issue_revocation(revoked_by: PeerId, revoked: PeerId) -> ?Revocation, ?Error:
+    -- after marine-web release this will be done on %init_peer_id%
     on HOST_PEER_ID:
         issued_at_sec <- Peer.timestamp_sec()
         bytes <- TrustGraph.get_revocation_bytes(revoked, issued_at_sec)
@@ -115,6 +134,8 @@ func issue_revocation(revoked_by: PeerId, revoked: PeerId) -> ?Revocation, ?Erro
     result: ?Revocation
     error: *Error
     if bytes.success:
+        -- for %init_peer_id% Sig service available by default and registered as "sig"
+        -- for other peer ids custom Sig service should be implemented and registered with this peer id as service id
         if revoked_by != %init_peer_id%:
             Sig revoked_by
         else:
@@ -132,7 +153,10 @@ func issue_revocation(revoked_by: PeerId, revoked: PeerId) -> ?Revocation, ?Erro
         error <<- bytes.error
     <- result, error
 
--- Import revocation to current node's TG instance
+-- Call context: any node with registered `trust-graph` service
+-- Import revocation to TG
+-- Errors:
+--  If TrustGraph.revoke fails, error is returned.
 func import_revocation(revocation: Revocation) -> ?Error:
     error: *Error
     timestamp_sec <- Peer.timestamp_sec()
@@ -142,9 +166,12 @@ func import_revocation(revocation: Revocation) -> ?Error:
 
     <- error
 
+-- Call context: %init_peer_id%
 -- Revoke all certificates on `node` TG instance
 -- which contain path from %init_peer_id% to `revoked_peer_id`
 -- If `revoked_by` is not %init_peer_id%, Sig service with `revoked_by` peer id as service id should be defined
+-- Errors:
+--  if issue_revocation or import_revocation fails, error is returned.
 func revoke(node: PeerId, revoked_by: PeerId, revoked: PeerId) -> ?Error:
     revocation, issue_error <- issue_revocation(revoked_by, revoked)
 
@@ -157,32 +184,35 @@ func revoke(node: PeerId, revoked_by: PeerId, revoked: PeerId) -> ?Error:
            append_error(error, import_error)
     <- error
 
-
-
+-- Call context: any node with registered `trust-graph` service
 -- Return all certificates issued for current node which contains trust from `issuer`
 func get_host_certs_from(issuer: PeerId) -> AllCertsResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.get_host_certs_from(issuer, timestamp_sec)
     <- result
 
+-- Call context: any node with registered `trust-graph` service
 -- Return all certificates issued for given peer id
 func get_all_certs(issued_for: PeerId) -> AllCertsResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.get_all_certs(issued_for, timestamp_sec)
     <- result
 
+-- Call context: any node with registered `trust-graph` service
 -- Return all certificates issued for given peer id which contains trust from `issuer`
 func get_all_certs_from(issued_for: PeerId, issuer: PeerId) -> AllCertsResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.get_all_certs_from(issued_for, issuer, timestamp_sec)
     <- result
 
+-- Call context: any node with registered `trust-graph` service
 -- Return all certificates issued for current node
 func get_host_certs() -> AllCertsResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.get_host_certs(timestamp_sec)
     <- result
 
+-- Call context: any node with registered `trust-graph` service
 -- Insert certificate to TG instance on current node
 func insert_cert(certificate: Certificate) -> InsertResult:
     timestamp_sec <- Peer.timestamp_sec()

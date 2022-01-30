@@ -1,6 +1,6 @@
 [package]
 name = "fluence-keypair"
-version = "0.5.1"
+version = "0.6.0"
 authors = ["Fluence Labs"]
 edition = "2018"
 description = "identity"
@@ -8,7 +8,7 @@ license = "Apache-2.0"
 repository = "https://github.com/fluencelabs/trust-graph"
 
 [dependencies]
-serde = { version = "=1.0.118", features = ["derive"] }
+serde = { version = "1.0.118", features = ["derive"] }
 serde_json = "1.0.58"
 bs58 = "0.3.1"
 ed25519-dalek = { version = "1.0.1", features = ["serde", "std"] }
@@ -23,7 +23,7 @@ asn1_der = "0.6.1"
 sha2 = "0.9.1"
 zeroize = "1"
 serde_bytes = "0.11"
-libp2p-core = { package = "fluence-fork-libp2p-core", version = "0.27.2", features = ["secp256k1"]}
+libp2p-core = { version = "0.31", default-features = false, features = [ "secp256k1" ] }
 eyre = "0.6.5"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

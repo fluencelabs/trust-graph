@@ -48,7 +48,6 @@ pub struct Revocation {
 }
 
 impl Revocation {
-    #[allow(dead_code)]
     pub fn new(
         revoked_by: PublicKey,
         pk: PublicKey,
@@ -64,7 +63,6 @@ impl Revocation {
     }
 
     /// Creates new revocation signed by a revoker.
-    #[allow(dead_code)]
     pub fn create(revoker: &KeyPair, to_revoke: PublicKey, revoked_at: Duration) -> Self {
         let msg = Revocation::signature_bytes(&to_revoke, revoked_at);
         let signature = revoker.sign(&msg).unwrap();

@@ -15,7 +15,7 @@ use std::time::Duration;
 use trust_graph::TrustGraph;
 
 #[marine]
-/// could set only a owner of a trust graph service
+/// Only service owner can set roots
 fn set_root(peer_id: String, max_chain_len: u32) -> SetRootResult {
     let call_parameters: CallParameters = marine_rs_sdk::get_call_parameters();
     let init_peer_id = call_parameters.init_peer_id;
