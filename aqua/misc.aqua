@@ -1,5 +1,7 @@
 import "trust-graph.aqua"
 
+alias Error: string
+
 -- helpers for isFluencePeer
 service TrustOp("op"):
   array_length(a: []Trust) -> u32
