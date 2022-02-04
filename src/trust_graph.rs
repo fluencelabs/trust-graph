@@ -94,6 +94,10 @@ impl From<TrustGraphError> for String {
     }
 }
 
+fn get_weight_factor(max_chain_len: u32) -> u32 {
+    MAX_WEIGHT_FACTOR.checked_sub(max_chain_len).unwrap_or(0u32)
+}
+
 pub fn get_weight_from_factor(wf: WeightFactor) -> u32 {
     2u32.pow(MAX_WEIGHT_FACTOR.saturating_sub(wf))
 }
@@ -107,12 +111,10 @@ where
     }
 
     /// Insert new root weight
-    pub fn add_root_weight_factor(
-        &mut self,
-        pk: PublicKey,
-        weight: WeightFactor,
-    ) -> Result<(), TrustGraphError> {
-        Ok(self.storage.add_root_weight_factor(pk.into(), weight)?)
+    pub fn set_root(&mut self, pk: PublicKey, max_chain_len: u32) -> Result<(), TrustGraphError> {
+        Ok(self
+            .storage
+            .set_root_weight_factor(pk.into(), get_weight_factor(max_chain_len))?)
     }
 
     pub fn add_trust<T, P>(
@@ -191,6 +193,29 @@ where
 
         // get all possible certificates from the given public key to all roots in the graph
         let certs = self.get_all_certs(pk, cur_time)?;
+        if let Some(weight_factor) = self.certificates_weight_factor(certs)? {
+            max_weight = std::cmp::max(max_weight, get_weight_from_factor(weight_factor))
+        }
+
+        Ok(max_weight)
+    }
+
+    /// Get the maximum weight of trust for one public key.
+    /// for all chains which contain `issuer`
+    pub fn weight_from<P>(
+        &mut self,
+        issued_for: P,
+        issuer: P,
+        cur_time: Duration,
+    ) -> Result<u32, TrustGraphError>
+    where
+        P: Borrow<PublicKey>,
+    {
+        let mut max_weight = 0;
+
+        // get all possible certificates from the given public key to all roots in the graph
+        // which contain `issuer`
+        let certs = self.get_all_certs_from(issued_for, issuer, cur_time)?;
         if let Some(weight_factor) = self.certificates_weight_factor(certs)? {
             max_weight = std::cmp::max(max_weight, get_weight_from_factor(weight_factor))
         }
@@ -300,6 +325,27 @@ where
         Ok(terminated_chains)
     }
 
+    /// Get all possible certificates where `issued_for` will be the last element of the chain,
+    /// all certificates contain `issuer`
+    /// and one of the destinations is the root of this chain.
+    pub fn get_all_certs_from<P>(
+        &mut self,
+        issued_for: P,
+        issuer: P,
+        cur_time: Duration,
+    ) -> Result<Vec<Certificate>, TrustGraphError>
+    where
+        P: Borrow<PublicKey>,
+    {
+        self.get_all_certs(issued_for, cur_time).map(|c| {
+            c.into_iter()
+                .filter(|cert: &Certificate| {
+                    cert.chain.iter().any(|t| t.issued_for.eq(issuer.borrow()))
+                })
+                .collect()
+        })
+    }
+
     /// Get all possible certificates where `issued_for` will be the last element of the chain
     /// and one of the destinations is the root of this chain.
     pub fn get_all_certs<P>(
@@ -343,5 +389,12 @@ where
         Revocation::verify(&revocation)?;
 
         Ok(self.storage.revoke(revocation)?)
+    }
+
+    pub fn get_revocations<P>(&self, issued_for: P) -> Result<Vec<Revocation>, TrustGraphError>
+    where
+        P: Borrow<PublicKey>,
+    {
+        Ok(self.storage.get_revocations(issued_for.borrow().as_ref())?)
     }
 }

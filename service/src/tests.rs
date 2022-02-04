@@ -87,8 +87,8 @@ mod service_tests {
         cp
     }
 
-    fn add_root_peer_id(trust_graph: &mut ServiceInterface, peer_id: PeerId, weight_factor: u32) {
-        let result = trust_graph.add_root(peer_id.to_base58(), weight_factor);
+    fn set_root_peer_id(trust_graph: &mut ServiceInterface, peer_id: PeerId, max_chain_len: u32) {
+        let result = trust_graph.set_root(peer_id.to_base58(), max_chain_len);
         assert!(result.success, "{}", result.error);
     }
 
@@ -97,9 +97,9 @@ mod service_tests {
         issuer_kp: &KeyPair,
         issued_at_sec: u64,
         expires_at_sec: u64,
-        weight_factor: u32,
+        max_chain_len: u32,
     ) -> Trust {
-        let result = trust_graph.add_root(issuer_kp.get_peer_id().to_base58(), weight_factor);
+        let result = trust_graph.set_root(issuer_kp.get_peer_id().to_base58(), max_chain_len);
         assert!(result.success, "{}", result.error);
         add_trust(
             trust_graph,
@@ -201,13 +201,13 @@ mod service_tests {
         revoked_peer_id: &PeerId,
         revoked_at_sec: u64,
     ) -> Revocation {
-        let result = trust_graph.get_revoke_bytes(revoked_peer_id.to_base58(), revoked_at_sec);
+        let result = trust_graph.get_revocation_bytes(revoked_peer_id.to_base58(), revoked_at_sec);
         assert!(result.success, "{}", result.error);
 
         let revoke_bytes = issuer_kp.sign(&result.result).unwrap().to_vec().to_vec();
         let issue_result = trust_graph.issue_revocation(
-            revoked_peer_id.to_base58(),
             issuer_kp.get_peer_id().to_base58(),
+            revoked_peer_id.to_base58(),
             revoked_at_sec,
             revoke_bytes,
         );
@@ -325,7 +325,7 @@ mod service_tests {
         };
 
         let some_peer_id = KeyPair::generate_ed25519().get_peer_id();
-        let result = trust_graph.add_root_cp(some_peer_id.to_base58(), 0, cp);
+        let result = trust_graph.set_root_cp(some_peer_id.to_base58(), 0, cp);
         assert!(!result.success);
         assert_eq!(result.error, ServiceError::NotOwner.to_string());
     }
@@ -343,7 +343,7 @@ mod service_tests {
         };
 
         let some_peer_id = KeyPair::generate_ed25519().get_peer_id();
-        let result = trust_graph.add_root_cp(some_peer_id.to_base58(), 0, cp);
+        let result = trust_graph.set_root_cp(some_peer_id.to_base58(), 0, cp);
         assert!(result.success, "{}", result.error);
     }
 
@@ -357,7 +357,7 @@ mod service_tests {
         let expires_at_sec = 9999u64;
         let issued_at_sec = 0u64;
 
-        add_root_peer_id(&mut trust_graph, root_kp.get_peer_id(), 4u32);
+        set_root_peer_id(&mut trust_graph, root_kp.get_peer_id(), 4u32);
 
         let result =
             trust_graph.get_trust_bytes(root_peer_id.to_base58(), expires_at_sec, issued_at_sec);
@@ -408,7 +408,7 @@ mod service_tests {
             &root_kp,
             cur_time,
             root_expired_time - 1,
-            4,
+            10,
         );
 
         let trust_kp = KeyPair::generate_ed25519();
@@ -447,7 +447,7 @@ mod service_tests {
 
         let peerA_kp = KeyPair::generate_ed25519();
         let mut cur_time = 100u64;
-        add_root_with_trust(&mut trust_graph, &peerA_kp, cur_time, cur_time + 9999, 4u32);
+        add_root_with_trust(&mut trust_graph, &peerA_kp, cur_time, cur_time + 9999, 10);
 
         let peerB_kp = KeyPair::generate_ed25519();
         add_trust(
@@ -490,7 +490,7 @@ mod service_tests {
         let mut cur_time = current_time();
 
         let root_peer_id = key_pairs[0].get_peer_id();
-        add_root_peer_id(&mut trust_graph, root_peer_id, 2);
+        set_root_peer_id(&mut trust_graph, root_peer_id, 10);
         add_trusts(&mut trust_graph, &trusts, cur_time);
 
         let target_peer_id = key_pairs[4].get_peer_id();
@@ -536,7 +536,7 @@ mod service_tests {
         let cur_time = current_time();
 
         let root_peer_id = key_pairs[0].get_peer_id();
-        add_root_peer_id(&mut trust_graph, root_peer_id, 2);
+        set_root_peer_id(&mut trust_graph, root_peer_id, 10);
         add_trusts(&mut trust_graph, &trusts, cur_time);
 
         let issued_by = key_pairs.last().unwrap().get_peer_id();
@@ -577,7 +577,7 @@ mod service_tests {
         let cur_time = current_time();
 
         let root1_peer_id = key_pairs[0].get_peer_id();
-        add_root_peer_id(&mut trust_graph, root1_peer_id, 2);
+        set_root_peer_id(&mut trust_graph, root1_peer_id, 10);
         add_trusts(&mut trust_graph, &trusts, cur_time);
 
         let issued_by = key_pairs.last().unwrap().get_peer_id();
@@ -620,7 +620,7 @@ mod service_tests {
 
         let cur_time = current_time();
         let root_peer_id = key_pairs[0].get_peer_id();
-        add_root_peer_id(&mut trust_graph, root_peer_id, 1);
+        set_root_peer_id(&mut trust_graph, root_peer_id, 10);
 
         for auth in trusts.iter() {
             add_trust_checked(&mut trust_graph, auth.trust.clone(), auth.issuer, cur_time);
@@ -649,9 +649,9 @@ mod service_tests {
         let far_future = cur_time + 9999;
 
         // add first and last trusts as roots
-        add_root_peer_id(&mut trust_graph, kps[0].get_peer_id(), 0);
+        set_root_peer_id(&mut trust_graph, kps[0].get_peer_id(), 10);
         add_trusts(&mut trust_graph, &trusts, cur_time);
-        add_root_with_trust(&mut trust_graph, &kps[5], cur_time, far_future, 0);
+        add_root_with_trust(&mut trust_graph, &kps[5], cur_time, far_future, 10);
 
         let certs = get_all_certs(&mut trust_graph, kps[5].get_peer_id(), cur_time);
         // first with self-signed last trust, second - without
@@ -667,7 +667,7 @@ mod service_tests {
 
         let root_kp = KeyPair::generate_ed25519();
         let cur_time = 100u64;
-        add_root_with_trust(&mut trust_graph, &root_kp, cur_time, cur_time + 999, 4u32);
+        add_root_with_trust(&mut trust_graph, &root_kp, cur_time, cur_time + 999, 10);
 
         let trust_kp = KeyPair::generate_ed25519();
         add_trust(
@@ -712,7 +712,7 @@ mod service_tests {
 
         let root_kp = KeyPair::generate_ed25519();
         let mut cur_time = 100u64;
-        add_root_with_trust(&mut trust_graph, &root_kp, cur_time, cur_time + 999, 4u32);
+        add_root_with_trust(&mut trust_graph, &root_kp, cur_time, cur_time + 999, 10);
 
         let trust_kp = KeyPair::generate_ed25519();
         let expires_at_sec = cur_time + 10;
@@ -752,10 +752,10 @@ mod service_tests {
         let root2_kp = KeyPair::generate_ed25519();
         let cur_time = 100;
         let far_future = cur_time + 99999;
-        // root with bigger weight (smaller weight factor)
-        add_root_with_trust(&mut trust_graph, &root1_kp, cur_time, far_future, 0u32);
+        // root with bigger weight (bigger max_chain_len)
+        add_root_with_trust(&mut trust_graph, &root1_kp, cur_time, far_future, 10);
         // opposite
-        add_root_with_trust(&mut trust_graph, &root2_kp, cur_time, far_future, 5u32);
+        add_root_with_trust(&mut trust_graph, &root2_kp, cur_time, far_future, 5);
 
         // issue trust from root2 to any other peer_id
         let issued_by_root2_peer_id = KeyPair::generate_ed25519().get_peer_id();
@@ -832,7 +832,7 @@ mod service_tests {
 
         let cur_time = current_time();
         let root_peer_id = key_pairs[0].get_peer_id();
-        add_root_peer_id(&mut trust_graph, root_peer_id, 1);
+        set_root_peer_id(&mut trust_graph, root_peer_id, 10);
 
         for auth in trusts.iter() {
             add_trust_checked(&mut trust_graph, auth.trust.clone(), auth.issuer, cur_time);
@@ -862,7 +862,7 @@ mod service_tests {
 
         let cur_time = current_time();
         let root_peer_id = key_pairs[0].get_peer_id();
-        add_root_peer_id(&mut trust_graph, root_peer_id, 1);
+        set_root_peer_id(&mut trust_graph, root_peer_id, 10);
 
         for auth in trusts.iter() {
             add_trust_checked(&mut trust_graph, auth.trust.clone(), auth.issuer, cur_time);

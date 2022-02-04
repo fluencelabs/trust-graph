@@ -1,23 +1,10 @@
-# Run example locally
+## Description
+This example shows how to use Trust Graph to label peers. There are some `trusted_computation` which can only be executed 
+on labeled peer. The label is determined by the presence of certificate from `%init_peer_id` to this peer.
+
+## Run example locally
 1. Go to `local-network`
 2. Run `docker compose up -d` to start Fluence node
 3. Go back to `../example`
 4. Run `npm i`
 5. Run `npm run start`
-
-## How to use
-1. Add the following to your dependencies
-   - `@fluencelabs/trust-graph`
-   - `@fluencelabs/aqua`
-   - `@fluencelabs/aqua-lib`
-   - `@fluencelabs/fluence`
-   - `@fluencelabs/fluence-network-environment`
-
-2. Import dependencies
-   ```typescript
-   import * as tg from "./generated/export";
-   import { Fluence, KeyPair } from "@fluencelabs/fluence";
-   import { krasnodar, Node } from "@fluencelabs/fluence-network-environment";
-   ```
-3. Add root and issue self-signed root trust.
-4. For now, you can sign trusts/revocations only on js side with KeyPair.

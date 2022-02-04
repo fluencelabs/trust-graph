@@ -10,3 +10,5 @@
 all Fluence Labs relations. Trust from issuer key to any peer id means that this peer is official Fluence Labs peer.
 isFluencePeer method from [trust-graph-api.aqua](./aqua/trust-graph-api.aqua) module checks these relations. You can build your own
 structure of peers similarly.
+
+`example_secret_key.ed25519` publicly available and used for test purposes.

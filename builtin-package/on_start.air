@@ -1,6 +1,7 @@
 (seq
     (seq
-        (call relay ("trust-graph" "add_root") ["12D3KooWNbZKaPWRZ8wgjGvrxdJFz9Fq5uVwkR6ERV1f74HhPdyB" 2] add_root_res)
+        ; set fluence root peer id as TG root
+        (call relay ("trust-graph" "set_root") ["12D3KooWNbZKaPWRZ8wgjGvrxdJFz9Fq5uVwkR6ERV1f74HhPdyB" 5] add_root_res)
         (xor
             (match add_root_res.$.success! true
                 (null)
@@ -14,6 +15,7 @@
                 (seq
                     (seq
                         (call relay ("peer" "timestamp_sec") [] cur_time)
+                        ; insert all certificates from on_start.json
                         (call relay ("trust-graph" "insert_cert") [i cur_time] insert_result)
                     )
                     (xor

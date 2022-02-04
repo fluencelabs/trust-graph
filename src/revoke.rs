@@ -48,10 +48,9 @@ pub struct Revocation {
 }
 
 impl Revocation {
-    #[allow(dead_code)]
     pub fn new(
-        pk: PublicKey,
         revoked_by: PublicKey,
+        pk: PublicKey,
         revoked_at: Duration,
         signature: Signature,
     ) -> Self {
@@ -64,12 +63,11 @@ impl Revocation {
     }
 
     /// Creates new revocation signed by a revoker.
-    #[allow(dead_code)]
     pub fn create(revoker: &KeyPair, to_revoke: PublicKey, revoked_at: Duration) -> Self {
         let msg = Revocation::signature_bytes(&to_revoke, revoked_at);
         let signature = revoker.sign(&msg).unwrap();
 
-        Revocation::new(to_revoke, revoker.public(), revoked_at, signature)
+        Revocation::new(revoker.public(), to_revoke, revoked_at, signature)
     }
 
     pub fn signature_bytes(pk: &PublicKey, revoked_at: Duration) -> Vec<u8> {
@@ -120,8 +118,8 @@ mod tests {
 
         let duration2 = Duration::new(95, 0);
         let corrupted_revoke = Revocation::new(
-            to_revoke.public(),
             revoker.public(),
+            to_revoke.public(),
             duration2,
             revoke.signature,
         );

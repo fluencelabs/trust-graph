@@ -2,9 +2,9 @@ use crate::dto::{Certificate, Revocation, Trust};
 use crate::error::ServiceError;
 use crate::misc::{check_timestamp_tetraplets, extract_public_key, with_tg, wrapped_try};
 use crate::results::{
-    AddRootResult, AddTrustResult, AllCertsResult, GetRevokeBytesResult, GetTrustBytesResult,
-    InsertResult, IssueRevocationResult, IssueTrustResult, RevokeResult, VerifyTrustResult,
-    WeightResult,
+    AddTrustResult, AllCertsResult, ExportRevocationsResult, GetRevokeBytesResult,
+    GetTrustBytesResult, InsertResult, IssueRevocationResult, IssueTrustResult, RevokeResult,
+    SetRootResult, VerifyTrustResult, WeightResult,
 };
 use crate::storage_impl::SQLiteStorage;
 use fluence_keypair::Signature;
@@ -12,27 +12,22 @@ use marine_rs_sdk::{get_call_parameters, marine, CallParameters};
 use std::convert::{TryFrom, TryInto};
 use std::str::FromStr;
 use std::time::Duration;
-use trust_graph::{TrustGraph, MAX_WEIGHT_FACTOR};
+use trust_graph::TrustGraph;
 
 #[marine]
-fn get_weight_factor(max_chain_len: u32) -> u32 {
-    MAX_WEIGHT_FACTOR.checked_sub(max_chain_len).unwrap_or(0u32)
-}
-
-#[marine]
-/// could add only a owner of a trust graph service
-fn add_root(peer_id: String, weight_factor: u32) -> AddRootResult {
+/// Only service owner can set roots
+fn set_root(peer_id: String, max_chain_len: u32) -> SetRootResult {
     let call_parameters: CallParameters = marine_rs_sdk::get_call_parameters();
     let init_peer_id = call_parameters.init_peer_id;
     if call_parameters.service_creator_peer_id == init_peer_id {
         with_tg(|tg| {
             let public_key = extract_public_key(peer_id)?;
-            tg.add_root_weight_factor(public_key, weight_factor)?;
+            tg.set_root(public_key, max_chain_len)?;
             Ok(())
         })
         .into()
     } else {
-        return AddRootResult {
+        return SetRootResult {
             success: false,
             error: ServiceError::NotOwner.to_string(),
         };
@@ -71,17 +66,40 @@ fn get_certs(
     tg: &mut TrustGraph<SQLiteStorage>,
     issued_for: String,
     timestamp_sec: u64,
-) -> Result<impl Iterator<Item = Certificate>, ServiceError> {
+) -> Result<Vec<Certificate>, ServiceError> {
     let public_key = extract_public_key(issued_for)?;
     let certs = tg.get_all_certs(public_key, Duration::from_secs(timestamp_sec))?;
-    Ok(certs.into_iter().map(|c| c.into()))
+    Ok(certs.into_iter().map(|c| c.into()).collect())
+}
+
+fn get_certs_from(
+    tg: &mut TrustGraph<SQLiteStorage>,
+    issued_for: String,
+    issuer: String,
+    timestamp_sec: u64,
+) -> Result<Vec<Certificate>, ServiceError> {
+    let issued_for_pk = extract_public_key(issued_for)?;
+    let issuer_pk = extract_public_key(issuer)?;
+    let certs =
+        tg.get_all_certs_from(issued_for_pk, issuer_pk, Duration::from_secs(timestamp_sec))?;
+    Ok(certs.into_iter().map(|c| c.into()).collect())
 }
 
 #[marine]
 fn get_all_certs(issued_for: String, timestamp_sec: u64) -> AllCertsResult {
     with_tg(|tg| {
         check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
-        get_certs(tg, issued_for, timestamp_sec).map(|iter| iter.collect())
+        get_certs(tg, issued_for, timestamp_sec)
+    })
+    .into()
+}
+
+#[marine]
+fn get_all_certs_from(issued_for: String, issuer: String, timestamp_sec: u64) -> AllCertsResult {
+    with_tg(|tg| {
+        let cp = get_call_parameters();
+        check_timestamp_tetraplets(&cp, 1)?;
+        get_certs_from(tg, issued_for, issuer, timestamp_sec)
     })
     .into()
 }
@@ -91,7 +109,7 @@ fn get_host_certs(timestamp_sec: u64) -> AllCertsResult {
     with_tg(|tg| {
         let cp = marine_rs_sdk::get_call_parameters();
         check_timestamp_tetraplets(&cp, 0)?;
-        get_certs(tg, cp.host_id, timestamp_sec).map(|iter| iter.collect())
+        get_certs(tg, cp.host_id, timestamp_sec)
     })
     .into()
 }
@@ -101,10 +119,7 @@ fn get_host_certs_from(issuer: String, timestamp_sec: u64) -> AllCertsResult {
     with_tg(|tg| {
         let cp = get_call_parameters();
         check_timestamp_tetraplets(&cp, 1)?;
-        get_certs(tg, cp.host_id, timestamp_sec).map(|c| {
-            c.filter(|cert: &Certificate| cert.chain.iter().any(|t| t.issued_for == issuer))
-                .collect()
-        })
+        get_certs_from(tg, cp.host_id, issuer, timestamp_sec)
     })
     .into()
 }
@@ -115,6 +130,20 @@ fn get_weight(peer_id: String, timestamp_sec: u64) -> WeightResult {
         check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
         let public_key = extract_public_key(peer_id.clone())?;
         let weight = tg.weight(public_key, Duration::from_secs(timestamp_sec))?;
+        Ok(weight)
+    })
+    .map(|w| (w, peer_id))
+    .into()
+}
+
+#[marine]
+fn get_weight_from(peer_id: String, issuer: String, timestamp_sec: u64) -> WeightResult {
+    with_tg(|tg| {
+        check_timestamp_tetraplets(&marine_rs_sdk::get_call_parameters(), 1)?;
+        let issued_for_pk = extract_public_key(peer_id.clone())?;
+        let issuer_pk = extract_public_key(issuer)?;
+        let weight =
+            tg.weight_from(issued_for_pk, issuer_pk, Duration::from_secs(timestamp_sec))?;
         Ok(weight)
     })
     .map(|w| (w, peer_id))
@@ -187,18 +216,17 @@ fn add_trust(trust: Trust, issuer_peer_id: String, timestamp_sec: u64) -> AddTru
             return Err(ServiceError::InvalidTimestamp("trust".to_string()));
         }
 
-        tg.add_trust(
+        Ok(tg.add_trust(
             &trust.try_into()?,
             public_key,
             Duration::from_secs(timestamp_sec),
-        )
-        .map_err(ServiceError::TGError)
+        )?)
     })
     .into()
 }
 
 #[marine]
-fn get_revoke_bytes(revoked_peer_id: String, revoked_at: u64) -> GetRevokeBytesResult {
+fn get_revocation_bytes(revoked_peer_id: String, revoked_at: u64) -> GetRevokeBytesResult {
     wrapped_try(|| {
         let public_key = extract_public_key(revoked_peer_id)?;
         Ok(trust_graph::Revocation::signature_bytes(
@@ -211,8 +239,8 @@ fn get_revoke_bytes(revoked_peer_id: String, revoked_at: u64) -> GetRevokeBytesR
 
 #[marine]
 fn issue_revocation(
-    revoked_peer_id: String,
     revoked_by_peer_id: String,
+    revoked_peer_id: String,
     revoked_at_sec: u64,
     signature_bytes: Vec<u8>,
 ) -> IssueRevocationResult {
@@ -222,7 +250,7 @@ fn issue_revocation(
 
         let revoked_at = Duration::from_secs(revoked_at_sec);
         let signature = Signature::from_bytes(revoked_by_pk.get_key_format(), signature_bytes);
-        Ok(trust_graph::Revocation::new(revoked_pk, revoked_by_pk, revoked_at, signature).into())
+        Ok(trust_graph::Revocation::new(revoked_by_pk, revoked_pk, revoked_at, signature).into())
     })
     .into()
 }
@@ -236,7 +264,20 @@ fn revoke(revoke: Revocation, timestamp_sec: u64) -> RevokeResult {
             return Err(ServiceError::InvalidTimestamp("revoke".to_string()));
         }
 
-        tg.revoke(revoke.try_into()?).map_err(ServiceError::TGError)
+        Ok(tg.revoke(revoke.try_into()?)?)
+    })
+    .into()
+}
+
+#[marine]
+fn export_revocations(issued_for: String) -> ExportRevocationsResult {
+    with_tg(|tg| {
+        let issued_for_pk = extract_public_key(issued_for)?;
+        Ok(tg
+            .get_revocations(issued_for_pk)?
+            .into_iter()
+            .map(|r| r.into())
+            .collect())
     })
     .into()
 }

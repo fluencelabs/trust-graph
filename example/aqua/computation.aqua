@@ -1,0 +1,27 @@
+
+import "@fluencelabs/trust-graph/trust-graph-api.aqua"
+import "@fluencelabs/trust-graph/trust-graph.aqua"
+import "@fluencelabs/aqua-lib/builtin.aqua"
+
+export trusted_computation
+
+service CertOp("op"):
+  array_length(a: []Certificate) -> u32
+
+service TrustedComputation("op"):
+    identity(s: u64) -> u64
+
+func trusted_computation(node: string) -> ?u64:
+    result: ?u64
+    -- on our trusted relay
+    on HOST_PEER_ID:
+        -- get all certificates issued for given node by our client's peer id
+        certs_result <- get_all_certs_from(node, %init_peer_id%)
+        if certs_result.success:
+            len <- CertOp.array_length(certs_result.certificates)
+        -- if there is any certificate node is trusted and computation is possible
+        if len != 0:
+            on node:
+                result <- TrustedComputation.identity(5)
+
+    <- result

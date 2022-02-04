@@ -1,12 +1,12 @@
 {
   "name": "@fluencelabs/trust-graph",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "Aqua Trust Graph API library",
   "files": [
     "*.aqua"
   ],
   "dependencies": {
-    "@fluencelabs/aqua-lib": "0.2.0"
+    "@fluencelabs/aqua-lib": "^0.3.1"
   },
   "scripts": {
     "generate-aqua": "../service/build.sh",
@@ -31,6 +31,6 @@
   },
   "homepage": "https://github.com/fluencelabs/trust-graph#readme",
   "devDependencies": {
-    "@fluencelabs/aqua": "0.4.1-240"
+    "@fluencelabs/aqua": "^0.5.2-257"
   }
 }
