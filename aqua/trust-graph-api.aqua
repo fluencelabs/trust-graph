@@ -1,8 +1,7 @@
-import Sig, Peer from "@fluencelabs/aqua-lib/builtin.aqua"
+import Sig, Peer, PeerId from "@fluencelabs/aqua-lib/builtin.aqua"
 import "misc.aqua"
 import "trust-graph.aqua"
 
-alias PeerId: string
 alias Error: string
 
 -- Call context: any node with registered `trust-graph` service
