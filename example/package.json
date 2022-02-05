@@ -14,7 +14,7 @@
   "license": "MIT",
   "dependencies": {
     "@fluencelabs/aqua": "^0.5.2-257",
-    "@fluencelabs/aqua-lib": "^0.3.2",
+    "@fluencelabs/aqua-lib": "^0.3.4",
     "@fluencelabs/fluence": "^0.18.0",
     "@fluencelabs/fluence-network-environment": "^1.0.10",
     "@fluencelabs/trust-graph": "file:../aqua",
