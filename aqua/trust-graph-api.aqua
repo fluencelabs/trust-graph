@@ -27,21 +27,18 @@ func issue_trust(issuer: PeerId, issued_for: PeerId, expires_at_sec: u64) -> ?Tr
     result: ?Trust
     error: *Error
     if bytes.success:
-        -- for %init_peer_id% Sig service available by default and registered as "sig"
-        -- for other peer ids custom Sig service should be implemented and registered with this peer id as service id
-        if issuer != %init_peer_id%:
-            Sig issuer
-        else:
-            Sig "sig"
+        Sig issuer
+        sig_res <- Sig.sign(bytes.result)
 
-        signature <- Sig.sign(bytes.result)
-
-        on HOST_PEER_ID:
-            issue_result <- TrustGraph.issue_trust(issued_for, expires_at_sec, issued_at_sec, signature)
-        if issue_result.success:
-            result <<- issue_result.trust
+        if sig_res.success:
+            on HOST_PEER_ID:
+                issue_result <- TrustGraph.issue_trust(issued_for, expires_at_sec, issued_at_sec, sig_res.signature!)
+            if issue_result.success:
+                result <<- issue_result.trust
+            else:
+                error <<- issue_result.error
         else:
-            error <<- issue_result.error
+            error <<- sig_res.error!
     else:
         error <<- bytes.error
     <- result, error
@@ -133,21 +130,19 @@ func issue_revocation(revoked_by: PeerId, revoked: PeerId) -> ?Revocation, ?Erro
     result: ?Revocation
     error: *Error
     if bytes.success:
-        -- for %init_peer_id% Sig service available by default and registered as "sig"
-        -- for other peer ids custom Sig service should be implemented and registered with this peer id as service id
-        if revoked_by != %init_peer_id%:
-            Sig revoked_by
-        else:
-            Sig "sig"
+        Sig revoked_by
 
-        signature <- Sig.sign(bytes.result)
+        sig_res <- Sig.sign(bytes.result)
 
-        on HOST_PEER_ID:
-            issue_result <- TrustGraph.issue_revocation(revoked_by, revoked, issued_at_sec, signature)
-        if issue_result.success:
-            result <<- issue_result.revocation
+        if sig_res.success:
+            on HOST_PEER_ID:
+                issue_result <- TrustGraph.issue_revocation(revoked_by, revoked, issued_at_sec, sig_res.signature!)
+            if issue_result.success:
+                result <<- issue_result.revocation
+            else:
+                error <<- issue_result.error
         else:
-            error <<- issue_result.error
+            error <<- sig_res.error!
     else:
         error <<- bytes.error
     <- result, error
