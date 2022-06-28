@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import {trusted_computation} from "./generated/computation";
+import { trusted_computation } from "./generated/computation";
 import * as tg from "./generated/export";
-import {Fluence, FluencePeer, KeyPair} from "@fluencelabs/fluence";
-import {krasnodar, Node, testNet, stage} from "@fluencelabs/fluence-network-environment";
+import { Fluence, FluencePeer, KeyPair } from "@fluencelabs/fluence";
+import { krasnodar, Node, testNet, stage } from "@fluencelabs/fluence-network-environment";
 import assert from "assert";
 const bs58 = require('bs58');
 
@@ -92,7 +92,7 @@ async function main() {
     let builtins_keypair = await KeyPair.fromEd25519SK(sk);
 
     let relay = local[0];
-    await Fluence.start({ connectTo: relay, KeyPair: builtins_keypair});
+    await Fluence.start({ connectTo: relay, KeyPair: builtins_keypair });
     console.log(
         "📗 created a fluence peer %s with relay %s",
         Fluence.getStatus().peerId,
