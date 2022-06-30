@@ -27,10 +27,10 @@ fn set_root(peer_id: String, max_chain_len: u32) -> SetRootResult {
         })
         .into()
     } else {
-        return SetRootResult {
+        SetRootResult {
             success: false,
             error: ServiceError::NotOwner.to_string(),
-        };
+        }
     }
 }
 

@@ -40,7 +40,7 @@ pub struct Certificate {
 impl From<trust_graph::Certificate> for Certificate {
     fn from(c: trust_graph::Certificate) -> Self {
         let chain: Vec<Trust> = c.chain.into_iter().map(|t| t.into()).collect();
-        return Certificate { chain };
+        Certificate { chain }
     }
 }
 
@@ -51,10 +51,10 @@ impl TryFrom<Certificate> for trust_graph::Certificate {
         let chain: Result<Vec<trust_graph::Trust>, DtoConversionError> = c
             .chain
             .into_iter()
-            .map(|t| trust_graph::Trust::try_from(t))
+            .map(trust_graph::Trust::try_from)
             .collect();
         let chain = chain?;
-        return Ok(trust_graph::Certificate { chain });
+        Ok(trust_graph::Certificate { chain })
     }
 }
 
@@ -85,12 +85,12 @@ impl TryFrom<Trust> for trust_graph::Trust {
         let signature = Signature::from_bytes(KeyFormat::from_str(&t.sig_type)?, signature);
         let expires_at = Duration::from_secs(t.expires_at);
         let issued_at = Duration::from_secs(t.issued_at);
-        return Ok(trust_graph::Trust {
+        Ok(trust_graph::Trust {
             issued_for,
             expires_at,
             signature,
             issued_at,
-        });
+        })
     }
 }
 
@@ -101,13 +101,13 @@ impl From<trust_graph::Trust> for Trust {
         let signature = bs58::encode(raw_signature.bytes).into_string();
         let expires_at = t.expires_at.as_secs();
         let issued_at = t.issued_at.as_secs();
-        return Trust {
+        Trust {
             issued_for,
             expires_at,
             signature,
             sig_type: raw_signature.sig_type.into(),
             issued_at,
-        };
+        }
     }
 }
 
@@ -142,12 +142,12 @@ impl TryFrom<Revocation> for trust_graph::Revocation {
         let signature = bs58::decode(&r.signature).into_vec()?;
         let signature = Signature::from_bytes(KeyFormat::from_str(&r.sig_type)?, signature);
         let revoked_at = Duration::from_secs(r.revoked_at);
-        return Ok(trust_graph::Revocation {
+        Ok(trust_graph::Revocation {
             pk: revoked_pk,
             revoked_at,
             revoked_by: revoked_by_pk,
             signature,
-        });
+        })
     }
 }
 
@@ -158,12 +158,12 @@ impl From<trust_graph::Revocation> for Revocation {
         let raw_signature = r.signature.get_raw_signature();
         let signature = bs58::encode(raw_signature.bytes).into_string();
         let revoked_at = r.revoked_at.as_secs();
-        return Revocation {
+        Revocation {
             revoked_peer_id,
             revoked_at,
             signature,
             sig_type: raw_signature.sig_type.into(),
             revoked_by,
-        };
+        }
     }
 }
