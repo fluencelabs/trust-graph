@@ -95,7 +95,7 @@ impl From<TrustGraphError> for String {
 }
 
 fn get_weight_factor(max_chain_len: u32) -> u32 {
-    MAX_WEIGHT_FACTOR.checked_sub(max_chain_len).unwrap_or(0u32)
+    MAX_WEIGHT_FACTOR.saturating_sub(max_chain_len)
 }
 
 pub fn get_weight_from_factor(wf: WeightFactor) -> u32 {

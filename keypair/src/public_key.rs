@@ -165,7 +165,7 @@ impl TryFrom<libp2p_core::PeerId> for PublicKey {
 
     fn try_from(peer_id: libp2p_core::PeerId) -> Result<Self, Self::Error> {
         Ok(as_public_key(&peer_id)
-            .ok_or(DecodingError::PublicKeyNotInlined(peer_id.to_base58()))?
+            .ok_or_else(|| DecodingError::PublicKeyNotInlined(peer_id.to_base58()))?
             .into())
     }
 }
@@ -177,7 +177,9 @@ fn as_public_key(peer_id: &PeerId) -> Option<libp2p_core::PublicKey> {
     let mhash = peer_id.as_ref();
 
     match multihash::Code::try_from(mhash.code()) {
-        Ok(multihash::Code::Identity) => libp2p_core::PublicKey::from_protobuf_encoding(mhash.digest()).ok(),
+        Ok(multihash::Code::Identity) => {
+            libp2p_core::PublicKey::from_protobuf_encoding(mhash.digest()).ok()
+        }
         _ => None,
     }
 }

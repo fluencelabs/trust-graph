@@ -272,7 +272,7 @@ impl Storage for SQLiteStorage {
         statement.bind(6, &Value::Binary(relation.signature().encode()))?;
 
         statement.next()?;
-        Ok({})
+        Ok(())
     }
 
     fn get_root_weight_factor(&self, pk: &PK) -> Result<Option<WeightFactor>, Self::Error> {
@@ -309,7 +309,7 @@ impl Storage for SQLiteStorage {
         ])?;
 
         cursor.next()?;
-        Ok({})
+        Ok(())
     }
 
     fn root_keys(&self) -> Result<Vec<PK>, Self::Error> {

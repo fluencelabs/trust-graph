@@ -74,14 +74,26 @@ impl Certificate {
         Self { chain }
     }
 
-    pub fn new_from_root_trust(root_trust: Trust, issued_trust: Trust, cur_time: Duration) -> Result<Self, CertificateError> {
+    pub fn new_from_root_trust(
+        root_trust: Trust,
+        issued_trust: Trust,
+        cur_time: Duration,
+    ) -> Result<Self, CertificateError> {
         Trust::verify(&root_trust, &root_trust.issued_for, cur_time).map_err(MalformedRoot)?;
-        Trust::verify(&issued_trust, &root_trust.issued_for, cur_time).map_err(|e| VerificationError(1, e))?;
+        Trust::verify(&issued_trust, &root_trust.issued_for, cur_time)
+            .map_err(|e| VerificationError(1, e))?;
 
-        Ok(Self { chain: vec![root_trust, issued_trust] })
+        Ok(Self {
+            chain: vec![root_trust, issued_trust],
+        })
     }
 
-    pub fn issue_with_trust(issued_by: PublicKey, trust: Trust, extend_cert: &Certificate, cur_time: Duration) -> Result<Self, CertificateError> {
+    pub fn issue_with_trust(
+        issued_by: PublicKey,
+        trust: Trust,
+        extend_cert: &Certificate,
+        cur_time: Duration,
+    ) -> Result<Self, CertificateError> {
         if trust.expires_at.lt(&trust.issued_at) {
             return Err(ExpirationError {
                 expires_at: format!("{:?}", trust.expires_at),
@@ -89,7 +101,11 @@ impl Certificate {
             });
         }
 
-        Certificate::verify(extend_cert, &[extend_cert.chain[0].issued_for.clone()], cur_time)?;
+        Certificate::verify(
+            extend_cert,
+            &[extend_cert.chain[0].issued_for.clone()],
+            cur_time,
+        )?;
         // check if `issued_by` is allowed to issue a certificate (i.e., there’s a trust for it in a chain)
         let mut previous_trust_num: i32 = -1;
         for pk_id in 0..extend_cert.chain.len() {
@@ -113,7 +129,6 @@ impl Certificate {
 
         Ok(Self { chain: new_chain })
     }
-
 
     /// Creates new certificate with root trust (self-signed public key) from a key pair.
     #[allow(dead_code)]
@@ -151,7 +166,11 @@ impl Certificate {
         }
 
         // first, verify given certificate
-        Certificate::verify(extend_cert, &[extend_cert.chain[0].issued_for.clone()], cur_time)?;
+        Certificate::verify(
+            extend_cert,
+            &[extend_cert.chain[0].issued_for.clone()],
+            cur_time,
+        )?;
 
         let issued_by_pk = issued_by.public();
 
@@ -309,7 +328,7 @@ impl FromStr for Certificate {
                 str_lines[i + 2],
                 str_lines[i + 3],
             )
-                .map_err(|e| DecodeTrustError(i, e))?;
+            .map_err(|e| DecodeTrustError(i, e))?;
 
             trusts.push(trust);
         }
@@ -353,7 +372,7 @@ mod tests {
             cur_time,
             cur_time,
         )
-            .unwrap();
+        .unwrap();
 
         let serialized = new_cert.to_string();
         let deserialized = Certificate::from_str(&serialized);
@@ -380,7 +399,7 @@ mod tests {
             cur_time,
             cur_time,
         )
-            .unwrap();
+        .unwrap();
 
         let serialized = new_cert.encode();
         let deserialized = Certificate::decode(serialized.as_slice());
@@ -468,7 +487,7 @@ mod tests {
             cur_time.checked_sub(one_minute()).unwrap(),
             cur_time,
         )
-            .unwrap();
+        .unwrap();
 
         assert!(Certificate::verify(&new_cert, &trusted_roots, cur_time).is_err());
     }
@@ -490,7 +509,7 @@ mod tests {
             cur_time,
             cur_time,
         )
-            .unwrap();
+        .unwrap();
         let new_cert = Certificate::issue(
             &third_kp,
             fourth_kp.public(),
@@ -528,7 +547,7 @@ mod tests {
             cur_time,
             cur_time,
         )
-            .unwrap();
+        .unwrap();
         let new_cert = Certificate::issue(
             &second_kp,
             fourth_kp.public(),
