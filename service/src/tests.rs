@@ -887,4 +887,40 @@ mod service_tests {
             assert_eq!(*trust, trusts[i].trust);
         }
     }
+
+    #[test]
+    fn test_get_all_cert_from() {
+        let mut trust_graph = ServiceInterface::new();
+        clear_env();
+        let (key_pairs, trusts) =
+            generate_trust_chain_with_len(&mut trust_graph, 5, HashMap::new());
+
+        let cur_time = current_time();
+        let root_peer_id = key_pairs[0].get_peer_id();
+        set_root_peer_id(&mut trust_graph, root_peer_id, 10);
+
+        for auth in trusts.iter() {
+            add_trust_checked(&mut trust_graph, auth.trust.clone(), auth.issuer, cur_time);
+        }
+
+        let cp = get_correct_timestamp_cp_with_host_id(
+            2,
+            key_pairs.last().unwrap().get_peer_id().to_base58(),
+        );
+        let certs = trust_graph.get_all_certs_from_cp(
+            key_pairs[4].get_peer_id().to_base58(),
+            key_pairs[3].get_peer_id().to_base58(),
+            cur_time,
+            cp,
+        );
+
+        assert!(certs.success, "{}", certs.error);
+        let certs = certs.certificates;
+        assert_eq!(certs.len(), 1);
+        assert_eq!(certs[0].chain.len(), 5);
+
+        for (i, trust) in certs[0].chain.iter().enumerate() {
+            assert_eq!(*trust, trusts[i].trust);
+        }
+    }
 }

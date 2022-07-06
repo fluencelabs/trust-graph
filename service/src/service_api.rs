@@ -98,7 +98,7 @@ fn get_all_certs(issued_for: String, timestamp_sec: u64) -> AllCertsResult {
 fn get_all_certs_from(issued_for: String, issuer: String, timestamp_sec: u64) -> AllCertsResult {
     with_tg(|tg| {
         let cp = get_call_parameters();
-        check_timestamp_tetraplets(&cp, 1)?;
+        check_timestamp_tetraplets(&cp, 2)?;
         get_certs_from(tg, issued_for, issuer, timestamp_sec)
     })
     .into()
