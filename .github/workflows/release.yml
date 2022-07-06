@@ -22,10 +22,13 @@ jobs:
       - name: Set env
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
 
+      - run: mkdir -p ~/.bin
+      - run: echo "~/.bin" >> $GITHUB_PATH
+
       - name: Download jq
         run: |
-          curl -L https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64 -o /usr/local/bin/jq
-          chmod +x /usr/local/bin/jq
+          curl -L https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64 -o  ~/.bin/jq
+          chmod +x  ~/.bin/jq
 
       - name: Download marine
         run: bash $GITHUB_WORKSPACE/.github/download_marine.sh
