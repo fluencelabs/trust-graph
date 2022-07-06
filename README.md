@@ -1,15 +1,31 @@
 # Trust Graph
 
-Trust Graph is network-wide peer relationship layer. It's designed to be used to prioritize resources and control permissions in open networks. Being a decentralized graph of relationships, basically a Web of Trust, Trust Graph is distributed among all network peers. 
+## Overview
+In web2 problem of access control and permissions is solved with centralized CAs (Certificate Authority). In distributed nature this problem is actual and even more challenging. TrustGraph is our view on the solution for this challenge.
 
-Specifically, Trust Graph is used to prioritize connections from known peers to counteract Sybil attacks while still keeping network open by reserving resources for unknown peers. 
+TrustGraph is a bottom layer of trust for open p2p networks: every peer may be provided with SSL-like certificates, promote over the network. Service providers and other peers can then treat certificate-holders differently, based on the certificate set they have.
 
-At the same time, Trust Graph can be used at the application level in various ways such as prioritization of service execution on authorized peers or to define an interconnected subnetwork among peers of a single protocol.
+## Why is it important?
+
+Problem of peer choice and prioritization is very urgent in p2p networks. Without trust to any network participant we can't use the network reliably and predictably. Also we should mark and avoid malicious peers. In addition we need to control our application access and permissions in runtime so it performs continiously without interruption and redeployment.
+
+## What is it?
+
+TrustGraph is basically a directed graph with at least one root, vertices are peer ids, edges are one of the two types of cryptographic relations: trust and revocation. Root is a peer id that we unconditionally trust, until it is removed, defined by node owner.
+
+**Trust** is a cryptographic relation representing that peer A trusts peer B until this trust expires or is revoked. Trust contains timestamp of issuing, signature, etc.
+
+**Revocation** is a cryptographic relation representing that peer A considers peer B malicious or unreliable.
+
+**Certificate** is a chain of trusts
+
+## How to Use it in Aqua
+
 
 ## How to Use it in TypeScript
 
 See [example](./example):
-- How to call [`trust-graph`](./example/index.ts) functions in TS/JS 
+- How to call [`trust-graph`](./example/index.ts) functions in TS/JS
 - Step-by-step description [`README`](./example/README.md)
 
 ## API
@@ -48,7 +64,7 @@ func my_function(peer_id: string) -> u32:
     <- result
 ```
 
-## How to use is js
+## How to use it in JS
 1. Add the following to your dependencies
     - `@fluencelabs/trust-graph`
     - `@fluencelabs/aqua`
