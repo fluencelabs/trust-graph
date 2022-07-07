@@ -18,3 +18,12 @@ admin/src/generated/**
 admin/generated/**
 
 target
+
+# recommended by Fluence Labs:
+.idea
+.DS_Store
+.fluence
+Cargo.lock
+**/target/
+.vscode/settings.json
+.repl_history
