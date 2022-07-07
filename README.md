@@ -11,13 +11,19 @@ Problem of peer choice and prioritization is very urgent in p2p networks. Withou
 
 ## What is it?
 
-TrustGraph is basically a directed graph with at least one root, vertices are peer ids, edges are one of the two types of cryptographic relations: trust and revocation. Root is a peer id that we unconditionally trust, until it is removed, defined by node owner.
+TrustGraph is basically a directed graph with at least one root, vertices are peer ids, edges are one of the two types of cryptographic relations: trust and revocation.
 
-**Trust** is a cryptographic relation representing that peer A trusts peer B until this trust expires or is revoked. Trust contains timestamp of issuing, signature, etc.
+**Root** is a peer id that we unconditionally trust, until it is removed, defined by node owner. Every root have characteristics that represent maximum length for chain of trusts.
+
+**Trust** is a cryptographic relation representing that peer A trusts peer B until this trust expires or is revoked.
 
 **Revocation** is a cryptographic relation representing that peer A considers peer B malicious or unreliable.
 
-**Certificate** is a chain of trusts
+**Certificate** is a chain of trusts, started with self-signed root trust.
+
+So peerA is trusted by peerB if there is a path between them in this instance of TrustGraph. The selection of certificates is subjective and defined by node owner by choice of roots and maximum chain lengths.
+
+Every peer has a **weight**
 
 ## How to Use it in Aqua
 
@@ -106,3 +112,28 @@ func my_function(peer_id: string) -> u32:
     console.log(error);
    }
    ```
+
+## Use cases
+
+
+## FAQ
+
+- Can weight changes during time?
+  - if shortest path to root changed (trust expired or added)
+
+- How we can interpret certificate and/or peer weight?
+
+- What is zero weight mean?
+   - There is no trust and path from any roots to target peer
+
+a) how are scores calculated based on what feedback
+ - this is out-of-scope for this project and until we have no metrics all trust/revocation are responsibility of the user.
+
+b) how do i set all weights to untrusted and then over time increase trust in a peer? again, what is measured?
+- all peers are untrusted by default. trust is unmeasured, weight represents how far this peer from root, the bigger weight -- the closer to the root.
+
+c) how do i know that other peers are using the same processes to update weights? can i check that? do i need to blindly trust it?
+- weights calculated locally based on certificates which contain signed trusts, write about signature checking
+
+d) can i start my own instance of a trust graph or is there only a global version available? if so, how?
+-  yes, you can change any service you want if you're node owner
