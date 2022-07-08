@@ -47,14 +47,6 @@ async function revoke_all(relay: string, revoked_by: string, nodes: Node[]) {
         }
     }
 }
-async function add_root(relay: string, peer_id: string) {
-    let current_time = await tg.timestamp_sec();
-    let far_future = current_time + 9999999;
-    let error = await tg.add_root_trust(relay, peer_id, 2, far_future);
-    if (error !== null) {
-        console.log(error)
-    }
-}
 
 async function add_new_trust_checked(relay: string, issuer: string, issued_for_peer_id: string, expires_at_sec: number) {
     let error = await tg.add_trust(relay, issuer, issued_for_peer_id, expires_at_sec);
@@ -84,14 +76,10 @@ async function exec_trusted_computation(node: string) {
     }
 }
 
-async function main(nodes: Node[], isLocal: boolean) {
-    var sk;
-    if (isLocal) {
-        // key from local-network/builtins_secret_key.ed25519 to connect as builtins owner
-        sk = bs58.decode("5FwE32bDcphFzuMca7Y2qW1gdR64fTBYoRNvD4MLE1hecDGhCMQGKn8aseMr5wRo4Xo2CRFdrEAawUNLYkgQD78K").slice(0, 32); // first 32 bytes - secret key, second - public key
-    } else {
-        sk = bs58.decode("E5ay3731i4HN8XjJozouV92RDMGAn3qSnb9dKSnujiWv"); // example_secret_key.ed25519
-    }
+async function main(nodes: Node[]) {
+    // example_secret_key.ed25519
+    let sk = bs58.decode("E5ay3731i4HN8XjJozouV92RDMGAn3qSnb9dKSnujiWv");
+
     let builtins_keypair = await KeyPair.fromEd25519SK(sk);
 
     let relay = nodes[0];
@@ -113,32 +101,32 @@ async function main(nodes: Node[], isLocal: boolean) {
     // wait to be sure that last revocation will be older than future trusts at least on 1 second (because timestamp in secs)
     await new Promise(f => setTimeout(f, 1000));
 
-    if (isLocal) {
-        // set our peer id as root to our relay for local node
-        await add_root(relay.peerId, local_peer_id);
-    }
-
     let nodeA = nodes[0].peerId
     let nodeB = nodes[1].peerId
     let nodeC = nodes[2].peerId
 
+    console.log();
     // try to exec computation on every node, will fail
     await exec_trusted_computation(nodeA); // fail
     await exec_trusted_computation(nodeB); // fail
     await exec_trusted_computation(nodeC); // fail
 
+    console.log();
     console.log("🌀 Issue trust to nodeB %s and nodeC: %s", nodeB, nodeC);
     await add_new_trust_checked(relay.peerId, local_peer_id, nodeB, far_future);
     await add_new_trust_checked(relay.peerId, local_peer_id, nodeC, far_future);
 
+    console.log();
     await exec_trusted_computation(nodeA); // fail
     await exec_trusted_computation(nodeB); // success
     await exec_trusted_computation(nodeC); // success
+    console.log();
 
     await new Promise(f => setTimeout(f, 1000));
     console.log("🚫 Revoke trust to nodeB");
     await revoke_checked(relay.peerId, local_peer_id, nodeB);
 
+    console.log();
     await exec_trusted_computation(nodeA); // fail
     await exec_trusted_computation(nodeB); // fail
     await exec_trusted_computation(nodeC); // success
@@ -148,17 +136,15 @@ async function main(nodes: Node[], isLocal: boolean) {
 console.log("In this example we try to execute some trusted computations based on trusts");
 let args = process.argv.slice(2);
 var environment: Node[];
-var isLocal = false;
 if (args.length >= 1 && args[0] == "local") {
   environment = local;
-  isLocal = true;
   console.log("📘 Will connect to local nodes");
 } else {
   environment = testNet;
   console.log("📘 Will connect to testNet");
 }
 
-main(environment, isLocal)
+main(environment)
     .then(() => process.exit(0))
     .catch((error) => {
         console.error(error);
