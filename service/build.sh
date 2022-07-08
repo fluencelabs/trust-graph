@@ -8,12 +8,12 @@ cd "$(dirname "$0")"
 marine build --release
 
 # copy .wasm to artifacts
-rm -f artifacts/trust-graph/*
-mkdir -p artifacts/trust-graph
-cp ../target/wasm32-wasi/release/trust-graph.wasm artifacts/trust-graph
+rm -f artifacts/*
+mkdir -p artifacts
+cp ../target/wasm32-wasi/release/trust-graph.wasm artifacts/
 
 # download SQLite 3 to use in tests
-curl -L https://github.com/fluencelabs/sqlite/releases/download/v0.15.0_w/sqlite3.wasm -o artifacts/trust-graph/sqlite3.wasm
+curl -L https://github.com/fluencelabs/sqlite/releases/download/v0.15.0_w/sqlite3.wasm -o artifacts/sqlite3.wasm
 
 # generate Aqua bindings
-marine aqua artifacts/trust-graph/trust-graph.wasm -s TrustGraph -i trust-graph > ../aqua/trust-graph.aqua
+marine aqua artifacts/trust-graph.wasm -s TrustGraph -i trust-graph > ../aqua/trust-graph.aqua
