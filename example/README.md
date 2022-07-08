@@ -4,8 +4,8 @@ on labeled peer. The label is determined by the presence of certificate from `%i
 
 
 ## Run example on network
-4. Run `npm i`
-5. Run `npm run start`
+1. Run `npm i`
+2. Run `npm run start`
 
 ## Run example locally
 1. Go to `local-network`
