@@ -13,6 +13,8 @@
     - [How to get weights](#how-to-get-weights)
   - [How to use it in TS/JS](#how-to-use-it-in-tsjs)
   - [Use cases](#use-cases)
+    - [Create trusted subnetwork](#create-trusted-subnetwork)
+    - [Service permission management](#service-permission-management)
     - [Label trusted peers and execute computation only on this peers](#label-trusted-peers-and-execute-computation-only-on-this-peers)
   - [FAQ](#faq)
   - [API](#api)
@@ -38,17 +40,19 @@ TrustGraph is basically a directed graph with at least one root, vertices are pe
 
 As a **path to the root**, we consider a path with only trust edges, given this rule: chain `R -> A -> ...-> C` is not a path if A revoked C.
 
-**Trust** is a cryptographic relation representing that peer A trusts peer B until this trust expires or is revoked. Trust relation is transitive. If peer A trusts peer B and peer B trusts peer C so it results that peer A trusts peer C transitively.
+**Trust** is a cryptographic relation representing that peer A trusts peer B until this trust expires or is revoked. Trust relation is transitive. If peer A trusts peer B and peer B trusts peer C so it results that peer A trusts peer C transitively. Trust relation means that you trust to connect, compute or store based on your business logic and choosen metrics. For example, you want to perform some computation and there are well-known peers which do that and trusted by others you trust, so you can safely use them for compute but not to store sensitive information (personal keys, etc).
 
 **Certificate** is a chain of trusts, started with self-signed root trust.
 
-So peerA is trusted by peerB if there is a path between them in this instance of TrustGraph. The selection of certificates is subjective and defined by node owner by choice of roots and maximum chain lengths.
+So peerA is trusted by peerB if there is a path between them in this instance of TrustGraph. The selection of certificates is subjective and defined by node owner by choice of roots and maximum chain lengths. For now, there are no default metrics for general case.
 
 **Revocation** is a cryptographic relation representing that peer A considers peer B malicious or unreliable. All chains containing paths from A to B will not be treated as valid. So if A trusts some peer C and C trusts B, peer A has no trust to B transitively it would have otherwise.
 
-Every peer has a **weight**. Weight is a power of 2 or zero. If there is no path from any root to this peer, given revocations, weight equals zero. The closer to the root — the bigger the weight. Weights are subjective and
+Every peer has a **weight**. Weight is a power of 2 or zero. If there is no path from any root to this peer, given revocations, weight equals zero. The closer to the root — the bigger the weight. Weights are subjective and relevant in scope of local TrustGraph.
 
 TrustGraph is a builtin and every node is bundled with TrustGraph instance and predefined certificates.
+
+Trust is transitive in terms of cryptographic relations and it is also subjective in terms of the choosen view by each network participant.
 
 ## How to Use it in Aqua
 ### How to import
@@ -212,6 +216,38 @@ func get_our_weight() -> ?u32, ?string:
    ```
 
 ## Use cases
+
+### Create trusted subnetwork
+
+You can organize subnetwork with peers trusted by your choice or choosen metrics. So you can treat trusts given by some peer (or key) as evidence.
+
+Let's consider we have peers A, B and C:
+- Choose peer A as authority, set it as a root for local TrustGraphs on all peers
+- Issue and put self-signed by peer A trust as a root trust
+- Issue trusts by peer A to peer B and peer C and put it on all peers
+- So for call `get_weight_from(targetPeer, peerA)` will reflect whether targetPeer is in subnetwork ABC
+
+### Service permission management
+
+You can specify in runtime who can access to service functionality based on local TrustGraph (certificates, weights). It's possible to check where the proof come from based on [tetraplets](https://doc.fluence.dev/docs/knowledge_security). For example, only peers that have  a non-zero weight can execute a service function `trusted_call(weight: WeightResult) -> u8`.
+
+So if you want to have service permission management you should follow the steps:
+- Pass `WeightResult` from TrustGraph to the function that you need to control:
+  ```rust
+  ...
+  weight_result <- get_weight(INIT_PEER_ID)
+  result <- MyService.trusted_call(weight_result)
+  ...
+  ```
+- Inside your service you need to check tetraplets like [this](https://github.com/fluencelabs/registry/blob/main/service/src/misc.rs#L37) to be sure that they are resulted from local TrustGraph
+- Add `INIT_PEER_ID` or another choosen key as a root
+- Issue trust to peers that can call this function:
+```rust
+func grant_access(issued_for: PeerId, expires_at_sec: u64):
+   error <- add_trust(INIT_PEER_ID, issued_for, expires_at_sec)
+   if error != nil
+      -- handle error
+```
 
 ### Label trusted peers and execute computation only on this peers
 
