@@ -42,7 +42,15 @@ As a **path to the root**, we consider a path with only trust edges, given this 
 
 **Trust** is a cryptographic relation representing that peer A trusts peer B until this trust expires or is revoked. Trust relation is transitive. If peer A trusts peer B and peer B trusts peer C so it results that peer A trusts peer C transitively. Trust relation means that you trust to connect, compute or store based on your business logic and choosen metrics. For example, you want to perform some computation and there are well-known peers which do that and trusted by others you trust, so you can safely use them for compute but not to store sensitive information (personal keys, etc).
 
-**Certificate** is a chain of trusts, started with self-signed root trust.
+Trust data structure contains the following fields:
+- peer id, trust is issued to
+- creation timestamp
+- expiration timestamp
+- signature of the issuer that contains all signed previous fields
+
+So the trust is signed and tamperproof by design.
+
+**Certificate** is a chain of trusts, started with self-signed root trust. Considering Trust and Certificate data structures it is possible to track chain of trust relations: `issued_for` field of first trust in chain indicates root peer id, second — whom root trusts and etc. So if we have chain `R->A->B->C` in the certificate it looks like chain of following trusts: `R->R`, `R->A`, `A->B`, `B->C`. Certificate is a tamperproof since it is a composition of signed trusts.
 
 So peerA is trusted by peerB if there is a path between them in this instance of TrustGraph. The selection of certificates is subjective and defined by node owner by choice of roots and maximum chain lengths. For now, there are no default metrics for general case.
 
@@ -50,9 +58,10 @@ So peerA is trusted by peerB if there is a path between them in this instance of
 
 Every peer has a **weight**. Weight is a power of 2 or zero. If there is no path from any root to this peer, given revocations, weight equals zero. The closer to the root — the bigger the weight. Weights are subjective and relevant in scope of local TrustGraph.
 
-TrustGraph is a builtin and every node is bundled with TrustGraph instance and predefined certificates.
+TrustGraph is a builtin, it means that every node is bundled with TrustGraph instance and predefined certificates.
 
-Trust is transitive in terms of cryptographic relations and it is also subjective in terms of the choosen view by each network participant.
+Trust is transitive in terms of cryptographic relations. On the other hand, subset of trusts and certificates is subjective for each network participant because of the choice of roots.
+
 
 ## How to Use it in Aqua
 ### How to import
