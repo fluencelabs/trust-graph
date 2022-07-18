@@ -13,7 +13,7 @@
     - [How to get weights](#how-to-get-weights)
   - [How to use it in TS/JS](#how-to-use-it-in-tsjs)
   - [Use cases](#use-cases)
-    - [Create trusted subnetwork](#create-trusted-subnetwork)
+    - [Create a trusted subnetwork](#create-a-trusted-subnetwork)
     - [Service permission management](#service-permission-management)
     - [Label trusted peers and execute computation only on this peers](#label-trusted-peers-and-execute-computation-only-on-this-peers)
   - [FAQ](#faq)
@@ -24,41 +24,47 @@
 ## Overview
 In web2 problem of access control and permissions is solved with centralized CAs (Certificate Authority). However, in distributed nature, this problem is actual and even more challenging. TrustGraph is our view on the solution for this challenge.
 
-TrustGraph is a bottom layer of trust for open p2p networks: every peer may be provided with SSL-like certificates promoted over the network. Service providers and peers can then treat certificate-holders differently based on their certificate set.
+TrustGraph is a bottom layer of trust for open p2p networks: every peer may be provided with SSL-like certificates promoted over the network. Service providers and peers can treat certificate-holders differently based on their certificate set.
 
 TrustGraph is a basic component that allows storing and managing certificates without any logic about how to decide whom to trust and whom to treat as unreliable.
 
 ## Why is it important?
 
-The problem of peer choice and prioritization is very urgent in p2p networks. Without trust to any network participant we can't use the network reliably and predictably. Also we should mark and avoid malicious peers. In addition we need to control our application access and permissions in runtime so it performs continuously without interruption and redeployment.
+The problem of peer choice and prioritization is very urgent in p2p networks. Without trust to any network participant, we can't use the network reliably and predictably. Also we should mark and avoid malicious peers. In addition we need to control our application access and permissions in runtime so it performs continuously without interruption and redeployment.
 
 ## What is it?
 
 TrustGraph is basically a directed graph with at least one root, vertices are peer ids, and edges are one of the two types of cryptographic relations: trust and revocation.
 
-**Root** is a peer id that we unconditionally trust, until it is removed, defined by node owner. Every root has characteristics that represent the maximum length for a chain of trusts.
+**Root** is a peer id that we unconditionally trust until it is removed, defined by the node owner. Every root has characteristics that represent the maximum length for a chain of trusts.
 
 As a **path to the root**, we consider a path with only trust edges, given this rule: chain `R -> A -> ...-> C` is not a path if A revoked C.
 
-**Trust** is a cryptographic relation representing that peer A trusts peer B until this trust expires or is revoked. Trust relation is transitive. If peer A trusts peer B and peer B trusts peer C so it results that peer A trusts peer C transitively. Trust relation means that you trust to connect, compute or store based on your business logic and choosen metrics. For example, you want to perform some computation and there are well-known peers which do that and trusted by others you trust, so you can safely use them for compute but not to store sensitive information (personal keys, etc).
+**Trust** is a cryptographic relation representing that peer A trusts peer B until this trust expires or is revoked. Trust relation is transitive. If peer A trusts peer B and peer B trusts peer C, so it results that peer A trusts peer C transitively. Trust relation means that you trust to connect, compute or store based on your business logic and chosen metrics. For example, you want to perform some computation and some well-known peers do that and are trusted by others you trust, so you can safely use them for computing but not to store sensitive information (personal keys, etc).
 
 Trust data structure contains the following fields:
 - peer id, trust is issued to
 - creation timestamp
 - expiration timestamp
-- signature of the issuer that contains all signed previous fields
+- a signature of the issuer that contains all signed previous fields
 
 So the trust is signed and tamperproof by design.
 
-**Certificate** is a chain of trusts, started with self-signed root trust. Considering Trust and Certificate data structures it is possible to track chain of trust relations: `issued_for` field of first trust in chain indicates root peer id, second — whom root trusts and etc. So if we have chain `R->A->B->C` in the certificate it looks like chain of following trusts: `R->R`, `R->A`, `A->B`, `B->C`. Certificate is a tamperproof since it is a composition of signed trusts.
+**Certificate** is a chain of trusts started with a self-signed root trust. Considering Trust and Certificate data structures, it is possible to track the chain of trust relations: `issued_for` field of the first trust in chain indicates root peer id, second — whom root trusts, etc. So if we have chain `R->A->B->C` in the certificate it looks like chain of following trusts: `R->R`, `R->A`, `A->B`, `B->C`. Certificate is tamperproof since it is a composition of signed trusts.
 
-So peerA is trusted by peerB if there is a path between them in this instance of TrustGraph. The selection of certificates is subjective and defined by node owner by choice of roots and maximum chain lengths. For now, there are no default metrics for general case.
+![image](images/diagram.png)
 
-**Revocation** is a cryptographic relation representing that peer A considers peer B malicious or unreliable. All chains containing paths from A to B will not be treated as valid. So if A trusts some peer C and C trusts B, peer A has no trust to B transitively it would have otherwise.
+So peerA is trusted by peerB if there is a path between them in this instance of TrustGraph. The selection of certificates is subjective and defined by the node owner by choice of roots and maximum chain lengths. For now, there are no default metrics for the general case.
 
-Every peer has a **weight**. Weight is a power of 2 or zero. If there is no path from any root to this peer, given revocations, weight equals zero. The closer to the root — the bigger the weight. Weights are subjective and relevant in scope of local TrustGraph.
+**Revocation** is a cryptographic relation representing that peer A considers peer C malicious or unreliable. For example, all chains containing paths from A to C will not be treated as valid. So if A trusts some peer B and B trusts C, peer A has no trust to C transitively, it would have otherwise.
 
-TrustGraph is a builtin, it means that every node is bundled with TrustGraph instance and predefined certificates.
+![image](images/revocation.png)
+
+Every peer has a **weight**. Weight is a power of 2 or zero. If there is no path from any root to this peer, given revocations, weight equals zero. The closer to the root — the bigger the weight. Weights are subjective and relevant in the scope of local TrustGraph.
+
+![image](images/weights.png)
+
+TrustGraph is a builtin, which means that every node is bundled with TrustGraph instance and predefined certificates.
 
 Trust is transitive in terms of cryptographic relations. On the other hand, subset of trusts and certificates is subjective for each network participant because of the choice of roots.
 
@@ -70,9 +76,9 @@ import "@fluencelabs/trust-graph/trust-graph-api.aqua"
 import "@fluencelabs/trust-graph/trust-graph.aqua"
 
 func my_function(peer_id: string) -> u32:
-    on HOST_PEER_ID:
-        result <- get_weight(peer_id)
-    <- result
+   on HOST_PEER_ID:
+       result <- get_weight(peer_id)
+   <- result
 ```
 
 ### How to add roots
@@ -82,16 +88,16 @@ func my_function(peer_id: string) -> u32:
 Let's set our peer id as a root on our relay and add self-signed trust:
 ```rust
 func set_me_as_root(max_chain_len):
-   result <- add_root_trust(HOST_PEER_ID, INIT_PEER_ID, max_chain_len)
+  result <- add_root_trust(HOST_PEER_ID, INIT_PEER_ID, max_chain_len)
 
-   -- if you use peer_id different from INIT_PEER_ID
-   -- you should add keypair in your Sig service
-   if result.success:
-      -- do smth
-      Op.noop()
-   else:
-      -- handle failure
-      Op.noop()
+  -- if you use peer_id different from INIT_PEER_ID
+  -- you should add keypair in your Sig service
+  if result.success:
+     -- do smth
+     Op.noop()
+  else:
+     -- handle failure
+     Op.noop()
 ```
 - also you can use `set_root` + `add_trust` to achieve same goal
 - [how to add keypair to Sig service](https://doc.fluence.dev/docs/fluence-js/3_in_depth#signing-service)
@@ -107,14 +113,14 @@ func set_me_as_root(max_chain_len):
 Let's issue trust and import it to our relay:
 ```rust
 func issue_trust_by_me(issued_for: PeerId, expires_at_sec: u64):
-   trust, error <- issue_trust(INIT_PEER_ID, issued_for, expires_at_sec)
-   if trust == nil:
-      -- handle failure
-      Op.noop()
-   else:
-      on HOST_PEER_ID:
-         error <- import_trust(trust!, INIT_PEER_ID)
-         -- handle error
+  trust, error <- issue_trust(INIT_PEER_ID, issued_for, expires_at_sec)
+  if trust == nil:
+     -- handle failure
+     Op.noop()
+  else:
+     on HOST_PEER_ID:
+        error <- import_trust(trust!, INIT_PEER_ID)
+        -- handle error
 ```
 
 
@@ -130,14 +136,14 @@ func issue_trust_by_me(issued_for: PeerId, expires_at_sec: u64):
 Let's revoke some peers by our peer id:
 ```rust
 func revoke_peer(revoked: PeerId):
-   revocation, error <- issue_revocation(INIT_PEER_ID, revoked)
-   if revocation == nil:
-      -- handle failure
-      Op.noop()
-   else:
-      on HOST_PEER_ID:
-         error <- import_revocation(revocation!)
-         -- handle error
+  revocation, error <- issue_revocation(INIT_PEER_ID, revoked)
+  if revocation == nil:
+     -- handle failure
+     Op.noop()
+  else:
+     on HOST_PEER_ID:
+        error <- import_revocation(revocation!)
+        -- handle error
 ```
 
 - `revoke` is a combination of `issue_revocation` and `import_revocation`
@@ -154,9 +160,9 @@ func revoke_peer(revoked: PeerId):
 Let's get all certificates issued by us to our relay peer id (HOST_PEER_ID):
 ```rust
 func get_certs_issued_by_me() -> AllCertsResult:
-   on HOST_PEER_ID:
-      result <- get_host_certs_from(INIT_PEER_ID)
-   <- result
+  on HOST_PEER_ID:
+     result <- get_host_certs_from(INIT_PEER_ID)
+  <- result
 ```
 - `get_host_certs` is just alias for `get_all_certs(HOST_PEER_ID)`
 - `_from` calls results contain only certificates with trust issued by `issuer`
@@ -168,94 +174,94 @@ func get_certs_issued_by_me() -> AllCertsResult:
 Let's get our weight for certificates which contain trust by our relay
 ```rust
 func get_our_weight() -> ?u32, ?string:
-   weight: ?u32
-   error: ?string
-   on HOST_PEER_ID:
-      result <- get_weight_from(INIT_PEER_ID, HOST_PEER_ID)
-      if result.success:
-         weight <<- result.weight
-      else:
-         error <<- result.error
-   <- weight, error
+  weight: ?u32
+  error: ?string
+  on HOST_PEER_ID:
+     result <- get_weight_from(INIT_PEER_ID, HOST_PEER_ID)
+     if result.success:
+        weight <<- result.weight
+     else:
+        error <<- result.error
+  <- weight, error
 ```
 
-- `get_weight` return result among all the certificates, on the other hand `get_weight_from` given only certificates containing trust by issuer
+- `get_weight` return result among all the certificates, on the other hand, `get_weight_from` given only certificates containing trust by the issuer
 
 ## How to use it in TS/JS
 1. Add `export.aqua` as in Aqua [documentation](https://doc.fluence.dev/aqua-book/libraries#in-typescript-and-javascript)
 2. Add the following to your dependencies
-    - `@fluencelabs/trust-graph`
-    - `@fluencelabs/aqua`
-    - `@fluencelabs/aqua-lib`
-    - `@fluencelabs/fluence`
-    - `@fluencelabs/fluence-network-environment`
+   - `@fluencelabs/trust-graph`
+   - `@fluencelabs/aqua`
+   - `@fluencelabs/aqua-lib`
+   - `@fluencelabs/fluence`
+   - `@fluencelabs/fluence-network-environment`
 
 3. Import dependencies
-   ```typescript
-   import * as tg from "./generated/export";
-   import { Fluence, KeyPair } from "@fluencelabs/fluence";
-   import { krasnodar, Node } from "@fluencelabs/fluence-network-environment";
-   ```
+  ```typescript
+  import * as tg from "./generated/export";
+  import { Fluence, KeyPair } from "@fluencelabs/fluence";
+  import { krasnodar, Node } from "@fluencelabs/fluence-network-environment";
+  ```
 4. Create client (specify keypair if you are node owner
 [link](https://github.com/fluencelabs/node-distro/blob/main/fluence/Config.default.toml#L9))
 
-   ```typescript
-   await Fluence.start({ connectTo: relay /*, KeyPair: builtins_keypair*/});
-   ```
+  ```typescript
+  await Fluence.start({ connectTo: relay /*, KeyPair: builtins_keypair*/});
+  ```
 5. Add root and issue root trust.
-   ```typescript
-   let peer_id = Fluence.getStatus().peerId;
-   let relay = Fluence.getStatus().relayPeerId;
-   assert(peer_id !== null);
-   assert(relay !== null);
-   let max_chain_len = 2;
-   let far_future = 99999999999999;
-   let error = await tg.add_root_trust(relay, peer_id, max_chain_len, far_future);
-   if (error !== null) {
-    console.log(error);
-   }
-   ```
+  ```typescript
+  let peer_id = Fluence.getStatus().peerId;
+  let relay = Fluence.getStatus().relayPeerId;
+  assert(peer_id !== null);
+  assert(relay !== null);
+  let max_chain_len = 2;
+  let far_future = 99999999999999;
+  let error = await tg.add_root_trust(relay, peer_id, max_chain_len, far_future);
+  if (error !== null) {
+   console.log(error);
+  }
+  ```
 6. By default, trusts/revocations signed with the client's private key. To sign with different keys see Sig service [documentation](https://doc.fluence.dev/docs/fluence-js/3_in_depth#signing-service).
-   ```typescript
-   // issue signed trust
-   let error = await tg.issue_trust(relay, peer_id, issued_for_peer_id, expires_at_sec);
-   if (error !== null) {
-    console.log(error);
-   }
-   ```
+  ```typescript
+  // issue signed trust
+  let error = await tg.issue_trust(relay, peer_id, issued_for_peer_id, expires_at_sec);
+  if (error !== null) {
+   console.log(error);
+  }
+  ```
 
 ## Use cases
 
-### Create trusted subnetwork
+### Create a trusted subnetwork
 
-You can organize subnetwork with peers trusted by your choice or choosen metrics. So you can treat trusts given by some peer (or key) as evidence.
+You can organize a subnetwork with peers trusted by your choice or chosen metrics. So you can treat trusts given by some peer (or key) as evidence.
 
 Let's consider we have peers A, B and C:
-- Choose peer A as authority, set it as a root for local TrustGraphs on all peers
+- Choose peer A as an authority, set it as a root for local TrustGraphs on all peers
 - Issue and put self-signed by peer A trust as a root trust
 - Issue trusts by peer A to peer B and peer C and put it on all peers
 - So for call `get_weight_from(targetPeer, peerA)` will reflect whether targetPeer is in subnetwork ABC
 
 ### Service permission management
 
-You can specify in runtime who can access to service functionality based on local TrustGraph (certificates, weights). It's possible to check where the proof come from based on [tetraplets](https://doc.fluence.dev/docs/knowledge_security). For example, only peers that have  a non-zero weight can execute a service function `trusted_call(weight: WeightResult) -> u8`.
+You can specify in runtime who can access service functionality based on local TrustGraph (certificates, weights). It's possible to check where the proof comes from based on [tetraplets](https://doc.fluence.dev/docs/knowledge_security). For example, only peers that have  a non-zero weight can execute a service function `trusted_call(weight: WeightResult) -> u8`.
 
 So if you want to have service permission management you should follow the steps:
 - Pass `WeightResult` from TrustGraph to the function that you need to control:
-  ```rust
-  ...
-  weight_result <- get_weight(INIT_PEER_ID)
-  result <- MyService.trusted_call(weight_result)
-  ...
-  ```
+ ```rust
+ ...
+ weight_result <- get_weight(INIT_PEER_ID)
+ result <- MyService.trusted_call(weight_result)
+ ...
+ ```
 - Inside your service you need to check tetraplets like [this](https://github.com/fluencelabs/registry/blob/main/service/src/misc.rs#L37) to be sure that they are resulted from local TrustGraph
 - Add `INIT_PEER_ID` or another choosen key as a root
 - Issue trust to peers that can call this function:
 ```rust
 func grant_access(issued_for: PeerId, expires_at_sec: u64):
-   error <- add_trust(INIT_PEER_ID, issued_for, expires_at_sec)
-   if error != nil
-      -- handle error
+  error <- add_trust(INIT_PEER_ID, issued_for, expires_at_sec)
+  if error != nil
+     -- handle error
 ```
 
 ### Label trusted peers and execute computation only on this peers
@@ -268,27 +274,27 @@ See [example](./example):
 ## FAQ
 
 - Can weight change during time?
-  - If the shortest path to root changes, in case of trust expiration, importing or revocation, weight also changes.
+ - If the shortest path to root changes, in case of trust expiration, importing or revocation, weight also changes.
 
 - What is zero weight mean?
-   - Zero weight means there is no trust and path from any roots to the target peer.
+  - Zero weight means there is no trust and path from any roots to the target peer.
 
 - How we can interpret certificate and/or peer weight?
-  - Certificate contains path from the root to the target peer we are looking for. Weight represents the presence of these certificates and peer closeness to the root.
+ - Certificate contains path from the root to the target peer we are looking for. Weight represents the presence of these certificates and peers' closeness to the root.
 
 
 - How are weights calculated and based on what feedback?
-  - Weights are calculated based on existence of a chain of trusts from the roots. For example, if we have root with maximum chain length equal 4 and have a chain R -> A -> B -> C, so the corresponding weights of peers are 8, 4, 2, 1. Weights are the same if there are no changes in the paths.
-  Until we have no metrics, all trust/revocation logics is the responsibility of the user.
+ - Weights are calculated based on the existence of a chain of trusts from the roots. For example, if we have root with a maximum chain length equal 4 and have a chain R -> A -> B -> C, so the corresponding weights of peers are 8, 4, 2, 1. Weights are the same if there are no changes in the paths.
+ Until we have no metrics, all trust/revocation logic is the user's responsibility.
 
-- How do I set all weights to untrusted and then over time increase trust in a peer?
-  - All peers are untrusted by default. Trust is unmeasured, weight represents how far this peer from root, the bigger weight -- the closer to the root, so if you want to increase the weight of the target peer, you should obtain the trust from the root or peers which are closer to the root than this peer.
+- How do I set all weights to untrusted and then increase trust in a peer over time?
+ - All peers are untrusted by default. Trust is unmeasured, weight represents how far this peer is from the root, the bigger weight -- the closer to the root, so if you want to increase the weight of the target peer, you should obtain the trust from the root or peers who are closer to the root than this peer.
 
 - How do I know that other peers are using the same processes to update weights?
-  - Weights calculated **locally** based on certificates that contain immutable signed trusts. Weights are subjective and have a sense only locally to this exact peer.
+ - Weights calculated **locally** based on certificates that contain immutable signed trusts. Weights are subjective and have a sense only locally to this exact peer.
 
 -  Can I start my own instance of a trust graph or is there only a global version available?
-   - Every Fluence node is bundled with a builtin TrustGraph instance, but you can change or remove any service you want if you're node owner.
+  - Every Fluence node is bundled with a builtin TrustGraph instance, but you can change or remove any service you want if you're node owner.
 
 ## API
 
