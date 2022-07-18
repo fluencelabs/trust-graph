@@ -6,6 +6,11 @@ This example shows how to use Trust Graph for code execution only on trusted pee
 1. Run `npm i`
 2. Run `npm run start`
 
+
+## Run example on network
+1. Run `npm i`
+2. Run `npm run start`
+
 ## Run example locally
 
 1. Go to `local-network`
