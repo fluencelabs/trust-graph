@@ -274,26 +274,26 @@ See [example](./example):
 ## FAQ
 
 - Can a weight change during time?
- - If the shortest path to a root changes, in case of trust expiration, importing or revocation, a weight also changes.
+  - If the shortest path to a root changes, in case of trust expiration, importing or revocation, a weight also changes.
 
 - What does a zero weight mean?
   - A zero weight means there is no trust and path from any roots to the target peer.
 
 - How we can interpret a certificate and/or a peer weight?
- - A certificate contains a path from the root to the target peer we are looking for. A weight represents the presence of these certificates and peers' closeness to the root.
+  - A certificate contains a path from the root to the target peer we are looking for. A weight represents the presence of these certificates and peers' closeness to the root.
 
 - How are weights calculated and based on what feedback?
- - Weights are calculated based on the existence of a chain of trusts from the roots. For example, if we have a root with a maximum chain length equal 4 and have a chain `R -> A -> B -> C`, so the corresponding weights of peers are `8`, `4`, `2`, `1`. Weights are the same if there are no changes in the paths.
- Until we have no metrics, all trust/revocation logic is a TrustGraph user's responsibility.
+  - Weights are calculated based on the existence of a chain of trusts from the roots. For example, if we have a root with a maximum chain length equal 4 and have a chain `R -> A -> B -> C`, so the corresponding weights of peers are `8`, `4`, `2`, `1`. Weights are the same if there are no changes in the paths.
+  Until we have no metrics, all trust/revocation logic is a TrustGraph user's responsibility.
 
 - How do I set all weights to untrusted and then increase trust in a peer over time?
- - All peers are untrusted by default. Trust is unmeasured, weight represents how far the peer is from the root, the bigger weight, the closer to the root, so if you want to increase the weight of the target peer, you should obtain the trust from the root or peers who are closer to the root than this peer.
+  - All peers are untrusted by default. Trust is unmeasured, weight represents how far the peer is from the root, the bigger weight, the closer to the root, so if you want to increase the weight of the target peer, you should obtain the trust from the root or peers who are closer to the root than this peer.
 
 - How do I know that other peers are using the same processes to update weights?
- - Weights calculated **locally** based on certificates that contain immutable signed trusts. Weights are subjective and have meaning only locally to this exact peer.
+  - Weights calculated **locally** based on certificates that contain immutable signed trusts. Weights are subjective and have meaning only locally to this exact peer.
 
 -  Can I start my own instance of a trust graph or is there only a global version available?
-  - Every Fluence node is bundled with a builtin TrustGraph instance, but you can change or remove any service you want if you're a node owner.
+   - Every Fluence node is bundled with a builtin TrustGraph instance, but you can change or remove any service you want if you're a node owner.
 
 ## API
 
