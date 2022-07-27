@@ -22,7 +22,7 @@
   - [Learn Aqua](#learn-aqua)
 
 ## Overview
-The problem of access control and permissions is solved with centralized CAs (Certificate Authority) in web 2.0. However, this problem is urgent and becomes even more challenging considering a decentralized nature of web 3.0. TrustGraph is our point of view on the solution for this challenge.
+The problem of access control and permissions is solved with centralized CAs (Certificate Authority) in web 2.0. However, such problem is urgent and becomes even more challenging considering a decentralized nature of web 3.0. TrustGraph is our point of view on the solution for this challenge.
 
 TrustGraph is a bottom layer of trust for open p2p networks: every peer may be provided with SSL-like certificates that promoted over the network. Service providers and peers can treat certificate holders differently based on their certificate set.
 
@@ -30,23 +30,23 @@ TrustGraph is a basic component that allows storing and managing certificates wi
 
 ## Why is it important?
 
-The problem of peer choice and prioritization is very urgent in p2p networks. Without trust to any network participant, we can't use the network reliably and predictably. Also we should mark and avoid malicious peers. In addition we need to control our application access and permissions in runtime so it performs continuously without interruption and redeployment.
+The problem of peer choice and prioritization is very urgent in p2p networks. We can't use the network reliably and predictably without trust to any network participant. We also should mark and avoid malicious peers. In addition we need to control our application access and permissions in runtime, so it performs continuously without interruptions and redeployments.
 
 ## What is it?
 
-TrustGraph is basically a directed graph with at least one root, vertices are peer ids, and edges are one of the two types of cryptographic relations: trust and revocation.
+TrustGraph is basically a directed graph with one root at least, vertices are peer ids, and edges are one of the two types of cryptographic relations: trust and revocation.
 
 **Root** is a peer id that we unconditionally trust until it is removed, and is defined by the node owner. Every root has characteristics that represent the maximum length for a chain of trusts.
 
-As a **path to the root**, we consider a path with only trust edges, given this rule: chain `R -> A -> ...-> C` is not a path if A revoked C.
+As a **path to the root**, we consider a path with only trust edges, given the following rule: chain `R -> A -> ...-> C` is not a path if A revoked C.
 
-**Trust** is a cryptographic relation representing that peer A trusts peer B until this trust expires or is revoked. Trust relation is transitive. If peer A trusts peer B and peer B trusts peer C, so it results that peer A trusts peer C transitively. Trust relation means that you trust to connect, compute or store based on your business logic and chosen metrics. For example, you want to perform some computation and some well-known peers do that, and are trusted by others you trust, so you can safely use them for computing but not to store sensitive information (personal keys, etc).
+**Trust** is a cryptographic relation representing that peer A trusts peer B until this trust expires or is revoked. Trust relation is transitive. If peer A trusts peer B, and peer B trusts peer C, it results in peer A trusts peer C transitively. Trust relation means that you trust to connect, compute or store based on your business logic and chosen metrics. For example, if you want to perform some computation and some well-known peers do that, and are trusted by others you trust, so you can safely use them for computing but not to store sensitive information (personal keys, etc).
 
 Trust data structure contains the following fields:
 - peer id, trust is issued to
 - creation timestamp
 - expiration timestamp
-- a signature of the issuer that contains all of previous fields signed
+- a signature of the issuer that contains all of the previous fields signed
 
 So the trust is signed and tamperproof by design.
 
@@ -56,7 +56,7 @@ So the trust is signed and tamperproof by design.
 
 So peerA is trusted by peerB if there is a path between them in the instance of TrustGraph. The selection of certificates is subjective and defined by a node owner by choice of roots and maximum chain lengths. For now, there are no default metrics for a general case.
 
-**Revocation** is a cryptographic relation representing that a peer A considers a peer C malicious or unreliable. For example, all chains containing paths from A to C will not be treated as valid. So if A trusts a peer B and B trusts C, a peer A has no trust to C transitively, it would have otherwise.
+**Revocation** is a cryptographic relation representing that a peer A considers a peer C malicious or unreliable. For example, all chains containing paths from A to C will not be treated as valid. So if A trusts a peer B, and B trusts C, a peer A has no trust to C transitively, it would have otherwise.
 
 ![image](images/revocation.png)
 
@@ -188,7 +188,7 @@ func get_our_weight() -> ?u32, ?string:
 - `get_weight` returns result among all the certificates, on the other hand, `get_weight_from` return certificates containing trust by the issuer only
 
 ## How to use it in TS/JS
-1. Add `export.aqua` as in Aqua [documentation](https://doc.fluence.dev/aqua-book/libraries#in-typescript-and-javascript)
+1. Add `export.aqua` as in the Aqua [documentation](https://doc.fluence.dev/aqua-book/libraries#in-typescript-and-javascript)
 2. Add the following to your dependencies
    - `@fluencelabs/trust-graph`
    - `@fluencelabs/aqua`
@@ -202,13 +202,13 @@ func get_our_weight() -> ?u32, ?string:
   import { Fluence, KeyPair } from "@fluencelabs/fluence";
   import { krasnodar, Node } from "@fluencelabs/fluence-network-environment";
   ```
-4. Create client (specify keypair if you are node owner
+4. Create a client (specify keypair if you are node owner
 [link](https://github.com/fluencelabs/node-distro/blob/main/fluence/Config.default.toml#L9))
 
   ```typescript
   await Fluence.start({ connectTo: relay /*, KeyPair: builtins_keypair*/});
   ```
-5. Add root and issue root trust.
+5. Add a root and issue root trust.
   ```typescript
   let peer_id = Fluence.getStatus().peerId;
   let relay = Fluence.getStatus().relayPeerId;
@@ -238,9 +238,9 @@ You can organize a subnetwork with peers trusted by your choice or chosen metric
 
 Let's consider we have peers A, B and C:
 - Choose a peer A as an authority, set it as a root for the local TrustGraphs on all peers
-- Issue and put self-signed by peer A trust as a root trust
-- Issue trusts by peer A to peer B and peer C and put them on all peers
-- So for call `get_weight_from(targetPeer, peerA)` will reflect whether targetPeer is in a subnetwork ABC
+- Issue and put self-signed by a peer A trust as a root trust
+- Issue trusts by a peer A a to peer B and a peer C, and put them on all peers
+- So for a call `get_weight_from(targetPeer, peerA)` will reflect whether targetPeer is in a subnetwork ABC
 
 ### Service permission management
 
@@ -284,7 +284,7 @@ See [example](./example):
 
 - How are weights calculated and based on what feedback?
   - Weights are calculated based on the existence of a chain of trusts from the roots. For example, if we have a root with a maximum chain length equal 4 and have a chain `R -> A -> B -> C`, so the corresponding weights of peers are `8`, `4`, `2`, `1`. Weights are the same if there are no changes in the paths.
-  Until we have no metrics, all trust/revocation logic is a TrustGraph user's responsibility.
+  As long as we have no metrics, all trust/revocation logic is a TrustGraph user's responsibility.
 
 - How do I set all weights to untrusted and then increase trust in a peer over time?
   - All peers are untrusted by default. Trust is unmeasured, weight represents how far the peer is from the root, the bigger weight, the closer to the root, so if you want to increase the weight of the target peer, you should obtain the trust from the root or peers who are closer to the root than this peer.
