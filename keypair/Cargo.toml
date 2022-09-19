@@ -1,6 +1,6 @@
 [package]
 name = "fluence-keypair"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Fluence Labs"]
 edition = "2018"
 description = "identity"
@@ -23,7 +23,7 @@ asn1_der = "0.6.1"
 sha2 = "0.9.1"
 zeroize = "1"
 serde_bytes = "0.11"
-libp2p-core = { version = "0.31", default-features = false, features = [ "secp256k1" ] }
+libp2p-core = { version = "0.33.0", default-features = false, features = [ "secp256k1" ] }
 eyre = "0.6.5"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
