@@ -24,7 +24,7 @@ use crate::error::{DecodingError, SigningError, VerificationError};
 use asn1_der::{DerObject, FromDerObject};
 use core::fmt;
 use rand::RngCore;
-use secp256k1::Message;
+use libsecp256k1::Message;
 use serde::de::Error as SerdeError;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_bytes::{ByteBuf as SerdeByteBuf, Bytes as SerdeBytes};
@@ -66,7 +66,7 @@ impl fmt::Debug for Keypair {
 /// Promote a Secp256k1 secret key into a keypair.
 impl From<SecretKey> for Keypair {
     fn from(secret: SecretKey) -> Self {
-        let public = PublicKey(secp256k1::PublicKey::from_secret_key(&secret.0));
+        let public = PublicKey(libsecp256k1::PublicKey::from_secret_key(&secret.0));
         Keypair { secret, public }
     }
 }
@@ -80,7 +80,7 @@ impl From<Keypair> for SecretKey {
 
 /// A Secp256k1 secret key.
 #[derive(Clone)]
-pub struct SecretKey(secp256k1::SecretKey);
+pub struct SecretKey(libsecp256k1::SecretKey);
 
 impl fmt::Debug for SecretKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -92,12 +92,12 @@ impl SecretKey {
     /// Generate a new Secp256k1 secret key.
     pub fn generate() -> Self {
         let mut r = rand::thread_rng();
-        let mut b = [0; secp256k1::util::SECRET_KEY_SIZE];
-        // This is how it is done in `secp256k1::SecretKey::random` which
+        let mut b = [0; libsecp256k1::util::SECRET_KEY_SIZE];
+        // This is how it is done in `libsecp256k1::SecretKey::random` which
         // we do not use here because it uses `rand::Rng` from rand-0.4.
         loop {
             r.fill_bytes(&mut b);
-            if let Ok(k) = secp256k1::SecretKey::parse(&b) {
+            if let Ok(k) = libsecp256k1::SecretKey::parse(&b) {
                 return SecretKey(k);
             }
         }
@@ -109,7 +109,7 @@ impl SecretKey {
     pub fn from_bytes(mut sk: impl AsMut<[u8]>) -> Result<Self, DecodingError> {
         let sk_bytes = sk.as_mut();
         let secret =
-            secp256k1::SecretKey::parse_slice(&*sk_bytes).map_err(|_| DecodingError::Secp256k1)?;
+            libsecp256k1::SecretKey::parse_slice(&*sk_bytes).map_err(|_| DecodingError::Secp256k1)?;
         sk_bytes.zeroize();
         Ok(SecretKey(secret))
     }
@@ -149,7 +149,7 @@ impl SecretKey {
     /// ECDSA signature.
     pub fn sign_hashed(&self, msg: &[u8]) -> Result<Vec<u8>, SigningError> {
         let m = Message::parse_slice(msg).map_err(SigningError::Secp256k1)?;
-        Ok(secp256k1::sign(&m, &self.0)
+        Ok(libsecp256k1::sign(&m, &self.0)
             .0
             .serialize_der()
             .as_ref()
@@ -159,7 +159,7 @@ impl SecretKey {
 
 /// A Secp256k1 public key.
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct PublicKey(secp256k1::PublicKey);
+pub struct PublicKey(libsecp256k1::PublicKey);
 
 impl PublicKey {
     /// Verify the Secp256k1 signature on a message using the public key.
@@ -171,7 +171,7 @@ impl PublicKey {
     pub fn verify_hashed(&self, msg: &[u8], sig: &[u8]) -> Result<(), VerificationError> {
         Message::parse_slice(msg)
             .and_then(|m| {
-                secp256k1::Signature::parse_der(sig).map(|s| secp256k1::verify(&m, &s, &self.0))
+                libsecp256k1::Signature::parse_der(sig).map(|s| libsecp256k1::verify(&m, &s, &self.0))
             })
             .map_err(|e| {
                 VerificationError::Secp256k1(
@@ -197,7 +197,7 @@ impl PublicKey {
     /// Decode a public key from a byte slice in the the format produced
     /// by `encode`.
     pub fn decode(bytes: &[u8]) -> Result<Self, DecodingError> {
-        secp256k1::PublicKey::parse_slice(bytes, Some(secp256k1::PublicKeyFormat::Compressed))
+        libsecp256k1::PublicKey::parse_slice(bytes, Some(libsecp256k1::PublicKeyFormat::Compressed))
             .map_err(|_| DecodingError::Secp256k1)
             .map(PublicKey)
     }

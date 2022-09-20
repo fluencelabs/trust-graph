@@ -8,7 +8,7 @@ license = "Apache-2.0"
 repository = "https://github.com/fluencelabs/trust-graph"
 
 [dependencies]
-libp2p-core = { version = "0.33", default-features = false, features = [ "secp256k1" ] }
+libp2p-core = { workspace = true }
 serde = { version = "1.0.118", features = ["derive"] }
 
 fluence-keypair = { path = "./keypair", version = "0.8.0" }
@@ -30,3 +30,6 @@ members = [
     "keypair",
     "service"
 ]
+
+[workspace.dependencies]
+libp2p-core = { version = "0.36.0", default-features = false, features = [ "secp256k1", "rsa" ] }
