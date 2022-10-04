@@ -68,7 +68,7 @@ pub enum SigningError {
     Secp256k1(
         #[from]
         #[source]
-        secp256k1::Error,
+        libsecp256k1::Error,
     ),
 }
 
@@ -83,5 +83,5 @@ pub enum VerificationError {
     Rsa(#[source] ring::error::Unspecified, String, String),
 
     #[error("Failed to verify signature {1} with {2} secp256k1 public key: {0}")]
-    Secp256k1(#[source] secp256k1::Error, String, String),
+    Secp256k1(#[source] libsecp256k1::Error, String, String),
 }

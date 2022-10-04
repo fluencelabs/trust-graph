@@ -24,7 +24,7 @@ use crate::error::{DecodingError, SigningError, VerificationError};
 use asn1_der::{DerObject, FromDerObject};
 use core::fmt;
 use rand::RngCore;
-use secp256k1::Message;
+use libsecp256k1::Message;
 use serde::de::Error as SerdeError;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_bytes::{ByteBuf as SerdeByteBuf, Bytes as SerdeBytes};
