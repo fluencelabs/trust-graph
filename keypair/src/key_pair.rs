@@ -219,6 +219,17 @@ impl KeyPair {
         }
     }
 
+    pub fn from_secret_key(bytes: Vec<u8>, format: KeyFormat) -> Result<Self, DecodingError> {
+        use KeyPair::*;
+
+        match format {
+            KeyFormat::Ed25519 => Ok(Ed25519(ed25519::SecretKey::from_bytes(bytes)?.into())),
+            KeyFormat::Secp256k1 => Ok(Secp256k1(secp256k1::SecretKey::from_bytes(bytes)?.into())),
+            #[cfg(not(target_arch = "wasm32"))]
+            KeyFormat::Rsa => Err(DecodingError::KeypairDecodingIsNotSupported),
+        }
+    }
+
     pub fn get_peer_id(&self) -> PeerId {
         self.public().to_peer_id()
     }
