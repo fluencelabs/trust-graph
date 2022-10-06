@@ -23,8 +23,8 @@ use crate::error::{DecodingError, SigningError, VerificationError};
 
 use asn1_der::{DerObject, FromDerObject};
 use core::fmt;
-use rand::RngCore;
 use libsecp256k1::Message;
+use rand::RngCore;
 use serde::de::Error as SerdeError;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_bytes::{ByteBuf as SerdeByteBuf, Bytes as SerdeBytes};
@@ -108,8 +108,8 @@ impl SecretKey {
     /// error is returned.
     pub fn from_bytes(mut sk: impl AsMut<[u8]>) -> Result<Self, DecodingError> {
         let sk_bytes = sk.as_mut();
-        let secret =
-            libsecp256k1::SecretKey::parse_slice(&*sk_bytes).map_err(|_| DecodingError::Secp256k1)?;
+        let secret = libsecp256k1::SecretKey::parse_slice(&*sk_bytes)
+            .map_err(|_| DecodingError::Secp256k1)?;
         sk_bytes.zeroize();
         Ok(SecretKey(secret))
     }
@@ -171,7 +171,8 @@ impl PublicKey {
     pub fn verify_hashed(&self, msg: &[u8], sig: &[u8]) -> Result<(), VerificationError> {
         Message::parse_slice(msg)
             .and_then(|m| {
-                libsecp256k1::Signature::parse_der(sig).map(|s| libsecp256k1::verify(&m, &s, &self.0))
+                libsecp256k1::Signature::parse_der(sig)
+                    .map(|s| libsecp256k1::verify(&m, &s, &self.0))
             })
             .map_err(|e| {
                 VerificationError::Secp256k1(
