@@ -24,11 +24,11 @@ sha2 = "0.9.5"
 rand = "0.7.0"
 nonempty = "0.7.0"
 
-[workspace.dependencies]
-libp2p-core = { version = "0.36", default-features = false, features = [ "secp256k1", "rsa" ] }
-
 [workspace]
 members = [
     "keypair",
     "service"
 ]
+
+[workspace.dependencies]
+libp2p-core = { version = "0.36", default-features = false, features = [ "secp256k1", "rsa" ] }
