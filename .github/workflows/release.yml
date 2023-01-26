@@ -25,6 +25,9 @@ jobs:
           cache: npm
           cache-dependency-path: "aqua/package-lock.json"
 
+      - run: mkdir -p ~/.bin
+      - run: echo "~/.bin" >> $GITHUB_PATH
+
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
