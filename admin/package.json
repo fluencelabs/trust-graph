@@ -13,10 +13,10 @@
   "author": "Fluence Labs",
   "license": "MIT",
   "dependencies": {
-    "@fluencelabs/aqua": "^0.5.2-257",
-    "@fluencelabs/aqua-lib": "^0.3.4",
-    "@fluencelabs/fluence": "^0.18.0",
-    "@fluencelabs/fluence-network-environment": "^1.0.10",
+    "@fluencelabs/aqua": "^0.9.1-374",
+    "@fluencelabs/aqua-lib": "^0.6.0",
+    "@fluencelabs/fluence": "^0.27.5",
+    "@fluencelabs/fluence-network-environment": "^1.0.13",
     "@fluencelabs/trust-graph": "file:../aqua",
     "bs58": "^4.0.1"
   },
