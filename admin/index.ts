@@ -60,7 +60,7 @@ async function main(environment: Node[]) {
     console.log("Issuer private key: %s", issuer_sk_b58);
 
     let cur_time = await timestamp_sec(node);
-    let expires_at = cur_time + 60 * 60 * 24 * 365;
+    let expires_at = cur_time + 60 * 60 * 24 * 365 * 2;
     let certificates = [];
     // self-signed root trust
     let root_trust = await issue_trust_helper(node, root_kp,  root_kp.Libp2pPeerId.toB58String(), root_kp.Libp2pPeerId.toB58String(), expires_at, cur_time);
