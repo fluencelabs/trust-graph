@@ -150,7 +150,7 @@ jobs:
 
     needs:
       - release-please
-      - trust-graph
+      - publish
 
     permissions:
       contents: read
