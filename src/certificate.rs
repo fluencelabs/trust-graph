@@ -160,8 +160,8 @@ impl Certificate {
     ) -> Result<Self, CertificateError> {
         if expires_at.lt(&issued_at) {
             return Err(ExpirationError {
-                expires_at: format!("{:?}", expires_at),
-                issued_at: format!("{:?}", issued_at),
+                expires_at: format!("{expires_at:?}"),
+                issued_at: format!("{issued_at:?}"),
             });
         }
 

@@ -17,7 +17,7 @@ impl From<Result<(), ServiceError>> for InsertResult {
             },
             Err(e) => InsertResult {
                 success: false,
-                error: format!("{}", e),
+                error: format!("{e}"),
             },
         }
     }
@@ -44,7 +44,7 @@ impl From<Result<(u32, String), ServiceError>> for WeightResult {
                 success: false,
                 weight: 0u32,
                 peer_id: "".to_string(),
-                error: format!("{}", e),
+                error: format!("{e}"),
             },
         }
     }
@@ -68,7 +68,7 @@ impl From<Result<Vec<Certificate>, ServiceError>> for AllCertsResult {
             Err(e) => AllCertsResult {
                 success: false,
                 certificates: vec![],
-                error: format!("{}", e),
+                error: format!("{e}"),
             },
         }
     }
@@ -89,7 +89,7 @@ impl From<Result<(), ServiceError>> for SetRootResult {
             },
             Err(e) => SetRootResult {
                 success: false,
-                error: format!("{}", e),
+                error: format!("{e}"),
             },
         }
     }
@@ -112,7 +112,7 @@ impl From<Result<Vec<u8>, ServiceError>> for GetTrustBytesResult {
             },
             Err(e) => GetTrustBytesResult {
                 success: false,
-                error: format!("{}", e),
+                error: format!("{e}"),
                 result: vec![],
             },
         }
@@ -136,7 +136,7 @@ impl From<Result<Trust, ServiceError>> for IssueTrustResult {
             },
             Err(e) => IssueTrustResult {
                 success: false,
-                error: format!("{}", e),
+                error: format!("{e}"),
                 trust: Trust::default(),
             },
         }
@@ -158,7 +158,7 @@ impl From<Result<(), ServiceError>> for VerifyTrustResult {
             },
             Err(e) => VerifyTrustResult {
                 success: false,
-                error: format!("{}", e),
+                error: format!("{e}"),
             },
         }
     }
@@ -181,7 +181,7 @@ impl From<Result<u32, ServiceError>> for AddTrustResult {
             },
             Err(e) => AddTrustResult {
                 success: false,
-                error: format!("{}", e),
+                error: format!("{e}"),
                 weight: u32::default(),
             },
         }
@@ -205,7 +205,7 @@ impl From<Result<Vec<u8>, ServiceError>> for GetRevokeBytesResult {
             },
             Err(e) => GetRevokeBytesResult {
                 success: false,
-                error: format!("{}", e),
+                error: format!("{e}"),
                 result: vec![],
             },
         }
@@ -229,7 +229,7 @@ impl From<Result<Revocation, ServiceError>> for IssueRevocationResult {
             },
             Err(e) => IssueRevocationResult {
                 success: false,
-                error: format!("{}", e),
+                error: format!("{e}"),
                 revocation: Revocation::default(),
             },
         }
@@ -251,7 +251,7 @@ impl From<Result<(), ServiceError>> for RevokeResult {
             },
             Err(e) => RevokeResult {
                 success: false,
-                error: format!("{}", e),
+                error: format!("{e}"),
             },
         }
     }
@@ -275,7 +275,7 @@ impl From<Result<Vec<Revocation>, ServiceError>> for ExportRevocationsResult {
             Err(e) => ExportRevocationsResult {
                 success: false,
                 revocations: vec![],
-                error: format!("{}", e),
+                error: format!("{e}"),
             },
         }
     }

@@ -75,7 +75,7 @@ impl Revocation {
         let pk_bytes = &pk.encode();
         metadata.push(pk_bytes.len() as u8);
         metadata.extend(pk_bytes);
-        metadata.extend_from_slice(&(revoked_at.as_secs() as u64).to_le_bytes());
+        metadata.extend_from_slice(&revoked_at.as_secs().to_le_bytes());
 
         sha2::Sha256::digest(&metadata).to_vec()
     }

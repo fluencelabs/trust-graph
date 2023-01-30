@@ -120,10 +120,10 @@ impl<'de> serde::Deserialize<'de> for PublicKeyHashable {
             {
                 bs58::decode(s)
                     .into_vec()
-                    .map_err(|err| Error::custom(format!("Invalid string '{}': {}", s, err)))
+                    .map_err(|err| Error::custom(format!("Invalid string '{s}': {err}")))
                     .and_then(|v| self.visit_bytes(v.as_slice()))
                     .map_err(|err: E| {
-                        Error::custom(format!("Parsed string '{}' as base58, but {}", s, err))
+                        Error::custom(format!("Parsed string '{s}' as base58, but {err}"))
                     })
             }
 
@@ -132,7 +132,7 @@ impl<'de> serde::Deserialize<'de> for PublicKeyHashable {
                 E: Error,
             {
                 let pk = PublicKey::decode(b)
-                    .map_err(|err| Error::custom(format!("Invalid bytes {:?}: {}", b, err)))?;
+                    .map_err(|err| Error::custom(format!("Invalid bytes {b:?}: {err}")))?;
                 Ok(PublicKeyHashable::from(pk))
             }
         }
