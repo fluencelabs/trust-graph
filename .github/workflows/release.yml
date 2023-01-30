@@ -139,7 +139,7 @@ jobs:
           inputs: '{
             "name": "trust-graph",
             "version": "${{ needs.release-please.outputs.version }}",
-            "url": "https://github.com/fluencelabs/aqua-ipfs/releases/download/${{ needs.release-please.outputs.trust-graph-tag-name }}/trust-graph.tar.gz",
+            "url": "https://github.com/fluencelabs/trust-graph/releases/download/${{ needs.release-please.outputs.trust-graph-tag-name }}/trust-graph.tar.gz",
             "sha256": "${{ steps.sha.outputs.sha256 }}"
           }'
 
