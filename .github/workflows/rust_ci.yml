@@ -26,9 +26,6 @@ jobs:
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - run: mkdir -p ~/.bin
-      - run: echo "~/.bin" >> $GITHUB_PATH
-
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -38,13 +35,10 @@ jobs:
       - name: Add wasm32-wasi target
         run: rustup target add wasm32-wasi
 
-      - name: Download jq
-        run: |
-          curl -L https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64 -o ~/.bin/jq
-          chmod +x ~/.bin/jq
-
-      - name: Download marine
-        run: bash $GITHUB_WORKSPACE/.github/download_marine.sh
+      - name: Install Marine
+        uses: baptiste0928/cargo-install@v1.3.0
+        with:
+          crate: marine
 
       - name: Build
         run: ./build.sh
