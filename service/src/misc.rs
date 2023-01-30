@@ -27,6 +27,7 @@ use std::str::FromStr;
 use trust_graph::TrustGraph;
 
 /// Check timestamps are generated on the current host with builtin ("peer" "timestamp_sec")
+#[allow(clippy::unnecessary_lazy_evaluations)]
 pub(crate) fn check_timestamp_tetraplets(
     call_parameters: &CallParameters,
     arg_number: usize,
