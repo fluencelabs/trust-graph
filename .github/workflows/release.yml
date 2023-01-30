@@ -1,191 +1,134 @@
-name: "release"
+name: "publish-release"
 
 on:
   push:
-    branches:
-      - "master"
-
-concurrency:
-  group: "${{ github.workflow }}-${{ github.ref }}"
+    tags:
+      - "v*"
 
 jobs:
-  release-please:
-    runs-on: ubuntu-latest
-
-    outputs:
-      releases-created: ${{ steps.release.outputs['releases_created'] }}
-      trust-graph-api-release-created: ${{ steps.release.outputs['aqua--release-created'] }}
-      trust-graph-release-created: ${{ steps.release.outputs['release-created'] }}
-      trust-graph-tag-name: ${{ steps.release.outputs['tag_name'] }}
-
-    steps:
-      - name: Run release-please
-        id: release
-        uses: google-github-actions/release-please-action@v3
-        with:
-          token: ${{ secrets.FLUENCEBOT_RELEASE_PLEASE_PAT }}
-          command: manifest
-          config-file: .github/release-please/config.json
-          manifest-file: .github/release-please/manifest.json
-
-      - name: Show output from release-please
-        if: steps.release.outputs.releases_created
-        env:
-          RELEASE_PLEASE_OUTPUT: ${{ toJSON(steps.release.outputs) }}
-        run: echo "${RELEASE_PLEASE_OUTPUT}" | jq
-
-  publish:
+  release:
+    name: "Publish"
     runs-on: builder
 
-    needs: release-please
-    if: needs.release-please.outputs.releases-created
-
-    permissions:
-      contents: write
-      id-token: write
-
     steps:
-      - name: Checkout
+### Setup
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Import secrets
-        uses: hashicorp/vault-action@v2.4.3
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      - uses: actions/setup-node@v3
         with:
-          url: https://vault.fluence.dev
-          path: jwt/github
-          role: ci
-          method: jwt
-          jwtGithubAudience: "https://github.com/fluencelabs"
-          jwtTtl: 300
-          exportToken: false
-          secrets: |
-            kv/npmjs/fluencebot token | NODE_AUTH_TOKEN ;
-            kv/crates.io/fluencebot token | CARGO_REGISTRY_TOKEN
+          node-version: "15"
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+          cache-dependency-path: "aqua/package-lock.json"
+
+      - run: mkdir -p ~/.bin
+      - run: echo "~/.bin" >> $GITHUB_PATH
 
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
-      - name: Install cargo-workspaces
-        uses: baptiste0928/cargo-install@v1.3.0
-        with:
-          crate: cargo-workspaces
+      - name: Download marine
+        run: bash $GITHUB_WORKSPACE/.github/download_marine.sh
 
-      - name: Publish to crates.io
-        run: |
-          cargo ws publish \
-            --no-git-commit \
-            --allow-dirty \
-            --from-git \
-            --skip-published \
-            --yes
-
-      - name: Install Marine
-        uses: baptiste0928/cargo-install@v1.3.0
-        with:
-          crate: marine
-
-      - name: Build service
+      - name: Build trust-graph
+        working-directory: ./service
         run: ./build.sh
-        working-directory: service
 
-      - name: Setup node
-        uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-          registry-url: "https://registry.npmjs.org"
-          cache-dependency-path: "aqua/package-lock.json"
-          cache: "npm"
-
-      - run: npm i
-        working-directory: aqua
-
-      - run: npm run build
-        working-directory: aqua
-
-      - name: Publish to NPM registry
-        if: needs.release-please.outputs.trust-graph-api-release-created
-        run: npm publish --access public
-        working-directory: aqua
-
-      - name: Create builtin distribution package
-        if: needs.release-please.outputs.trust-graph-release-created
-        run: ./builtin-package/package.sh
-
-      - name: Calculate SHA256
-        if: needs.release-please.outputs.trust-graph-release-created
-        id: sha
+      - name: Check Aqua compiles
+        working-directory: ./aqua
         run: |
-          # Calculate sha256
-          du -hs trust-graph.tar.gz
-          sha256sum trust-graph.tar.gz
-          sha=($(sha256sum trust-graph.tar.gz))
-          echo "sha256=${sha}" >> $GITHUB_OUTPUT
+          npm i
+          npm run build
 
-      - name: Upload trust-graph package
-        if: needs.release-please.outputs.trust-graph-release-created
+      - name: Create distribution package
+        run: |
+          ./builtin-package/package.sh
+
+      - name: Build Changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v1
+        with:
+          configuration: ".github/workflows/changelog_config.json"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+### Publish
+      - name: Release to GitHub
+        id: release
         uses: softprops/action-gh-release@v1
         with:
-          files: trust-graph.tar.gz
-          tag_name: ${{ needs.release-please.outputs.trust-graph-tag-name }}
+          name: trust-graph ${{ env.RELEASE_VERSION }}
+          tag_name: ${{ env.RELEASE_VERSION }}
+          files: |
+            ./trust-graph.tar.gz
+          body: ${{steps.changelog.outputs.changelog}}
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    ### Publish Aqua API
+      - name: Publish Aqua API to NPM
+        run: |
+          npm version ${{ env.RELEASE_VERSION }}
+          npm publish --access public
+        env:
+            NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: ./aqua
+
+## Update node-distro repo
+      - name: Calculate SHA256
+        run: |
+            du -hs trust-graph.tar.gz
+            echo $(sha256sum trust-graph.tar.gz)
+            echo "SHA256=$(sha256sum trust-graph.tar.gz | awk '{ print $1 }')" >> $GITHUB_ENV
+
+      - name: Get tar.gz URL
+        id: package-url
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: string
+          script: |
+            try {
+                let assets = await github.repos.listReleaseAssets({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: "${{ steps.release.outputs.id }}",
+                });
+                console.dir(assets);
+                let package = assets.data.find((a) => a.name === 'trust-graph.tar.gz');
+                let url = package.browser_download_url;
+                console.log("URL: " + url);
+                return url;
+            } catch (e) {
+              console.log("Err: " + e);
+              throw e;
+            }
 
       - name: Update version in node-distro repo
-        if: needs.release-please.outputs.trust-graph-release-created
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: update_service
           repo: fluencelabs/node-distro
-          ref: "main"
+          ref: 'main'
           token: ${{ secrets.PERSONAL_TOKEN }}
           inputs: '{
             "name": "trust-graph",
-            "version": "${{ needs.release-please.outputs.version }}",
-            "url": "https://github.com/fluencelabs/aqua-ipfs/releases/download/${{ needs.release-please.outputs.trust-graph-tag-name }}/trust-graph.tar.gz",
-            "sha256": "${{ steps.sha.outputs.sha256 }}"
+            "version": "${{ env.RELEASE_VERSION }}",
+            "url": "${{ steps.package-url.outputs.result }}",
+            "sha256": "${{ env.SHA256 }}"
           }'
 
-  slack:
-    if: always()
-    name: "Notify"
-    runs-on: ubuntu-latest
-
-    needs:
-      - release-please
-      - trust-graph
-
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - uses: lwhiteley/dependent-jobs-result-check@v1
-        id: status
+      - name: Log notice
+        uses: actions/github-script@v4
         with:
-          statuses: failure
-          dependencies: ${{ tojson(needs) }}
-
-      - name: log output
-        run: |
-          echo "statuses:" "${{ steps.status.outputs.statuses }}"
-          echo "jobs:" "${{ steps.status.outputs.jobs }}"
-          echo "found any?:" "${{ steps.status.outputs.found }}"
-
-      - name: import secrets
-        uses: hashicorp/vault-action@v2.4.3
-        with:
-          url: https://vault.fluence.dev
-          path: jwt/github
-          role: ci
-          method: jwt
-          jwtgithubaudience: "https://github.com/fluencelabs"
-          jwtttl: 300
-          exporttoken: false
-          secrets: |
-            kv/slack/release-please webhook | slack_webhook_url
-
-      - uses: ravsamhq/notify-slack-action@v2
-        if: steps.status.outputs.found == 'true'
-        with:
-          status: "failure"
-          notification_title: "*{workflow}* has {status_message}"
-          message_format: "${{ steps.status.outputs.jobs }} {status_message} in <{repo_url}|{repo}>"
-          footer: "<{run_url}>"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+              console.dir(core);
+              core.info("trust-graph was updated to ${{ env.RELEASE_VERSION }} in node-distro repo");
