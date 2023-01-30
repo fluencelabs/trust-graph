@@ -210,7 +210,7 @@ mod tests {
         let kp = KeyPair::generate_secp256k1();
         let fluence_pk = kp.public();
         let libp2p_pk: libp2p_core::PublicKey = fluence_pk.clone().into();
-        let peer_id = PeerId::from_public_key(libp2p_pk);
+        let peer_id = PeerId::from_public_key(&libp2p_pk);
         let fluence_pk_converted = PublicKey::try_from(peer_id).unwrap();
 
         assert_eq!(fluence_pk, fluence_pk_converted);

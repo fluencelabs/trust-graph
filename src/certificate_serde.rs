@@ -35,7 +35,7 @@ mod single {
     {
         let str = String::deserialize(deserializer)?;
         Certificate::from_str(&str)
-            .map_err(|e| Error::custom(format!("certificate deserialization failed for {:?}", e)))
+            .map_err(|e| Error::custom(format!("certificate deserialization failed for {e:?}")))
     }
 }
 
@@ -63,7 +63,7 @@ pub mod vec {
         v.into_iter()
             .map(|e| {
                 Certificate::from_str(&e).map_err(|e| {
-                    Error::custom(format!("certificate deserialization failed for {:?}", e))
+                    Error::custom(format!("certificate deserialization failed for {e:?}"))
                 })
             })
             .collect()

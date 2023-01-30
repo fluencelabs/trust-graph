@@ -127,7 +127,7 @@ impl fmt::Debug for PublicKey {
         let mut hex = String::with_capacity(bytes.len() * 2);
 
         for byte in bytes {
-            write!(hex, "{:02x}", byte).expect("Can't fail on writing to string");
+            write!(hex, "{byte:02x}").expect("Can't fail on writing to string");
         }
 
         f.debug_struct("PublicKey").field("pkcs1", &hex).finish()

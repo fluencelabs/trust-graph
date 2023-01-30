@@ -90,7 +90,7 @@ impl<T: StorageError + 'static> From<T> for TrustGraphError {
 
 impl From<TrustGraphError> for String {
     fn from(err: TrustGraphError) -> Self {
-        format!("{}", err)
+        format!("{err}")
     }
 }
 
@@ -374,8 +374,7 @@ where
                 // Certificate with one trust means nothing, gotta be a bug. Checking for it here.
                 debug_assert!(
                     c.chain.len() > 1,
-                    "certificate with chain of len 1 arose: {:#?}",
-                    c
+                    "certificate with chain of len 1 arose: {c:#?}",
                 );
                 c.chain.len() > 1
             })

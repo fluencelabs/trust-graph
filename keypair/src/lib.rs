@@ -58,7 +58,7 @@ pub mod peerid_serializer {
     {
         let str = String::deserialize(deserializer)?;
         PeerId::from_str(&str).map_err(|e| {
-            serde::de::Error::custom(format!("peer id deserialization failed for {:?}", e))
+            serde::de::Error::custom(format!("peer id deserialization failed for {e:?}"))
         })
     }
 }
