@@ -77,7 +77,6 @@ jobs:
       - name: Install cargo-workspaces
         uses: baptiste0928/cargo-install@v1.3.0
         with:
-        with:
           crate: cargo-workspaces
 
       - name: Publish to crates.io
