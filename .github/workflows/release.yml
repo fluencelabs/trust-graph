@@ -161,26 +161,26 @@ jobs:
         id: status
         with:
           statuses: failure
-          dependencies: ${{ tojson(needs) }}
+          dependencies: ${{ toJSON(needs) }}
 
-      - name: log output
+      - name: Log output
         run: |
           echo "statuses:" "${{ steps.status.outputs.statuses }}"
           echo "jobs:" "${{ steps.status.outputs.jobs }}"
           echo "found any?:" "${{ steps.status.outputs.found }}"
 
-      - name: import secrets
+      - name: Import secrets
         uses: hashicorp/vault-action@v2.4.3
         with:
           url: https://vault.fluence.dev
           path: jwt/github
           role: ci
           method: jwt
-          jwtgithubaudience: "https://github.com/fluencelabs"
-          jwtttl: 300
-          exporttoken: false
+          jwtGithubAudience: "https://github.com/fluencelabs"
+          jwtTtl: 300
+          exportToken: false
           secrets: |
-            kv/slack/release-please webhook | slack_webhook_url
+            kv/slack/release-please webhook | SLACK_WEBHOOK_URL
 
       - uses: ravsamhq/notify-slack-action@v2
         if: steps.status.outputs.found == 'true'
