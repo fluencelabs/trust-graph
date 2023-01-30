@@ -100,7 +100,7 @@ impl SQLiteStorage {
             .cursor();
 
         cursor.bind(&[
-            Value::String(format!("{}", issued_for)),
+            Value::String(format!("{issued_for}")),
             Value::Integer(relation_type),
         ])?;
         let mut relations: Vec<TrustRelation> = vec![];
@@ -206,8 +206,8 @@ impl Storage for SQLiteStorage {
             .cursor();
 
         cursor.bind(&[
-            Value::String(format!("{}", issued_by)),
-            Value::String(format!("{}", issued_for)),
+            Value::String(format!("{issued_by}")),
+            Value::String(format!("{issued_for}")),
         ])?;
 
         if let Some(row) = cursor.next()? {
@@ -281,7 +281,7 @@ impl Storage for SQLiteStorage {
             .prepare("SELECT public_key, weight_factor FROM roots WHERE public_key = ?")?
             .cursor();
 
-        cursor.bind(&[Value::String(format!("{}", pk))])?;
+        cursor.bind(&[Value::String(format!("{pk}"))])?;
 
         if let Some(row) = cursor.next()? {
             let w = u32::try_from(row[1].as_integer().ok_or(WeightFactorConversionDB)?)
@@ -304,7 +304,7 @@ impl Storage for SQLiteStorage {
             .cursor();
 
         cursor.bind(&[
-            Value::String(format!("{}", pk)),
+            Value::String(format!("{pk}")),
             Value::Integer(i64::from(weight_factor)),
         ])?;
 

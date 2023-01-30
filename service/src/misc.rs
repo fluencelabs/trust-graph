@@ -41,12 +41,12 @@ pub(crate) fn check_timestamp_tetraplets(
     (TRUSTED_TIMESTAMP.eq(&(&tetraplet.service_id, &tetraplet.function_name))
         && tetraplet.peer_pk == call_parameters.host_id)
         .then(|| ())
-        .ok_or_else(|| InvalidTimestampTetraplet(format!("{:?}", tetraplet)))
+        .ok_or_else(|| InvalidTimestampTetraplet(format!("{tetraplet:?}")))
 }
 
 fn parse_peer_id(peer_id: String) -> Result<PeerId, ServiceError> {
     libp2p_core::PeerId::from_str(&peer_id)
-        .map_err(|e| ServiceError::PeerIdParseError(format!("{:?}", e)))
+        .map_err(|e| ServiceError::PeerIdParseError(format!("{e:?}")))
 }
 
 thread_local!(static INSTANCE: RefCell<TrustGraph<SQLiteStorage>> = RefCell::new(TrustGraph::new(

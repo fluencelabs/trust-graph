@@ -78,7 +78,7 @@ impl TryFrom<Trust> for trust_graph::Trust {
 
     fn try_from(t: Trust) -> Result<Self, Self::Error> {
         let issued_for = PublicKey::try_from(
-            PeerId::from_str(&t.issued_for).map_err(|e| PeerIdDecodeError(format!("{:?}", e)))?,
+            PeerId::from_str(&t.issued_for).map_err(|e| PeerIdDecodeError(format!("{e:?}")))?,
         )
         .map_err(|e| DtoConversionError::PeerIdDecodeError(e.to_string()))?;
         let signature = bs58::decode(&t.signature).into_vec()?;
@@ -132,11 +132,11 @@ impl TryFrom<Revocation> for trust_graph::Revocation {
     fn try_from(r: Revocation) -> Result<Self, Self::Error> {
         let revoked_pk = PublicKey::try_from(
             PeerId::from_str(&r.revoked_peer_id)
-                .map_err(|e| PeerIdDecodeError(format!("{:?}", e)))?,
+                .map_err(|e| PeerIdDecodeError(format!("{e:?}")))?,
         )
         .map_err(|e| DtoConversionError::PeerIdDecodeError(e.to_string()))?;
         let revoked_by_pk = PublicKey::try_from(
-            PeerId::from_str(&r.revoked_by).map_err(|e| PeerIdDecodeError(format!("{:?}", e)))?,
+            PeerId::from_str(&r.revoked_by).map_err(|e| PeerIdDecodeError(format!("{e:?}")))?,
         )
         .map_err(|e| DtoConversionError::PeerIdDecodeError(e.to_string()))?;
         let signature = bs58::decode(&r.signature).into_vec()?;

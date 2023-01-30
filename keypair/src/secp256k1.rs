@@ -122,7 +122,7 @@ impl SecretKey {
         // TODO: Stricter parsing.
         let der_obj = der.as_mut();
         let obj: Vec<DerObject> =
-            FromDerObject::deserialize((&*der_obj).iter()).map_err(|_| DecodingError::Secp256k1)?;
+            FromDerObject::deserialize((*der_obj).iter()).map_err(|_| DecodingError::Secp256k1)?;
         der_obj.zeroize();
         let sk_obj = obj.into_iter().nth(1).ok_or(DecodingError::Secp256k1)?;
         let mut sk_bytes: Vec<u8> =
