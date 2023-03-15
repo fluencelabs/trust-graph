@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.3.2...trust-graph-wasm-v0.4.0) (2023-03-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** update libp2p to 0.39.1 and other deps ([#77](https://github.com/fluencelabs/trust-graph/issues/77))
+
+### Features
+
+* **deps:** update libp2p to 0.39.1 and other deps ([#77](https://github.com/fluencelabs/trust-graph/issues/77)) ([080503d](https://github.com/fluencelabs/trust-graph/commit/080503dcfa2ecf8d09167ff9fe7f750fadf49035))
+* **keypair:** add KeyPair::from_secret_key ([#50](https://github.com/fluencelabs/trust-graph/issues/50)) ([a6ce8d9](https://github.com/fluencelabs/trust-graph/commit/a6ce8d9eee20e1ea24eb27c38ac6df6d878292ae))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * trust-graph bumped from 0.3.0 to 0.4.0
+    * fluence-keypair bumped from 0.9.0 to 0.10.0
+
 ## [Unreleased]
 
 ## [0.3.1] - 2022-10-06
