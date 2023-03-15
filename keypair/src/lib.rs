@@ -41,7 +41,7 @@ pub use key_pair::KeyFormat;
 pub use key_pair::KeyPair;
 
 pub mod peerid_serializer {
-    use libp2p_core::PeerId;
+    use libp2p_identity::PeerId;
     use serde::{Deserialize, Deserializer, Serialize, Serializer};
     use std::str::FromStr;
 

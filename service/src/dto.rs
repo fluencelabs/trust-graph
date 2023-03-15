@@ -1,7 +1,7 @@
 use crate::dto::DtoConversionError::PeerIdDecodeError;
 use fluence_keypair::error::DecodingError;
 use fluence_keypair::{KeyFormat, PublicKey, Signature};
-use libp2p_core::PeerId;
+use libp2p_identity::PeerId;
 use marine_rs_sdk::marine;
 use std::convert::TryFrom;
 use std::str::FromStr;

@@ -18,7 +18,7 @@ use crate::error::ServiceError::*;
 use crate::storage_impl::{SQLiteStorage, DB_PATH};
 use crate::TRUSTED_TIMESTAMP;
 use fluence_keypair::PublicKey;
-use libp2p_core::PeerId;
+use libp2p_identity::PeerId;
 use marine_rs_sdk::CallParameters;
 use std::cell::RefCell;
 use std::convert::TryFrom;
@@ -46,7 +46,7 @@ pub(crate) fn check_timestamp_tetraplets(
 }
 
 fn parse_peer_id(peer_id: String) -> Result<PeerId, ServiceError> {
-    libp2p_core::PeerId::from_str(&peer_id)
+    libp2p_identity::PeerId::from_str(&peer_id)
         .map_err(|e| ServiceError::PeerIdParseError(format!("{e:?}")))
 }
 
