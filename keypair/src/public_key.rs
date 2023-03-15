@@ -21,7 +21,7 @@ use crate::secp256k1;
 use crate::signature::Signature;
 
 use crate::key_pair::KeyFormat;
-use libp2p_core::PeerId;
+use libp2p_identity::PeerId;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
@@ -124,10 +124,11 @@ impl PublicKey {
     }
 }
 
-impl From<libp2p_core::identity::PublicKey> for PublicKey {
-    fn from(key: libp2p_core::identity::PublicKey) -> Self {
-        use libp2p_core::identity::PublicKey::*;
+impl From<libp2p_identity::PublicKey> for PublicKey {
+    fn from(key: libp2p_identity::PublicKey) -> Self {
+        use libp2p_identity::PublicKey::*;
 
+        #[allow(deprecated)] //TODO: fix it later
         match key {
             Ed25519(key) => {
                 PublicKey::Ed25519(ed25519::PublicKey::decode(&key.encode()[..]).unwrap())
@@ -141,10 +142,9 @@ impl From<libp2p_core::identity::PublicKey> for PublicKey {
     }
 }
 
-impl From<PublicKey> for libp2p_core::identity::PublicKey {
+impl From<PublicKey> for libp2p_identity::PublicKey {
     fn from(key: PublicKey) -> Self {
-        use libp2p_core::identity as libp2p_identity;
-
+        #[allow(deprecated)] //TODO: fix it later
         match key {
             PublicKey::Ed25519(key) => libp2p_identity::PublicKey::Ed25519(
                 libp2p_identity::ed25519::PublicKey::decode(&key.encode()[..]).unwrap(),
@@ -160,10 +160,10 @@ impl From<PublicKey> for libp2p_core::identity::PublicKey {
     }
 }
 
-impl TryFrom<libp2p_core::PeerId> for PublicKey {
+impl TryFrom<PeerId> for PublicKey {
     type Error = DecodingError;
 
-    fn try_from(peer_id: libp2p_core::PeerId) -> Result<Self, Self::Error> {
+    fn try_from(peer_id: PeerId) -> Result<Self, Self::Error> {
         Ok(as_public_key(&peer_id)
             .ok_or_else(|| DecodingError::PublicKeyNotInlined(peer_id.to_base58()))?
             .into())
@@ -171,14 +171,12 @@ impl TryFrom<libp2p_core::PeerId> for PublicKey {
 }
 
 /// Convert PeerId to libp2p's PublicKey
-fn as_public_key(peer_id: &PeerId) -> Option<libp2p_core::PublicKey> {
-    use libp2p_core::multihash;
-
+fn as_public_key(peer_id: &PeerId) -> Option<libp2p_identity::PublicKey> {
     let mhash = peer_id.as_ref();
 
     match multihash::Code::try_from(mhash.code()) {
         Ok(multihash::Code::Identity) => {
-            libp2p_core::PublicKey::from_protobuf_encoding(mhash.digest()).ok()
+            libp2p_identity::PublicKey::from_protobuf_encoding(mhash.digest()).ok()
         }
         _ => None,
     }
@@ -209,7 +207,7 @@ mod tests {
     fn public_key_peer_id_conversions() {
         let kp = KeyPair::generate_secp256k1();
         let fluence_pk = kp.public();
-        let libp2p_pk: libp2p_core::PublicKey = fluence_pk.clone().into();
+        let libp2p_pk: libp2p_identity::PublicKey = fluence_pk.clone().into();
         let peer_id = PeerId::from_public_key(&libp2p_pk);
         let fluence_pk_converted = PublicKey::try_from(peer_id).unwrap();
 

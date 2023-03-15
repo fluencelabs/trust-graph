@@ -31,4 +31,4 @@ members = [
 ]
 
 [workspace.dependencies]
-libp2p-core = { version = "0.38", default-features = false, features = [ "secp256k1", "rsa" ] }
+libp2p-core = { version = "0.39.1", default-features = false, features = [ "secp256k1", "rsa" ] }
