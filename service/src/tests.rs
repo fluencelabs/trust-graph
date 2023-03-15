@@ -21,7 +21,7 @@ mod service_tests {
     use crate::storage_impl::DB_PATH;
     use crate::TRUSTED_TIMESTAMP;
     use fluence_keypair::KeyPair;
-    use libp2p_core::PeerId;
+    use libp2p_identity::PeerId;
     use marine_rs_sdk::{CallParameters, SecurityTetraplet};
     use marine_test_env::trust_graph::{Certificate, Revocation, ServiceInterface, Trust};
     use rusqlite::Connection;
