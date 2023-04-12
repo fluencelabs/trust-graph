@@ -5,7 +5,8 @@
   "bump-patch-for-minor-pre-major": true,
   "plugins": [
     {
-      "type": "cargo-workspace"
+      "type": "cargo-workspace",
+      "merge": false
     },
     {
       "type": "linked-versions",
@@ -18,7 +19,7 @@
     }
   ],
   "packages": {
-    ".": {
+    "trust-graph": {
       "component": "trust-graph"
     },
     "aqua": {
