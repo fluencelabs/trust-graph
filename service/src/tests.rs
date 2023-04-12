@@ -18,17 +18,17 @@
 mod service_tests {
     marine_rs_sdk_test::include_test_env!("/marine_test_env.rs");
     use crate::error::ServiceError;
-    use crate::storage_impl::DB_PATH;
     use crate::TRUSTED_TIMESTAMP;
     use fluence_keypair::KeyPair;
     use libp2p_identity::PeerId;
     use marine_rs_sdk::{CallParameters, SecurityTetraplet};
     use marine_test_env::trust_graph::{Certificate, Revocation, ServiceInterface, Trust};
-    use rusqlite::Connection;
     use std::collections::HashMap;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     static HOST_ID: &str = "some_host_id";
+
+    static TEST_DB_PATH: &str = "data/trust-graph.sqlite";
 
     struct Auth {
         issuer: PeerId,
@@ -55,12 +55,7 @@ mod service_tests {
     }
 
     fn clear_env() {
-        let connection = Connection::open(DB_PATH).unwrap();
-
-        connection
-            .execute("DELETE FROM trust_relations", [])
-            .unwrap();
-        connection.execute("DELETE FROM roots", []).unwrap();
+        std::fs::remove_file(TEST_DB_PATH).unwrap_or_default();
     }
 
     fn get_correct_timestamp_cp(arg_number: usize) -> CallParameters {

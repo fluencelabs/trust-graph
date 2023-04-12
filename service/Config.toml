@@ -5,12 +5,10 @@ modules_dir = "artifacts/"
     logger_enabled = true
 
     [module.wasi]
-        preopened_files = ["/tmp"]
-        mapped_dirs = { "tmp" = "/tmp" }
+        mapped_dirs = { "/tmp" = "data" }
 [[module]]
     name = "trust-graph"
     logger_enabled = true
 
     [module.wasi]
-        preopened_files = ["/tmp"]
-        mapped_dirs = { "tmp" = "/tmp" }
+        mapped_dirs = { "/tmp" = "data" }
