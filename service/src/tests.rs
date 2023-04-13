@@ -18,17 +18,17 @@
 mod service_tests {
     marine_rs_sdk_test::include_test_env!("/marine_test_env.rs");
     use crate::error::ServiceError;
-    use crate::storage_impl::DB_PATH;
     use crate::TRUSTED_TIMESTAMP;
     use fluence_keypair::KeyPair;
     use libp2p_identity::PeerId;
     use marine_rs_sdk::{CallParameters, SecurityTetraplet};
     use marine_test_env::trust_graph::{Certificate, Revocation, ServiceInterface, Trust};
-    use rusqlite::Connection;
     use std::collections::HashMap;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     static HOST_ID: &str = "some_host_id";
+
+    static TEST_DB_PATH: &str = "data/trust-graph.sqlite";
 
     struct Auth {
         issuer: PeerId,
@@ -55,12 +55,7 @@ mod service_tests {
     }
 
     fn clear_env() {
-        let connection = Connection::open(DB_PATH).unwrap();
-
-        connection
-            .execute("DELETE FROM trust_relations", [])
-            .unwrap();
-        connection.execute("DELETE FROM roots", []).unwrap();
+        std::fs::remove_file(TEST_DB_PATH).unwrap_or_default();
     }
 
     fn get_correct_timestamp_cp(arg_number: usize) -> CallParameters {
@@ -445,32 +440,32 @@ mod service_tests {
         let mut trust_graph = marine_test_env::trust_graph::ServiceInterface::new();
         clear_env();
 
-        let peerA_kp = KeyPair::generate_ed25519();
+        let peer_a_kp = KeyPair::generate_ed25519();
         let mut cur_time = 100u64;
-        add_root_with_trust(&mut trust_graph, &peerA_kp, cur_time, cur_time + 9999, 10);
+        add_root_with_trust(&mut trust_graph, &peer_a_kp, cur_time, cur_time + 9999, 10);
 
-        let peerB_kp = KeyPair::generate_ed25519();
+        let peer_b_kp = KeyPair::generate_ed25519();
         add_trust(
             &mut trust_graph,
-            &peerA_kp,
-            &peerB_kp.get_peer_id(),
+            &peer_a_kp,
+            &peer_b_kp.get_peer_id(),
             cur_time,
             cur_time + 99999,
         );
 
-        let weight = get_weight(&mut trust_graph, peerB_kp.get_peer_id(), cur_time);
+        let weight = get_weight(&mut trust_graph, peer_b_kp.get_peer_id(), cur_time);
         assert_ne!(weight, 0u32);
 
         cur_time += 1;
         // A revokes B and cancels trust
         revoke(
             &mut trust_graph,
-            &peerA_kp,
-            &peerB_kp.get_peer_id(),
+            &peer_a_kp,
+            &peer_b_kp.get_peer_id(),
             cur_time,
         );
 
-        let weight = get_weight(&mut trust_graph, peerB_kp.get_peer_id(), cur_time);
+        let weight = get_weight(&mut trust_graph, peer_b_kp.get_peer_id(), cur_time);
         assert_eq!(weight, 0u32);
     }
 
