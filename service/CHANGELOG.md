@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.4.0...trust-graph-wasm-v0.4.1) (2023-04-13)
+
+
+### Bug Fixes
+
+* **deps:** Add trust-graph to workspace and bump sqlite-wasm version ([#87](https://github.com/fluencelabs/trust-graph/issues/87)) ([da38a41](https://github.com/fluencelabs/trust-graph/commit/da38a41ba727a14774a71bba6612b1bf1f498db9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * trust-graph bumped from 0.4.0 to 0.4.1
+
 ## [0.4.0](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.3.2...trust-graph-wasm-v0.4.0) (2023-03-15)
 
 
