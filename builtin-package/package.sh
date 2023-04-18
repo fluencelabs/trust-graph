@@ -14,9 +14,7 @@ SCRIPT_DIR="$(pwd)"
 (
     echo "*** create builtin distribution package ***"
     cd ..
-    mv builtin-package trust-graph
-    tar --exclude="package.sh" -f trust-graph.tar.gz -zcv ./trust-graph
-    mv trust-graph builtin-package
+    tar --exclude="package.sh" -f trust-graph.tar.gz -zcv --transform 's|builtin-package|trust-graph|' builtin-package
 )
 
 echo "*** done ***"
