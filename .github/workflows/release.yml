@@ -14,9 +14,9 @@ jobs:
 
     outputs:
       releases-created: ${{ steps.release.outputs['releases_created'] }}
-      trust-graph-api-release-created: ${{ steps.release.outputs['aqua--release-created'] }}
-      trust-graph-release-created: ${{ steps.release.outputs['release-created'] }}
-      trust-graph-tag-name: ${{ steps.release.outputs['tag_name'] }}
+      trust-graph-api-release-created: ${{ steps.release.outputs['aqua--release_created'] }}
+      trust-graph-release-created: ${{ steps.release.outputs['trust-graph--release_created'] }}
+      trust-graph-tag-name: ${{ steps.release.outputs['trust-graph--tag_name'] }}
 
     steps:
       - name: Run release-please
