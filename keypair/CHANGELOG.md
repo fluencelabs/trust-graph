@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1](https://github.com/fluencelabs/trust-graph/compare/keypair-v0.10.0...keypair-v0.10.1) (2023-05-02)
+
+
+### Features
+
+* **keypair:** Make `KeyFormat` more convenient ([#91](https://github.com/fluencelabs/trust-graph/issues/91)) ([9b942ea](https://github.com/fluencelabs/trust-graph/commit/9b942eacca49d0468b4d7512667102363a6c9aa3))
+
 ## [0.10.0](https://github.com/fluencelabs/trust-graph/compare/keypair-v0.9.0...keypair-v0.10.0) (2023-03-15)
 
 
