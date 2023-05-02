@@ -48,7 +48,7 @@ use std::str::FromStr;
 /// ```
 ///
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyFormat {
     Ed25519,
     #[cfg(not(target_arch = "wasm32"))]
