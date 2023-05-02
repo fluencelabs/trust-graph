@@ -48,6 +48,7 @@ use std::str::FromStr;
 /// ```
 ///
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyFormat {
     Ed25519,
     #[cfg(not(target_arch = "wasm32"))]
@@ -165,6 +166,18 @@ impl KeyPair {
             Secp256k1(ref pair) => Ok(Signature::Secp256k1(secp256k1::Signature(
                 pair.secret().sign(msg)?,
             ))),
+        }
+    }
+
+    /// Get the key format of this keypair.
+    pub fn key_format(&self) -> KeyFormat {
+        use KeyPair::*;
+
+        match self {
+            Ed25519(_) => KeyFormat::Ed25519,
+            #[cfg(not(target_arch = "wasm32"))]
+            Rsa(_) => KeyFormat::Rsa,
+            Secp256k1(_) => KeyFormat::Secp256k1,
         }
     }
 
