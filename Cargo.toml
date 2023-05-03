@@ -2,7 +2,8 @@
 members = [
     "trust-graph",
     "keypair",
-    "service"
+    "service",
+    "distro"
 ]
 
 [workspace.dependencies]
