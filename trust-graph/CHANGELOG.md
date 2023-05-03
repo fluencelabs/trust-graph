@@ -1,5 +1,9 @@
 # Changelog
 
+* The following workspace dependencies were updated
+  * dependencies
+    * fluence-keypair bumped from 0.10.0 to 0.10.1
+
 ## [0.4.1](https://github.com/fluencelabs/trust-graph/compare/trust-graph-v0.4.0...trust-graph-v0.4.1) (2023-04-13)
 
 
