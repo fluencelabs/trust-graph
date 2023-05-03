@@ -1,4 +1,5 @@
-pub const TRUST_GRAPH_WASM: &'static [u8] = include_bytes!("../trust-graph-service/trust-graph.wasm");
+pub const TRUST_GRAPH_WASM: &'static [u8] =
+    include_bytes!("../trust-graph-service/trust-graph.wasm");
 pub const SQLITE_WASM: &'static [u8] = include_bytes!("../trust-graph-service/sqlite3.wasm");
 pub const CONFIG: &'static [u8] = include_bytes!("../trust-graph-service/Config.toml");
 
