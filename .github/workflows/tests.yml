@@ -58,6 +58,9 @@ jobs:
       - run: npm run build
         working-directory: aqua
 
+      - name: Install ipfs
+        uses: ibnesayeed/setup-ipfs@master
+
       - name: Create distribution package
         run: ./builtin-package/package.sh
 
