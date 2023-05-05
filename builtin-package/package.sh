@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 PACKAGE_DIR="$(pwd)/../package"
 
 (
-    rm -rf $PACKAGE_DIR
+    rm -rf $PACKAGE_DIR/*
     mkdir -p $PACKAGE_DIR
 )
 
@@ -34,13 +34,8 @@ echo "{}" | jq --arg trust_graph_cid "$TRUST_GRAPH_CID" --arg sqlite_cid "$SQLIT
 
 (
     echo "*** create builtin distribution package ***"
-    cd ..
-
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        tar -czvf trust-graph.tar.gz -s '|package|trust-graph|' package
-    else
-        tar -czvf trust-graph.tar.gz --transform 's|package|trust-graph|' package
-    fi
+    cd $PACKAGE_DIR
+    (tar cf - * | gzip) > ../trust-graph.tar.gz
 )
 
 echo "*** done ***"
