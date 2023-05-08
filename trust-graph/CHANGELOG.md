@@ -4,6 +4,13 @@
   * dependencies
     * fluence-keypair bumped from 0.10.0 to 0.10.1
 
+## [0.4.3](https://github.com/fluencelabs/trust-graph/compare/trust-graph-v0.4.2...trust-graph-v0.4.3) (2023-05-08)
+
+
+### Features
+
+* dummy change for release ([#95](https://github.com/fluencelabs/trust-graph/issues/95)) ([b6df3fe](https://github.com/fluencelabs/trust-graph/commit/b6df3fe5484b0adcad0c88abe170317a837142b3))
+
 ## [0.4.1](https://github.com/fluencelabs/trust-graph/compare/trust-graph-v0.4.0...trust-graph-v0.4.1) (2023-04-13)
 
 
