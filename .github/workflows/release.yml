@@ -17,6 +17,7 @@ jobs:
       trust-graph-api-release-created: ${{ steps.release.outputs['aqua--release_created'] }}
       trust-graph-release-created: ${{ steps.release.outputs['trust-graph--release_created'] }}
       trust-graph-tag-name: ${{ steps.release.outputs['trust-graph--tag_name'] }}
+      trust-graph-version: ${{ steps.release.outputs['trust-graph--version'] }}
 
     steps:
       - name: Run release-please
@@ -139,7 +140,7 @@ jobs:
           token: ${{ secrets.PERSONAL_TOKEN }}
           inputs: '{
             "name": "trust-graph",
-            "version": "${{ needs.release-please.outputs.version }}",
+            "version": "${{ needs.release-please.outputs.trust-graph-version }}",
             "url": "https://github.com/fluencelabs/trust-graph/releases/download/${{ needs.release-please.outputs.trust-graph-tag-name }}/trust-graph.tar.gz",
             "sha256": "${{ steps.sha.outputs.sha256 }}"
           }'
