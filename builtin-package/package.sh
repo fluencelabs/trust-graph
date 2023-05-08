@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 PACKAGE_DIR="$(pwd)/../package"
 
 (
-    rm -rf $PACKAGE_DIR/*
+    rm -f $PACKAGE_DIR/*
     mkdir -p $PACKAGE_DIR
 )
 
