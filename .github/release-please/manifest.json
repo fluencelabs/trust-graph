@@ -1,6 +1,6 @@
 {
-  "trust-graph": "0.4.4",
-  "aqua": "0.4.4",
-  "service": "0.4.4",
+  "trust-graph": "0.4.5",
+  "aqua": "0.4.5",
+  "service": "0.4.5",
   "keypair": "0.10.1"
 }
