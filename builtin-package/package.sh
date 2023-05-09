@@ -35,7 +35,7 @@ echo "{}" | jq --arg trust_graph_cid "$TRUST_GRAPH_CID" --arg sqlite_cid "$SQLIT
 (
     echo "*** create builtin distribution package ***"
     cd $PACKAGE_DIR/..
-    tar -f trust-graph.tar.gz -zcv ./trust-graph
+    tar -f ../trust-graph.tar.gz -zcv ./trust-graph
 )
 
 echo "*** done ***"
