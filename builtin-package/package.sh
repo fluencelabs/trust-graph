@@ -3,10 +3,10 @@ set -o pipefail -o nounset -o errexit
 
 # set current working directory to script directory to run script from everywhere
 cd "$(dirname "$0")"
-PACKAGE_DIR="$(pwd)/../package"
+PACKAGE_DIR="$(pwd)/../package/trust-graph"
 
 (
-    rm -f $PACKAGE_DIR/*
+    rm -rf $PACKAGE_DIR/*
     mkdir -p $PACKAGE_DIR
 )
 
@@ -34,8 +34,8 @@ echo "{}" | jq --arg trust_graph_cid "$TRUST_GRAPH_CID" --arg sqlite_cid "$SQLIT
 
 (
     echo "*** create builtin distribution package ***"
-    cd $PACKAGE_DIR
-    (tar cf - * | gzip) > ../trust-graph.tar.gz
+    cd $PACKAGE_DIR/..
+    tar -f trust-graph.tar.gz -zcv ./trust-graph
 )
 
 echo "*** done ***"
