@@ -1,6 +1,6 @@
 [package]
 name = "trust-graph-wasm"
-version = "0.4.3"
+version = "0.4.4"
 authors = ["Fluence Labs"]
 edition = "2021"
 description = "trust graph wasm"
@@ -12,7 +12,7 @@ name = "trust-graph"
 path = "src/main.rs"
 
 [dependencies]
-trust-graph = { version = "0.4.3", path = "../trust-graph" }
+trust-graph = { version = "0.4.4", path = "../trust-graph" }
 fluence-keypair = { version = "0.10.1", path = "../keypair" }
 marine-rs-sdk = { version = "0.7.1", features = ["logger"] }
 marine-sqlite-connector = "0.8.0"
