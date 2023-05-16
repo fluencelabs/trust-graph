@@ -176,7 +176,7 @@ fn as_public_key(peer_id: &PeerId) -> Option<libp2p_identity::PublicKey> {
 
     match multihash::Code::try_from(mhash.code()) {
         Ok(multihash::Code::Identity) => {
-            libp2p_identity::PublicKey::from_protobuf_encoding(mhash.digest()).ok()
+            libp2p_identity::PublicKey::try_decode_protobuf(mhash.digest()).ok()
         }
         _ => None,
     }
