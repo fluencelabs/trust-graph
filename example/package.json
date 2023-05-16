@@ -21,6 +21,6 @@
   },
   "devDependencies": {
     "typescript": "^4.5.2",
-    "@fluencelabs/aqua": "^0.7.4-325"
+    "@fluencelabs/aqua": "^0.9.0"
   }
 }
