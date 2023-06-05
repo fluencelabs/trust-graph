@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use lazy_static::lazy_static;
+use serde::{Deserialize, Serialize};
 
 pub const TRUST_GRAPH_WASM: &'static [u8] =
     include_bytes!("../trust-graph-service/trust-graph.wasm");
