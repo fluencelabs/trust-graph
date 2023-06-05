@@ -4,10 +4,15 @@ version = "0.4.5"
 edition = "2021"
 build = "built.rs"
 license = "Apache-2.0"
+include = [ "/src", "built.rs", "Cargo.toml", "trust-graph-service"]
+description = "Distribution package for the trust-graph service"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 maplit = "1.0.2"
+serde = "1.0.160"
+serde_json = "1.0.96"
+lazy_static = "1.4.0"
 
 [build-dependencies]
 built = "0.5.2"
