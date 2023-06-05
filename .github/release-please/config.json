@@ -32,7 +32,7 @@
     },
     "keypair": {
       "component": "keypair"
-    }.
+    },
     "distro": {
       "component": "distro"
     }
