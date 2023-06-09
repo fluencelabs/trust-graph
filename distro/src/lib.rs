@@ -2,22 +2,22 @@ use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
 #[cfg(not(feature = "cargo-clippy"))]
-pub const TRUST_GRAPH_WASM: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/trust-graph.wasm"));
+pub const TRUST_GRAPH_WASM: &[u8] = include_bytes!("../trust-graph-service/trust-graph.wasm");
 #[cfg(feature = "cargo-clippy")]
 pub const TRUST_GRAPH_WASM: &[u8] = &[];
 
 #[cfg(not(feature = "cargo-clippy"))]
-pub const SQLITE_WASM: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/sqlite3.wasm"));
+pub const SQLITE_WASM: &[u8] = include_bytes!("../trust-graph-service/sqlite3.wasm");
 #[cfg(feature = "cargo-clippy")]
 pub const SQLITE_WASM: &[u8] = &[];
 
 #[cfg(not(feature = "cargo-clippy"))]
-pub const CONFIG: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/Config.toml"));
+pub const CONFIG: &[u8] = include_bytes!("../trust-graph-service/Config.toml");
 #[cfg(feature = "cargo-clippy")]
 pub const CONFIG: &[u8] = &[];
 
 #[cfg(not(feature = "cargo-clippy"))]
-pub const KRAS_CERTS_JSON: &str = include_str!(concat!(env!("OUT_DIR"), "/on_start.json"));
+pub const KRAS_CERTS_JSON: &str = include_str!("../trust-graph-service/on_start.json");
 #[cfg(feature = "cargo-clippy")]
 pub const KRAS_CERTS_JSON: &str = "{}";
 
