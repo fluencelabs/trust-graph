@@ -2,9 +2,9 @@
 name = "trust-graph-distro"
 version = "0.4.5"
 edition = "2021"
-build = "built.rs"
+build = "build.rs"
 license = "Apache-2.0"
-include = [ "/src", "built.rs", "Cargo.toml", "trust-graph-service"]
+include = [ "/src", "build.rs", "Cargo.toml", "trust-graph-service"]
 description = "Distribution package for the trust-graph service"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
