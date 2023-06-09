@@ -11,7 +11,6 @@ pub const SQLITE_WASM: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/sqlite3
 #[cfg(feature = "cargo-clippy")]
 pub const SQLITE_WASM: &[u8] = &[];
 
-
 #[cfg(not(feature = "cargo-clippy"))]
 pub const CONFIG: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/Config.toml"));
 #[cfg(feature = "cargo-clippy")]
