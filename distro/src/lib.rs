@@ -17,7 +17,7 @@ pub const CONFIG: &[u8] = include_bytes!("../trust-graph-service/Config.toml");
 pub const CONFIG: &[u8] = &[];
 
 #[cfg(not(feature = "cargo-clippy"))]
-pub const KRAS_CERTS_JSON: &str = include_str!("../trust-graph-service/on_start.json");
+pub const KRAS_CERTS_JSON: &str = include_str!("../trust-graph-service/init_certs.json");
 #[cfg(feature = "cargo-clippy")]
 pub const KRAS_CERTS_JSON: &str = "{}";
 

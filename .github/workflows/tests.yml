@@ -42,6 +42,7 @@ jobs:
         env:
           NEXTEST_RETRIES: 10
           NEXTEST_TEST_THREADS: 10
+        # exclude distro since at this point we don't have compiled wasms which are required for compilation
         run: cargo nextest run --release --all-features --no-fail-fast --workspace --exclude trust-graph-distro
 
       - name: Setup node
