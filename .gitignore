@@ -2,6 +2,8 @@ service/target
 service/artifacts
 builtin-package/*.wasm
 trust-graph.tar.gz
+distro/trust-graph-service
+distro/target
 
 **/*.rs.bk
 **/.idea

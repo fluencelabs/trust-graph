@@ -14,7 +14,8 @@
       "components": [
         "trust-graph",
         "trust-graph-api",
-        "trust-graph-wasm"
+        "trust-graph-wasm",
+        "distro"
       ]
     }
   ],
@@ -31,6 +32,9 @@
     },
     "keypair": {
       "component": "keypair"
+    },
+    "distro": {
+      "component": "distro"
     }
   }
 }

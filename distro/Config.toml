@@ -1,0 +1,14 @@
+modules_dir = "."
+
+[[module]]
+    name = "sqlite3"
+    logger_enabled = true
+
+    [module.wasi]
+        mapped_dirs = { "tmp" = "data" }
+[[module]]
+    name = "trust-graph"
+    logger_enabled = true
+
+    [module.wasi]
+        mapped_dirs = { "tmp" = "data" }
