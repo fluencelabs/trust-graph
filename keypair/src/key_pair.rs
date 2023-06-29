@@ -256,7 +256,7 @@ impl From<libp2p_identity::Keypair> for KeyPair {
                     let kp = key.try_into_ed25519()?;
                     let raw_kp = ed25519::Keypair::decode(&mut kp.to_bytes())?;
                     Ok(KeyPair::Ed25519(raw_kp))
-                },
+                }
                 #[cfg(not(target_arch = "wasm32"))]
                 KeyType::RSA => {
                     let kp = key.try_into_rsa()?;
@@ -264,12 +264,12 @@ impl From<libp2p_identity::Keypair> for KeyPair {
                         std::mem::transmute::<libp2p_identity::rsa::Keypair, rsa::Keypair>(kp)
                     };
                     Ok(KeyPair::Rsa(raw_kp))
-                },
+                }
                 KeyType::Secp256k1 => {
                     let kp = key.try_into_secp256k1()?;
                     let raw_kp = secp256k1::SecretKey::from_bytes(kp.secret().to_bytes())?;
                     Ok(KeyPair::Secp256k1(secp256k1::Keypair::from(raw_kp)))
-                },
+                }
                 _ => unreachable!(),
             }
         }
@@ -285,7 +285,7 @@ impl From<KeyPair> for libp2p_identity::Keypair {
                 KeyPair::Ed25519(kp) => {
                     let kp = Keypair::ed25519_from_bytes(kp.encode().to_vec().as_mut_slice())?;
                     Ok(kp)
-                },
+                }
                 #[cfg(not(target_arch = "wasm32"))]
                 // safety: these Keypair structures are identical
                 KeyPair::Rsa(kp) => {
@@ -294,7 +294,7 @@ impl From<KeyPair> for libp2p_identity::Keypair {
                     };
                     let kp = Keypair::from(kp);
                     Ok(kp)
-                },
+                }
                 KeyPair::Secp256k1(kp) => {
                     let sk = libp2p_identity::secp256k1::SecretKey::try_from_bytes(
                         kp.secret().to_bytes(),

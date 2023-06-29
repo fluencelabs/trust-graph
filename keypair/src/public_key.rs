@@ -132,13 +132,13 @@ impl From<libp2p_identity::PublicKey> for PublicKey {
                     let pk = key.try_into_ed25519()?;
                     let raw_pk = ed25519::PublicKey::decode(&pk.to_bytes())?;
                     Ok(PublicKey::Ed25519(raw_pk))
-                },
+                }
                 #[cfg(not(target_arch = "wasm32"))]
                 KeyType::RSA => {
                     let pk = key.try_into_rsa()?;
                     let raw_pk = rsa::PublicKey::from_pkcs1(pk.encode_pkcs1())?;
                     Ok(PublicKey::Rsa(raw_pk))
-                },
+                }
                 KeyType::Secp256k1 => {
                     let pk = key.try_into_secp256k1()?;
                     let raw_pk = secp256k1::PublicKey::decode(&pk.to_bytes())?;
@@ -162,14 +162,14 @@ impl From<PublicKey> for libp2p_identity::PublicKey {
                         libp2p_identity::ed25519::PublicKey::try_from_bytes(&key.encode())?;
                     let pk = libp2p_identity::PublicKey::from(raw_pk);
                     Ok(pk)
-                },
+                }
                 #[cfg(not(target_arch = "wasm32"))]
                 PublicKey::Rsa(key) => {
                     let raw_pk =
                         libp2p_identity::rsa::PublicKey::try_decode_x509(&key.encode_x509())?;
                     let pk = libp2p_identity::PublicKey::from(raw_pk);
                     Ok(pk)
-                },
+                }
                 PublicKey::Secp256k1(key) => {
                     let raw_pk =
                         libp2p_identity::secp256k1::PublicKey::try_from_bytes(&key.encode())?;
