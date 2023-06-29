@@ -4,18 +4,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.10.2](https://github.com/fluencelabs/trust-graph/compare/keypair-v0.10.1...keypair-v0.10.2) (2023-06-29)
-
-
-### Features
-
-* update libp2p identity  ([#109](https://github.com/fluencelabs/trust-graph/issues/109)) ([d04120b](https://github.com/fluencelabs/trust-graph/commit/d04120bacf802a7e1127f4955b7391b0a4353128))
-
-
-### Bug Fixes
-
-* **keypair:** update description ([#105](https://github.com/fluencelabs/trust-graph/issues/105)) ([f7ef0f8](https://github.com/fluencelabs/trust-graph/commit/f7ef0f8da095fe1fef80faaa0b0c2d5ef854bd16))
-
 ## [0.10.1](https://github.com/fluencelabs/trust-graph/compare/keypair-v0.10.0...keypair-v0.10.1) (2023-05-02)
 
 
