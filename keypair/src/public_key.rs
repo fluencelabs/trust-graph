@@ -126,7 +126,7 @@ impl PublicKey {
 
 impl From<libp2p_identity::PublicKey> for PublicKey {
     fn from(key: libp2p_identity::PublicKey) -> Self {
-        fn convert_pub_key(key: libp2p_identity::PublicKey) -> eyre::Result<PublicKey> {
+        fn convert_key(key: libp2p_identity::PublicKey) -> eyre::Result<PublicKey> {
             let result = match key.key_type() {
                 KeyType::Ed25519 => {
                     let pk = key.try_into_ed25519()?;
@@ -149,7 +149,7 @@ impl From<libp2p_identity::PublicKey> for PublicKey {
             result
         }
 
-        convert_pub_key(key).expect("Could not convert public key")
+        convert_key(key).expect("Could not convert public key")
     }
 }
 

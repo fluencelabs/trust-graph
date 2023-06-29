@@ -280,7 +280,7 @@ impl From<libp2p_identity::Keypair> for KeyPair {
 
 impl From<KeyPair> for libp2p_identity::Keypair {
     fn from(key: KeyPair) -> Self {
-        fn convert(key: KeyPair) -> eyre::Result<libp2p_identity::Keypair> {
+        fn convert_keypair(key: KeyPair) -> eyre::Result<libp2p_identity::Keypair> {
             match key {
                 KeyPair::Ed25519(kp) => {
                     let kp = Keypair::ed25519_from_bytes(kp.encode().to_vec().as_mut_slice())?;
@@ -305,6 +305,6 @@ impl From<KeyPair> for libp2p_identity::Keypair {
                 }
             }
         }
-        convert(key).expect("Could not convert key pair")
+        convert_keypair(key).expect("Could not convert key pair")
     }
 }
