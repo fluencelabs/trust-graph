@@ -26,7 +26,7 @@ use crate::public_key::PublicKey;
 use crate::rsa;
 use crate::secp256k1;
 use crate::signature::Signature;
-use libp2p_identity::PeerId;
+use libp2p_identity::{KeyType, Keypair, PeerId};
 use std::convert::TryFrom;
 use std::str::FromStr;
 
@@ -47,7 +47,6 @@ use std::str::FromStr;
 /// let keypair = Keypair::rsa_from_pkcs8(&mut bytes);
 /// ```
 ///
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeyFormat {
     Ed25519,
@@ -106,6 +105,7 @@ impl From<KeyFormat> for String {
         }
     }
 }
+
 #[derive(Clone)]
 pub enum KeyPair {
     /// An Ed25519 keypair.
@@ -250,42 +250,61 @@ impl KeyPair {
 
 impl From<libp2p_identity::Keypair> for KeyPair {
     fn from(key: libp2p_identity::Keypair) -> Self {
-        use libp2p_identity::Keypair::*;
-
-        #[allow(deprecated)] //TODO: fix it later
-        match key {
-            Ed25519(kp) => KeyPair::Ed25519(ed25519::Keypair::decode(&mut kp.encode()).unwrap()),
-            #[cfg(not(target_arch = "wasm32"))]
-            // safety: these Keypair structures are identical
-            Rsa(kp) => KeyPair::Rsa(unsafe {
-                std::mem::transmute::<libp2p_identity::rsa::Keypair, rsa::Keypair>(kp)
-            }),
-            Secp256k1(kp) => KeyPair::Secp256k1(secp256k1::Keypair::from(
-                secp256k1::SecretKey::from_bytes(kp.secret().to_bytes()).unwrap(),
-            )),
+        fn convert_keypair(key: Keypair) -> eyre::Result<KeyPair> {
+            match key.key_type() {
+                KeyType::Ed25519 => {
+                    let kp = key.try_into_ed25519()?;
+                    let raw_kp = ed25519::Keypair::decode(&mut kp.to_bytes())?;
+                    Ok(KeyPair::Ed25519(raw_kp))
+                }
+                #[cfg(not(target_arch = "wasm32"))]
+                KeyType::RSA => {
+                    let kp = key.try_into_rsa()?;
+                    let raw_kp = unsafe {
+                        std::mem::transmute::<libp2p_identity::rsa::Keypair, rsa::Keypair>(kp)
+                    };
+                    Ok(KeyPair::Rsa(raw_kp))
+                }
+                KeyType::Secp256k1 => {
+                    let kp = key.try_into_secp256k1()?;
+                    let raw_kp = secp256k1::SecretKey::from_bytes(kp.secret().to_bytes())?;
+                    Ok(KeyPair::Secp256k1(secp256k1::Keypair::from(raw_kp)))
+                }
+                KeyType::Ecdsa => unreachable!(),
+            }
         }
+
+        convert_keypair(key).expect("Could not convert keypair")
     }
 }
 
 impl From<KeyPair> for libp2p_identity::Keypair {
     fn from(key: KeyPair) -> Self {
-        use libp2p_identity::Keypair;
-        use KeyPair::*;
-
-        #[allow(deprecated)] //TODO: fix it later
-        match key {
-            Ed25519(kp) => Keypair::Ed25519(
-                libp2p_identity::ed25519::Keypair::decode(kp.encode().to_vec().as_mut_slice())
-                    .unwrap(),
-            ),
-            #[cfg(not(target_arch = "wasm32"))]
-            // safety: these Keypair structures are identical
-            Rsa(kp) => Keypair::Rsa(unsafe {
-                std::mem::transmute::<rsa::Keypair, libp2p_identity::rsa::Keypair>(kp)
-            }),
-            Secp256k1(kp) => Keypair::Secp256k1(libp2p_identity::secp256k1::Keypair::from(
-                libp2p_identity::secp256k1::SecretKey::from_bytes(kp.secret().to_bytes()).unwrap(),
-            )),
+        fn convert(key: KeyPair) -> eyre::Result<libp2p_identity::Keypair> {
+            match key {
+                KeyPair::Ed25519(kp) => {
+                    let kp = Keypair::ed25519_from_bytes(kp.encode().to_vec().as_mut_slice())?;
+                    Ok(kp)
+                }
+                #[cfg(not(target_arch = "wasm32"))]
+                // safety: these Keypair structures are identical
+                KeyPair::Rsa(kp) => {
+                    let kp = unsafe {
+                        std::mem::transmute::<rsa::Keypair, libp2p_identity::rsa::Keypair>(kp)
+                    };
+                    let kp = Keypair::from(kp);
+                    Ok(kp)
+                }
+                KeyPair::Secp256k1(kp) => {
+                    let sk = libp2p_identity::secp256k1::SecretKey::try_from_bytes(
+                        kp.secret().to_bytes(),
+                    )?;
+                    let kp = libp2p_identity::secp256k1::Keypair::from(sk);
+                    let kp = Keypair::from(kp);
+                    Ok(kp)
+                }
+            }
         }
+        convert(key).expect("Could not convert key pair")
     }
 }

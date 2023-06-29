@@ -229,6 +229,12 @@ pub struct Signature(pub Vec<u8>);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{key_pair, KeyFormat};
+    use quickcheck::QuickCheck;
+
+    fn eq_keypairs(kp1: key_pair::KeyPair, kp2: key_pair::KeyPair) -> bool {
+        kp1.public() == kp2.public() && kp1.secret().unwrap() == kp2.secret().unwrap()
+    }
 
     #[test]
     fn secp256k1_secret_from_bytes() {
@@ -238,5 +244,16 @@ mod tests {
         let sk2 = SecretKey::from_bytes(&mut sk_bytes).unwrap();
         assert_eq!(sk1.0.serialize(), sk2.0.serialize());
         assert_eq!(sk_bytes, [0; 32]);
+    }
+
+    #[test]
+    fn secp256k1_keypair_encode_decode() {
+        fn prop() -> bool {
+            let kp1 = key_pair::KeyPair::generate(KeyFormat::Secp256k1);
+            let kp1_enc = libp2p_identity::Keypair::from(kp1.clone());
+            let kp2 = key_pair::KeyPair::from(kp1_enc);
+            eq_keypairs(kp1, kp2)
+        }
+        QuickCheck::new().tests(10).quickcheck(prop as fn() -> _);
     }
 }

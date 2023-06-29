@@ -21,7 +21,7 @@ use crate::secp256k1;
 use crate::signature::Signature;
 
 use crate::key_pair::KeyFormat;
-use libp2p_identity::PeerId;
+use libp2p_identity::{KeyType, PeerId};
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
@@ -126,37 +126,59 @@ impl PublicKey {
 
 impl From<libp2p_identity::PublicKey> for PublicKey {
     fn from(key: libp2p_identity::PublicKey) -> Self {
-        use libp2p_identity::PublicKey::*;
-
-        #[allow(deprecated)] //TODO: fix it later
-        match key {
-            Ed25519(key) => {
-                PublicKey::Ed25519(ed25519::PublicKey::decode(&key.encode()[..]).unwrap())
-            }
-            #[cfg(not(target_arch = "wasm32"))]
-            Rsa(key) => PublicKey::Rsa(rsa::PublicKey::from_pkcs1(key.encode_pkcs1()).unwrap()),
-            Secp256k1(key) => {
-                PublicKey::Secp256k1(secp256k1::PublicKey::decode(&key.encode()[..]).unwrap())
-            }
+        fn convert_pub_key(key: libp2p_identity::PublicKey) -> eyre::Result<PublicKey> {
+            let result = match key.key_type() {
+                KeyType::Ed25519 => {
+                    let pk = key.try_into_ed25519()?;
+                    let raw_pk = ed25519::PublicKey::decode(&pk.to_bytes())?;
+                    Ok(PublicKey::Ed25519(raw_pk))
+                }
+                #[cfg(not(target_arch = "wasm32"))]
+                KeyType::RSA => {
+                    let pk = key.try_into_rsa()?;
+                    let raw_pk = rsa::PublicKey::from_pkcs1(pk.encode_pkcs1())?;
+                    Ok(PublicKey::Rsa(raw_pk))
+                }
+                KeyType::Secp256k1 => {
+                    let pk = key.try_into_secp256k1()?;
+                    let raw_pk = secp256k1::PublicKey::decode(&pk.to_bytes())?;
+                    Ok(PublicKey::Secp256k1(raw_pk))
+                }
+                KeyType::Ecdsa => unreachable!(),
+            };
+            result
         }
+
+        convert_pub_key(key).expect("Could not convert public key")
     }
 }
 
 impl From<PublicKey> for libp2p_identity::PublicKey {
     fn from(key: PublicKey) -> Self {
-        #[allow(deprecated)] //TODO: fix it later
-        match key {
-            PublicKey::Ed25519(key) => libp2p_identity::PublicKey::Ed25519(
-                libp2p_identity::ed25519::PublicKey::decode(&key.encode()[..]).unwrap(),
-            ),
-            #[cfg(not(target_arch = "wasm32"))]
-            PublicKey::Rsa(key) => libp2p_identity::PublicKey::Rsa(
-                libp2p_identity::rsa::PublicKey::decode_x509(&key.encode_x509()).unwrap(),
-            ),
-            PublicKey::Secp256k1(key) => libp2p_identity::PublicKey::Secp256k1(
-                libp2p_identity::secp256k1::PublicKey::decode(&key.encode()[..]).unwrap(),
-            ),
+        fn convert_key(key: PublicKey) -> eyre::Result<libp2p_identity::PublicKey> {
+            match key {
+                PublicKey::Ed25519(key) => {
+                    let raw_pk =
+                        libp2p_identity::ed25519::PublicKey::try_from_bytes(&key.encode())?;
+                    let pk = libp2p_identity::PublicKey::from(raw_pk);
+                    Ok(pk)
+                }
+                #[cfg(not(target_arch = "wasm32"))]
+                PublicKey::Rsa(key) => {
+                    let raw_pk =
+                        libp2p_identity::rsa::PublicKey::try_decode_x509(&key.encode_x509())?;
+                    let pk = libp2p_identity::PublicKey::from(raw_pk);
+                    Ok(pk)
+                }
+                PublicKey::Secp256k1(key) => {
+                    let raw_pk =
+                        libp2p_identity::secp256k1::PublicKey::try_from_bytes(&key.encode())?;
+                    let pk = libp2p_identity::PublicKey::from(raw_pk);
+                    Ok(pk)
+                }
+            }
         }
+        convert_key(key).expect("Could not convert key")
     }
 }
 
