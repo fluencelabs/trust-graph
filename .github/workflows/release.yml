@@ -71,7 +71,6 @@ jobs:
 
       - name: Build
         run: ./build.sh
-        working-directory: service
 
       - name: Install cargo-workspaces
         uses: baptiste0928/cargo-install@v1.3.0

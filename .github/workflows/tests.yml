@@ -23,7 +23,6 @@ jobs:
         uses: fluencelabs/setup-marine@v1
 
       - name: Build
-        working-directory: ./service
         run: ./build.sh
 
       - name: Run cargo clippy
