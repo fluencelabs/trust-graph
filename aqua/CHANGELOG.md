@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.6](https://github.com/fluencelabs/trust-graph/compare/trust-graph-api-v0.4.5...trust-graph-api-v0.4.6) (2023-06-29)
+
+
+### Reverts
+
+* release master ([#110](https://github.com/fluencelabs/trust-graph/issues/110)) ([d80a43b](https://github.com/fluencelabs/trust-graph/commit/d80a43bcff721aff8fadf3d2d5c252804ce27a6c))
+
 ## [0.4.5](https://github.com/fluencelabs/trust-graph/compare/trust-graph-api-v0.4.4...trust-graph-api-v0.4.5) (2023-05-09)
 
 
