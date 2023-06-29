@@ -229,12 +229,6 @@ dependencies = [
 
 [[package]]
 name = "bs58"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "771fe0050b883fcc3ea2359b1a96bcfbc090b7116eae7c3c512c7a083fdf23d3"
-
-[[package]]
-name = "bs58"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f5353f36341f7451062466f0b755b96ac3a9547e4d7f6b70d603fc721a7d7896"
@@ -924,7 +918,7 @@ name = "fluence-keypair"
 version = "0.10.2"
 dependencies = [
  "asn1_der 0.6.3",
- "bs58 0.5.0",
+ "bs58",
  "ed25519-dalek",
  "eyre",
  "lazy_static",
@@ -1355,7 +1349,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2874d9c6575f1d7a151022af5c42bb0ffdcdfbafe0a6fd039de870b384835a2"
 dependencies = [
  "asn1_der 0.7.6",
- "bs58 0.5.0",
+ "bs58",
  "ed25519-dalek",
  "libsecp256k1",
  "log",
@@ -2710,7 +2704,7 @@ dependencies = [
 name = "trust-graph"
 version = "0.4.6"
 dependencies = [
- "bs58 0.4.0",
+ "bs58",
  "derivative",
  "failure",
  "fluence-keypair",
@@ -2740,7 +2734,7 @@ version = "0.4.6"
 dependencies = [
  "anyhow",
  "bincode",
- "bs58 0.4.0",
+ "bs58",
  "fluence-keypair",
  "libp2p-identity",
  "log",

@@ -11,7 +11,7 @@ repository = "https://github.com/fluencelabs/trust-graph"
 serde = { version = "1.0.118", features = ["derive"] }
 
 fluence-keypair = { path = "../keypair", version = "0.10.2" }
-bs58 = "0.4.0"
+bs58 = "0.5.0"
 failure = "0.1.6"
 log = "0.4.11"
 ref-cast = "1.0.2"
