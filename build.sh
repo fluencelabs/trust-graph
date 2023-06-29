@@ -9,7 +9,7 @@ cd "$(dirname "$0")"
 TARGET="distro/trust-graph-service/"
 
 mkdir -p "$TARGET"
-cp -v ./distro/on_start.json service/artifacts/trust-graph.wasm service/artifacts/sqlite3.wasm distro/Config.toml "$TARGET"
+cp -v ./distro/init_certs.json service/artifacts/trust-graph.wasm service/artifacts/sqlite3.wasm distro/Config.toml "$TARGET"
 
 cd distro
 cargo build
