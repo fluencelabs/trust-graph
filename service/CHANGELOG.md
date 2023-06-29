@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * trust-graph bumped from 0.4.1 to 0.4.2
     * fluence-keypair bumped from 0.10.0 to 0.10.1
 
+## [0.4.6](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.4.5...trust-graph-wasm-v0.4.6) (2023-06-29)
+
+
+### Miscellaneous Chores
+
+* **trust-graph-wasm:** Synchronize trust-graph, wasm and api versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * trust-graph bumped from 0.4.5 to 0.4.6
+    * fluence-keypair bumped from 0.10.1 to 0.10.2
+
 ## [0.4.5](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.4.4...trust-graph-wasm-v0.4.5) (2023-05-09)
 
 

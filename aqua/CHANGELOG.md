@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.6](https://github.com/fluencelabs/trust-graph/compare/trust-graph-api-v0.4.5...trust-graph-api-v0.4.6) (2023-06-29)
+
+
+### Miscellaneous Chores
+
+* **trust-graph-api:** Synchronize trust-graph, wasm and api versions
+
 ## [0.4.5](https://github.com/fluencelabs/trust-graph/compare/trust-graph-api-v0.4.4...trust-graph-api-v0.4.5) (2023-05-09)
 
 
