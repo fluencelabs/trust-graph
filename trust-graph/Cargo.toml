@@ -1,6 +1,6 @@
 [package]
 name = "trust-graph"
-version = "0.4.5"
+version = "0.4.6"
 authors = ["Fluence Labs"]
 edition = "2021"
 description = "trust graph"
@@ -10,7 +10,7 @@ repository = "https://github.com/fluencelabs/trust-graph"
 [dependencies]
 serde = { version = "1.0.118", features = ["derive"] }
 
-fluence-keypair = { path = "../keypair", version = "0.10.1" }
+fluence-keypair = { path = "../keypair", version = "0.10.2" }
 bs58 = "0.4.0"
 failure = "0.1.6"
 log = "0.4.11"

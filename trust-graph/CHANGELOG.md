@@ -4,6 +4,26 @@
   * dependencies
     * fluence-keypair bumped from 0.10.0 to 0.10.1
 
+## [0.4.6](https://github.com/fluencelabs/trust-graph/compare/trust-graph-v0.4.5...trust-graph-v0.4.6) (2023-06-30)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate derivative to 2.2.0 ([2001f90](https://github.com/fluencelabs/trust-graph/commit/2001f900fa13a949decd513d8cbe15e3f006a7fc))
+* **deps:** update rust crate derivative to 2.2.0 ([#88](https://github.com/fluencelabs/trust-graph/issues/88)) ([2001f90](https://github.com/fluencelabs/trust-graph/commit/2001f900fa13a949decd513d8cbe15e3f006a7fc))
+
+
+### Reverts
+
+* release master ([#110](https://github.com/fluencelabs/trust-graph/issues/110)) ([d80a43b](https://github.com/fluencelabs/trust-graph/commit/d80a43bcff721aff8fadf3d2d5c252804ce27a6c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * fluence-keypair bumped from 0.10.1 to 0.10.2
+
 ## [0.4.5](https://github.com/fluencelabs/trust-graph/compare/trust-graph-v0.4.4...trust-graph-v0.4.5) (2023-05-09)
 
 
