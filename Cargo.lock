@@ -609,12 +609,36 @@ dependencies = [
 
 [[package]]
 name = "darling"
+version = "0.14.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b750cb3417fd1b327431a470f388520309479ab0bf5e323505daf0290cd3850"
+dependencies = [
+ "darling_core 0.14.4",
+ "darling_macro 0.14.4",
+]
+
+[[package]]
+name = "darling"
 version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0558d22a7b463ed0241e993f76f09f30b126687447751a8638587b864e4b3944"
 dependencies = [
- "darling_core",
- "darling_macro",
+ "darling_core 0.20.1",
+ "darling_macro 0.20.1",
+]
+
+[[package]]
+name = "darling_core"
+version = "0.14.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "109c1ca6e6b7f82cc233a97004ea8ed7ca123a9af07a8230878fcfda9b158bf0"
+dependencies = [
+ "fnv",
+ "ident_case",
+ "proc-macro2",
+ "quote",
+ "strsim",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -633,11 +657,22 @@ dependencies = [
 
 [[package]]
 name = "darling_macro"
+version = "0.14.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4aab4dbc9f7611d8b55048a3a16d2d010c2c8334e46304b40ac1cc14bf3b48e"
+dependencies = [
+ "darling_core 0.14.4",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "darling_macro"
 version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29a358ff9f12ec09c3e61fef9b5a9902623a695a46a917b07f269bff1445611a"
 dependencies = [
- "darling_core",
+ "darling_core 0.20.1",
  "quote",
  "syn 2.0.18",
 ]
@@ -892,7 +927,7 @@ dependencies = [
 
 [[package]]
 name = "fluence-keypair"
-version = "0.10.2"
+version = "0.10.3"
 dependencies = [
  "asn1_der 0.6.3",
  "bs58 0.5.0",
@@ -1458,9 +1493,9 @@ checksum = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
 
 [[package]]
 name = "marine-build-rs-generator"
-version = "0.10.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ead87c828b20aa0d44f5f397eaa099423854acc5784c5ec1e70616629461fcf8"
+checksum = "a36d5f557a1983b71d2a7daec70078257868e6c10c9c9435b65fc26fc9beea13"
 dependencies = [
  "marine-test-macro-impl",
 ]
@@ -1631,9 +1666,9 @@ dependencies = [
 
 [[package]]
 name = "marine-rs-sdk-test"
-version = "0.10.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a28351f78375d86eb907db683c55abba5b5a990323563ee9fdb62438dcb1cad3"
+checksum = "916b81e8a804b78429331bd8ddb7207f9bea9ade4065d335d31fa3db36a082bf"
 dependencies = [
  "fluence-app-service",
  "marine-build-rs-generator",
@@ -1684,24 +1719,24 @@ dependencies = [
 
 [[package]]
 name = "marine-test-macro"
-version = "0.10.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04321911c3fad42963a3b5fb11b3fc16ad56af62af82fbd77269f220fc3f2ecc"
+checksum = "dea9808bcabbc43bd9fdbf74e4d6f03f1cef252ab422933beab4083acc12136c"
 dependencies = [
  "marine-test-macro-impl",
  "proc-macro-error",
  "proc-macro2",
  "quote",
- "syn 2.0.18",
+ "syn 1.0.109",
 ]
 
 [[package]]
 name = "marine-test-macro-impl"
-version = "0.10.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7e9e55550b42723b9939d72d2aa5c58fd3a9f7233ca030e86bf41fbd0a6fb7d"
+checksum = "e53da2a35d049f7e44d2cca46baba6ca0e240c59775042b86b9d7001e4eb679f"
 dependencies = [
- "darling",
+ "darling 0.14.4",
  "fluence-app-service",
  "itertools",
  "marine-it-parser",
@@ -1709,7 +1744,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "static_assertions",
- "syn 2.0.18",
+ "syn 1.0.109",
  "thiserror",
 ]
 
@@ -2425,7 +2460,7 @@ version = "2.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "881b6f881b17d13214e5d494c939ebab463d01264ce1811e9d4ac3a882e7695f"
 dependencies = [
- "darling",
+ "darling 0.20.1",
  "proc-macro2",
  "quote",
  "syn 2.0.18",
@@ -2738,7 +2773,7 @@ dependencies = [
 
 [[package]]
 name = "trust-graph"
-version = "0.4.6"
+version = "0.4.7"
 dependencies = [
  "bs58 0.4.0",
  "derivative",
@@ -2755,7 +2790,7 @@ dependencies = [
 
 [[package]]
 name = "trust-graph-distro"
-version = "0.4.6"
+version = "0.4.7"
 dependencies = [
  "built",
  "lazy_static",
@@ -2766,7 +2801,7 @@ dependencies = [
 
 [[package]]
 name = "trust-graph-wasm"
-version = "0.4.6"
+version = "0.4.7"
 dependencies = [
  "anyhow",
  "bincode",

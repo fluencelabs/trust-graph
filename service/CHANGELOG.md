@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * trust-graph bumped from 0.4.1 to 0.4.2
     * fluence-keypair bumped from 0.10.0 to 0.10.1
 
+## [0.4.7](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.4.6...trust-graph-wasm-v0.4.7) (2023-07-04)
+
+
+### Bug Fixes
+
+* **deps:** update rust crate marine-rs-sdk-test to 0.10.0 ([#106](https://github.com/fluencelabs/trust-graph/issues/106)) ([725d3f8](https://github.com/fluencelabs/trust-graph/commit/725d3f8f48b3bf1ed8605e9ba2da5c966a145f0d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * trust-graph bumped from 0.4.6 to 0.4.7
+    * fluence-keypair bumped from 0.10.2 to 0.10.3
+
 ## [0.4.6](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.4.5...trust-graph-wasm-v0.4.6) (2023-06-30)
 
 

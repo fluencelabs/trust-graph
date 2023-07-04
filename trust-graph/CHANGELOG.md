@@ -4,6 +4,20 @@
   * dependencies
     * fluence-keypair bumped from 0.10.0 to 0.10.1
 
+## [0.4.7](https://github.com/fluencelabs/trust-graph/compare/trust-graph-v0.4.6...trust-graph-v0.4.7) (2023-07-04)
+
+
+### Miscellaneous Chores
+
+* **trust-graph:** Synchronize trust-graph, wasm and api versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * fluence-keypair bumped from 0.10.2 to 0.10.3
+
 ## [0.4.6](https://github.com/fluencelabs/trust-graph/compare/trust-graph-v0.4.5...trust-graph-v0.4.6) (2023-06-30)
 
 

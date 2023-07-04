@@ -1,6 +1,6 @@
 [package]
 name = "trust-graph-wasm"
-version = "0.4.6"
+version = "0.4.7"
 authors = ["Fluence Labs"]
 edition = "2021"
 description = "trust graph wasm"
@@ -12,8 +12,8 @@ name = "trust-graph"
 path = "src/main.rs"
 
 [dependencies]
-trust-graph = { version = "0.4.6", path = "../trust-graph" }
-fluence-keypair = { version = "0.10.2", path = "../keypair" }
+trust-graph = { version = "0.4.7", path = "../trust-graph" }
+fluence-keypair = { version = "0.10.3", path = "../keypair" }
 marine-rs-sdk = { version = "0.7.1", features = ["logger"] }
 marine-sqlite-connector = "0.8.0"
 
@@ -29,8 +29,8 @@ bincode = "1.3.1"
 thiserror = "1.0.23"
 
 [dev-dependencies]
-marine-rs-sdk-test = "0.10.0"
+marine-rs-sdk-test = "0.9.1"
 rusqlite = "0.28.0"
 
 [build-dependencies]
-marine-rs-sdk-test = "0.10.0"
+marine-rs-sdk-test = "0.9.1"
