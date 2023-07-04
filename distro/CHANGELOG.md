@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.7](https://github.com/fluencelabs/trust-graph/compare/distro-v0.4.6...distro-v0.4.7) (2023-07-04)
+
+
+### Miscellaneous Chores
+
+* **distro:** Synchronize trust-graph, wasm and api versions
+
 ## [0.4.6](https://github.com/fluencelabs/trust-graph/compare/distro-v0.4.5...distro-v0.4.6) (2023-06-30)
 
 

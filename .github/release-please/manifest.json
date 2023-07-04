@@ -1,7 +1,7 @@
 {
-  "trust-graph": "0.4.6",
-  "aqua": "0.4.6",
-  "service": "0.4.6",
-  "keypair": "0.10.2",
-  "distro": "0.4.6"
+  "trust-graph": "0.4.7",
+  "aqua": "0.4.7",
+  "service": "0.4.7",
+  "keypair": "0.10.3",
+  "distro": "0.4.7"
 }
