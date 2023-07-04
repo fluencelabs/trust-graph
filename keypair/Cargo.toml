@@ -13,7 +13,7 @@ bs58 = "0.5.0"
 ed25519-dalek = { version = "1.0.1", features = ["serde", "std"] }
 rand = "0.8.5"
 thiserror = "1.0.23"
-lazy_static = "1.2"
+lazy_static = "1.4"
 libsecp256k1 = "0.7.1"
 asn1_der = "0.6.1"
 sha2 = "0.10.6"
