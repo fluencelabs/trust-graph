@@ -283,7 +283,9 @@ impl From<KeyPair> for libp2p_identity::Keypair {
         fn convert_keypair(key: KeyPair) -> eyre::Result<libp2p_identity::Keypair> {
             match key {
                 KeyPair::Ed25519(kp) => {
-                    let kp = Keypair::ed25519_from_bytes(kp.encode().to_vec().as_mut_slice())?;
+                    // for some reason, libp2p takes SecretKey's 32 bytes here instead of Keypair's 64 bytes
+                    let secret_bytes = kp.secret().0.to_bytes();
+                    let kp = libp2p_identity::Keypair::ed25519_from_bytes(secret_bytes)?;
                     Ok(kp)
                 }
                 #[cfg(not(target_arch = "wasm32"))]
