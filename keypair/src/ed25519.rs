@@ -201,6 +201,7 @@ pub struct Signature(pub Vec<u8>);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::KeyPair;
     use quickcheck::*;
 
     fn eq_keypairs(kp1: &Keypair, kp2: &Keypair) -> bool {
@@ -214,6 +215,17 @@ mod tests {
             let mut kp1_enc = kp1.encode();
             let kp2 = Keypair::decode(&mut kp1_enc).unwrap();
             eq_keypairs(&kp1, &kp2) && kp1_enc.iter().all(|b| *b == 0)
+        }
+        QuickCheck::new().tests(10).quickcheck(prop as fn() -> _);
+    }
+
+    #[test]
+    fn ed25519_keypair_convert() {
+        fn prop() -> bool {
+            let kp1 = KeyPair::generate_ed25519();
+            let libp2p_kp: libp2p_identity::Keypair = kp1.clone().into();
+            let kp2: KeyPair = libp2p_kp.into();
+            kp1.public() == kp2.public() && kp1.secret().unwrap() == kp2.secret().unwrap()
         }
         QuickCheck::new().tests(10).quickcheck(prop as fn() -> _);
     }
