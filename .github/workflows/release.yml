@@ -105,45 +105,6 @@ jobs:
         run: npm publish --access public
         working-directory: aqua
 
-      - name: Install ipfs
-        uses: nahsi/setup-ipfs@v1
-
-      - name: Create builtin distribution package
-        if: needs.release-please.outputs.trust-graph-release-created
-        run: ./builtin-package/package.sh
-
-      - name: Calculate SHA256
-        if: needs.release-please.outputs.trust-graph-release-created
-        id: sha
-        run: |
-          # Calculate sha256
-          du -hs trust-graph.tar.gz
-          sha256sum trust-graph.tar.gz
-          sha=($(sha256sum trust-graph.tar.gz))
-          echo "sha256=${sha}" >> $GITHUB_OUTPUT
-
-      - name: Upload trust-graph package
-        if: needs.release-please.outputs.trust-graph-release-created
-        uses: softprops/action-gh-release@v1
-        with:
-          files: trust-graph.tar.gz
-          tag_name: ${{ needs.release-please.outputs.trust-graph-tag-name }}
-
-      - name: Update version in node-distro repo
-        if: needs.release-please.outputs.trust-graph-release-created
-        uses: benc-uk/workflow-dispatch@v1
-        with:
-          workflow: update_service
-          repo: fluencelabs/node-distro
-          ref: "main"
-          token: ${{ secrets.PERSONAL_TOKEN }}
-          inputs: '{
-            "name": "trust-graph",
-            "version": "${{ needs.release-please.outputs.trust-graph-version }}",
-            "url": "https://github.com/fluencelabs/trust-graph/releases/download/${{ needs.release-please.outputs.trust-graph-tag-name }}/trust-graph.tar.gz",
-            "sha256": "${{ steps.sha.outputs.sha256 }}"
-          }'
-
   slack:
     if: always()
     name: "Notify"

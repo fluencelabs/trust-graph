@@ -57,15 +57,3 @@ jobs:
 
       - run: npm run build
         working-directory: aqua
-
-      - name: Install ipfs
-        uses: nahsi/setup-ipfs@v1
-
-      - name: Create distribution package
-        run: ./builtin-package/package.sh
-
-      - name: Upload trust-graph
-        uses: actions/upload-artifact@v3
-        with:
-          name: trust-graph
-          path: trust-graph.tar.gz
