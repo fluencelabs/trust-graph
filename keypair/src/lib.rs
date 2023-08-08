@@ -30,9 +30,6 @@ mod ed25519;
 pub mod error;
 pub mod key_pair;
 pub mod public_key;
-#[cfg(not(target_arch = "wasm32"))]
-mod rsa;
-mod secp256k1;
 pub mod signature;
 
 pub use crate::public_key::PublicKey;

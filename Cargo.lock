@@ -106,12 +106,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "asn1_der"
-version = "0.7.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "155a5a185e42c6b77ac7b88a15143d930a9e9727a5b7b77eed417404ab15c247"
-
-[[package]]
 name = "asn1_der_derive"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -929,7 +923,7 @@ dependencies = [
 name = "fluence-keypair"
 version = "0.10.3"
 dependencies = [
- "asn1_der 0.6.3",
+ "asn1_der",
  "bs58 0.5.0",
  "ed25519-dalek",
  "eyre",
@@ -1376,15 +1370,12 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2874d9c6575f1d7a151022af5c42bb0ffdcdfbafe0a6fd039de870b384835a2"
 dependencies = [
- "asn1_der 0.7.6",
  "bs58 0.5.0",
  "ed25519-dalek",
- "libsecp256k1",
  "log",
  "multihash 0.19.0",
  "quick-protobuf",
  "rand 0.8.5",
- "ring",
  "sha2 0.10.7",
  "thiserror",
  "zeroize",

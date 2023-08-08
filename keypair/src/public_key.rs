@@ -15,9 +15,6 @@
  */
 use crate::ed25519;
 use crate::error::{DecodingError, VerificationError};
-#[cfg(not(target_arch = "wasm32"))]
-use crate::rsa;
-use crate::secp256k1;
 use crate::signature::Signature;
 
 use crate::key_pair::KeyFormat;
@@ -30,11 +27,6 @@ use std::convert::TryFrom;
 pub enum PublicKey {
     /// A public Ed25519 key.
     Ed25519(ed25519::PublicKey),
-    #[cfg(not(target_arch = "wasm32"))]
-    /// A public RSA key.
-    Rsa(rsa::PublicKey),
-    /// A public Secp256k1 key.
-    Secp256k1(secp256k1::PublicKey),
 }
 
 impl PublicKey {
@@ -47,9 +39,6 @@ impl PublicKey {
         use PublicKey::*;
         match self {
             Ed25519(pk) => pk.verify(msg, sig.to_vec()),
-            #[cfg(not(target_arch = "wasm32"))]
-            Rsa(pk) => pk.verify(msg, sig.to_vec()),
-            Secp256k1(pk) => pk.verify(msg, sig.to_vec()),
         }
     }
 
@@ -59,9 +48,6 @@ impl PublicKey {
 
         match self {
             Ed25519(pk) => result.extend(pk.encode().to_vec()),
-            #[cfg(not(target_arch = "wasm32"))]
-            Rsa(pk) => result.extend(pk.to_pkcs1()),
-            Secp256k1(pk) => result.extend(pk.encode().to_vec()),
         };
 
         result
@@ -70,13 +56,6 @@ impl PublicKey {
     pub fn decode(bytes: &[u8]) -> Result<PublicKey, DecodingError> {
         match KeyFormat::try_from(bytes[0])? {
             KeyFormat::Ed25519 => Ok(PublicKey::Ed25519(ed25519::PublicKey::decode(&bytes[1..])?)),
-            #[cfg(not(target_arch = "wasm32"))]
-            KeyFormat::Rsa => Ok(PublicKey::Rsa(rsa::PublicKey::from_pkcs1(
-                bytes[1..].to_owned(),
-            )?)),
-            KeyFormat::Secp256k1 => Ok(PublicKey::Secp256k1(secp256k1::PublicKey::decode(
-                &bytes[1..],
-            )?)),
         }
     }
 
@@ -84,9 +63,6 @@ impl PublicKey {
         use PublicKey::*;
         match self {
             Ed25519(_) => KeyFormat::Ed25519.into(),
-            #[cfg(not(target_arch = "wasm32"))]
-            Rsa(_) => KeyFormat::Rsa.into(),
-            Secp256k1(_) => KeyFormat::Secp256k1.into(),
         }
     }
 
@@ -102,9 +78,6 @@ impl PublicKey {
 
         match self {
             Ed25519(pk) => pk.encode().to_vec(),
-            #[cfg(not(target_arch = "wasm32"))]
-            Rsa(pk) => pk.to_pkcs1().to_vec(),
-            Secp256k1(pk) => pk.encode().to_vec(),
         }
     }
 
@@ -117,9 +90,6 @@ impl PublicKey {
 
         match self {
             Ed25519(_) => KeyFormat::Ed25519,
-            #[cfg(not(target_arch = "wasm32"))]
-            Rsa(_) => KeyFormat::Rsa,
-            Secp256k1(_) => KeyFormat::Secp256k1,
         }
     }
 }
@@ -132,17 +102,6 @@ impl From<libp2p_identity::PublicKey> for PublicKey {
                     let pk = key.try_into_ed25519()?;
                     let raw_pk = ed25519::PublicKey::decode(&pk.to_bytes())?;
                     Ok(PublicKey::Ed25519(raw_pk))
-                }
-                #[cfg(not(target_arch = "wasm32"))]
-                KeyType::RSA => {
-                    let pk = key.try_into_rsa()?;
-                    let raw_pk = rsa::PublicKey::from_pkcs1(pk.encode_pkcs1())?;
-                    Ok(PublicKey::Rsa(raw_pk))
-                }
-                KeyType::Secp256k1 => {
-                    let pk = key.try_into_secp256k1()?;
-                    let raw_pk = secp256k1::PublicKey::decode(&pk.to_bytes())?;
-                    Ok(PublicKey::Secp256k1(raw_pk))
                 }
                 _ => unreachable!(),
             }
@@ -159,19 +118,6 @@ impl From<PublicKey> for libp2p_identity::PublicKey {
                 PublicKey::Ed25519(key) => {
                     let raw_pk =
                         libp2p_identity::ed25519::PublicKey::try_from_bytes(&key.encode())?;
-                    let pk = libp2p_identity::PublicKey::from(raw_pk);
-                    Ok(pk)
-                }
-                #[cfg(not(target_arch = "wasm32"))]
-                PublicKey::Rsa(key) => {
-                    let raw_pk =
-                        libp2p_identity::rsa::PublicKey::try_decode_x509(&key.encode_x509())?;
-                    let pk = libp2p_identity::PublicKey::from(raw_pk);
-                    Ok(pk)
-                }
-                PublicKey::Secp256k1(key) => {
-                    let raw_pk =
-                        libp2p_identity::secp256k1::PublicKey::try_from_bytes(&key.encode())?;
                     let pk = libp2p_identity::PublicKey::from(raw_pk);
                     Ok(pk)
                 }
@@ -217,16 +163,8 @@ mod tests {
     }
 
     #[test]
-    fn public_key_encode_decode_secp256k1() {
-        let kp = KeyPair::generate_secp256k1();
-        let pk = kp.public();
-        let encoded_pk = pk.encode();
-        assert_eq!(pk, PublicKey::decode(&encoded_pk).unwrap());
-    }
-
-    #[test]
     fn public_key_peer_id_conversions() {
-        let kp = KeyPair::generate_secp256k1();
+        let kp = KeyPair::generate_ed25519();
         let fluence_pk = kp.public();
         let libp2p_pk: libp2p_identity::PublicKey = fluence_pk.clone().into();
         let peer_id = PeerId::from_public_key(&libp2p_pk);

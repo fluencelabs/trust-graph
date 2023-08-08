@@ -16,18 +16,12 @@
 use crate::ed25519;
 use crate::error::DecodingError;
 use crate::key_pair::KeyFormat;
-#[cfg(not(target_arch = "wasm32"))]
-use crate::rsa;
-use crate::secp256k1;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub enum Signature {
     Ed25519(ed25519::Signature),
-    #[cfg(not(target_arch = "wasm32"))]
-    Rsa(rsa::Signature),
-    Secp256k1(secp256k1::Signature),
 }
 
 pub struct RawSignature {
@@ -40,9 +34,6 @@ impl Signature {
         use Signature::*;
         match self {
             Ed25519(_) => KeyFormat::Ed25519.into(),
-            #[cfg(not(target_arch = "wasm32"))]
-            Rsa(_) => KeyFormat::Rsa.into(),
-            Secp256k1(_) => KeyFormat::Secp256k1.into(),
         }
     }
 
@@ -54,9 +45,6 @@ impl Signature {
 
         match self {
             Ed25519(sig) => result.extend(sig.0.clone()),
-            #[cfg(not(target_arch = "wasm32"))]
-            Rsa(sig) => result.extend(sig.0.clone()),
-            Secp256k1(sig) => result.extend(sig.0.clone()),
         }
 
         result
@@ -66,11 +54,6 @@ impl Signature {
     pub fn decode(bytes: Vec<u8>) -> Result<Self, DecodingError> {
         match KeyFormat::try_from(bytes[0])? {
             KeyFormat::Ed25519 => Ok(Signature::Ed25519(ed25519::Signature(bytes[1..].to_vec()))),
-            #[cfg(not(target_arch = "wasm32"))]
-            KeyFormat::Rsa => Ok(Signature::Rsa(rsa::Signature(bytes[1..].to_vec()))),
-            KeyFormat::Secp256k1 => Ok(Signature::Secp256k1(secp256k1::Signature(
-                bytes[1..].to_vec(),
-            ))),
         }
     }
 
@@ -79,9 +62,6 @@ impl Signature {
 
         match self {
             Ed25519(sig) => &sig.0,
-            #[cfg(not(target_arch = "wasm32"))]
-            Rsa(sig) => &sig.0,
-            Secp256k1(sig) => &sig.0,
         }
     }
 
@@ -90,9 +70,6 @@ impl Signature {
 
         match self {
             Ed25519(_) => KeyFormat::Ed25519,
-            #[cfg(not(target_arch = "wasm32"))]
-            Rsa(_) => KeyFormat::Rsa,
-            Secp256k1(_) => KeyFormat::Secp256k1,
         }
     }
 
@@ -106,9 +83,6 @@ impl Signature {
     pub fn from_bytes(key_format: KeyFormat, bytes: Vec<u8>) -> Self {
         match key_format {
             KeyFormat::Ed25519 => Signature::Ed25519(ed25519::Signature(bytes)),
-            #[cfg(not(target_arch = "wasm32"))]
-            KeyFormat::Rsa => Signature::Rsa(rsa::Signature(bytes)),
-            KeyFormat::Secp256k1 => Signature::Secp256k1(secp256k1::Signature(bytes)),
         }
     }
 }
@@ -121,19 +95,10 @@ mod tests {
     fn signature_encode_decode() {
         let bytes: Vec<u8> = (0..10).collect();
         let ed25519_sig = Signature::Ed25519(crate::ed25519::Signature(bytes.clone()));
-        let secp256k1_sig = Signature::Secp256k1(crate::secp256k1::Signature(bytes.clone()));
-        #[cfg(not(target_arch = "wasm32"))]
-        let rsa_sig = Signature::Rsa(crate::rsa::Signature(bytes.clone()));
 
         assert_eq!(
             Signature::decode(ed25519_sig.encode()).unwrap(),
             ed25519_sig
         );
-        assert_eq!(
-            Signature::decode(secp256k1_sig.encode()).unwrap(),
-            secp256k1_sig
-        );
-        #[cfg(not(target_arch = "wasm32"))]
-        assert_eq!(Signature::decode(rsa_sig.encode()).unwrap(), rsa_sig);
     }
 }
