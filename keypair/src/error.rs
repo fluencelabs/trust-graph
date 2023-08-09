@@ -37,12 +37,6 @@ pub enum DecodingError {
         #[source]
         ed25519_dalek::ed25519::Error,
     ),
-    #[error("Failed to decode with RSA")]
-    Rsa,
-    #[error("Failed to decode with secp256k1")]
-    Secp256k1,
-    #[error("RSA keypair decoding is not supported yet")]
-    KeypairDecodingIsNotSupported,
     #[error("Invalid type prefix")]
     InvalidTypeByte,
     #[error("Cannot decode public key from base58 :{0}")]
@@ -62,14 +56,6 @@ pub enum SigningError {
         #[source]
         ed25519_dalek::ed25519::Error,
     ),
-    #[error("Failed to sign with RSA")]
-    Rsa,
-    #[error("Failed to sign with secp256k1: {0}")]
-    Secp256k1(
-        #[from]
-        #[source]
-        libsecp256k1::Error,
-    ),
 }
 
 /// An error during verification of a message.
@@ -77,11 +63,4 @@ pub enum SigningError {
 pub enum VerificationError {
     #[error("Failed to verify signature {1} with {2} ed25519 public key: {0}")]
     Ed25519(#[source] ed25519_dalek::ed25519::Error, String, String),
-
-    #[cfg(not(target_arch = "wasm32"))]
-    #[error("Failed to verify signature {1} with {2} RSA public key: {0}")]
-    Rsa(#[source] ring::error::Unspecified, String, String),
-
-    #[error("Failed to verify signature {1} with {2} secp256k1 public key: {0}")]
-    Secp256k1(#[source] libsecp256k1::Error, String, String),
 }
