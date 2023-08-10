@@ -22,6 +22,7 @@
 use crate::error::{DecodingError, SigningError, VerificationError};
 use core::fmt;
 use ed25519_dalek::{self as ed25519, Signer as _, Verifier as _};
+#[cfg(feature = "rand")]
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
@@ -32,6 +33,7 @@ pub struct Keypair(ed25519::Keypair);
 
 impl Keypair {
     /// Generate a new Ed25519 keypair.
+    #[cfg(feature = "rand")]
     pub fn generate() -> Self {
         Keypair::from(SecretKey::generate())
     }
@@ -174,6 +176,7 @@ impl fmt::Debug for SecretKey {
 
 impl SecretKey {
     /// Generate a new Ed25519 secret key.
+    #[cfg(feature = "rand")]
     pub fn generate() -> Self {
         let mut bytes = [0u8; 32];
         rand::thread_rng().fill_bytes(&mut bytes);
@@ -198,7 +201,7 @@ impl SecretKey {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Signature(pub Vec<u8>);
 
-#[cfg(test)]
+#[cfg(all(test, feature = "rand"))]
 mod tests {
     use super::*;
     use crate::KeyPair;

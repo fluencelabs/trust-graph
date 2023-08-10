@@ -726,6 +726,7 @@ dependencies = [
  "curve25519-dalek",
  "ed25519",
  "rand 0.7.3",
+ "rand_core 0.5.1",
  "serde",
  "serde_bytes",
  "sha2 0.9.9",

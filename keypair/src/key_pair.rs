@@ -95,6 +95,7 @@ pub enum KeyPair {
 }
 
 impl KeyPair {
+    #[cfg(feature = "rand")]
     pub fn generate(format: KeyFormat) -> KeyPair {
         match format {
             KeyFormat::Ed25519 => KeyPair::generate_ed25519(),
@@ -102,6 +103,7 @@ impl KeyPair {
     }
 
     /// Generate a new Ed25519 keypair.
+    #[cfg(feature = "rand")]
     pub fn generate_ed25519() -> KeyPair {
         KeyPair::Ed25519(ed25519::Keypair::generate())
     }

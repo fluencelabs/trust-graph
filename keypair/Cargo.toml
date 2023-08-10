@@ -10,8 +10,7 @@ repository = "https://github.com/fluencelabs/trust-graph"
 [dependencies]
 serde = { version = "1.0.118", features = ["derive"] }
 bs58 = "0.5.0"
-ed25519-dalek = { version = "1.0.1", features = ["serde", "std"] }
-rand = "0.8.5"
+ed25519-dalek = { version = "1.0.1", features = ["serde", "std"], default-features = false }
 thiserror = "1.0.23"
 lazy_static = "1.4"
 sha2 = "0.10.6"
@@ -20,9 +19,15 @@ serde_bytes = "0.11"
 eyre = "0.6.5"
 libp2p-identity = { workspace = true, default-features = false, features = ["peerid", "ed25519"] }
 multihash = { version = "0.18.0", features = ["identity"] }
+# rand fails to compile for restricted environments like NEAR contracts
+rand = { version = "0.8.5", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 ring = { version = "0.16.9", features = ["alloc", "std"], default-features = false }
+
+[features]
+default = ["rand"]
+rand = ["dep:rand", "ed25519-dalek/rand_core"]
 
 [dev-dependencies]
 quickcheck = "1.0.3"

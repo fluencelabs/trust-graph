@@ -149,7 +149,7 @@ fn as_public_key(peer_id: &PeerId) -> Option<libp2p_identity::PublicKey> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "rand"))]
 mod tests {
     use super::*;
     use crate::KeyPair;
