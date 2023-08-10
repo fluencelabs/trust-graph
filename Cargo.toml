@@ -8,3 +8,6 @@ members = [
 
 [workspace.dependencies]
 libp2p-identity = { version = "0.2.1", default-features = false }
+
+[patch.crates-io]
+libp2p-identity = { git = "https://github.com/fluencelabs/rust-libp2p.git", branch = "rand-feature" }

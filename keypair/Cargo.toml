@@ -27,7 +27,7 @@ ring = { version = "0.16.9", features = ["alloc", "std"], default-features = fal
 
 [features]
 default = ["rand"]
-rand = ["dep:rand", "ed25519-dalek/rand_core"]
+rand = ["dep:rand", "ed25519-dalek/rand_core", "libp2p-identity/rand"]
 
 [dev-dependencies]
 quickcheck = "1.0.3"
