@@ -187,7 +187,7 @@ impl From<libp2p_identity::Keypair> for KeyPair {
                     let raw_kp = ed25519::Keypair::decode(&mut kp.to_bytes())?;
                     Ok(KeyPair::Ed25519(raw_kp))
                 }
-                _ => unreachable!(),
+                _ => unimplemented!("key type not supported: {:?}", key.key_type()),
             }
         }
 

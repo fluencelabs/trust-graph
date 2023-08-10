@@ -103,7 +103,7 @@ impl From<libp2p_identity::PublicKey> for PublicKey {
                     let raw_pk = ed25519::PublicKey::decode(&pk.to_bytes())?;
                     Ok(PublicKey::Ed25519(raw_pk))
                 }
-                _ => unreachable!(),
+                _ => unimplemented!("key not supported: {:?}", key.key_type()),
             }
         }
 
