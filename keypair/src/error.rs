@@ -31,12 +31,8 @@ pub enum Error {
 /// An error during decoding of key material.
 #[derive(ThisError, Debug)]
 pub enum DecodingError {
-    #[error("Failed to decode with ed25519: {0}")]
-    Ed25519(
-        #[from]
-        #[source]
-        ed25519_dalek::ed25519::Error,
-    ),
+    #[error("Failed to decode with ed25519")]
+    Ed25519(),
     #[error("Invalid type prefix")]
     InvalidTypeByte,
     #[error("Cannot decode public key from base58 :{0}")]
@@ -50,17 +46,13 @@ pub enum DecodingError {
 /// An error during signing of a message.
 #[derive(ThisError, Debug)]
 pub enum SigningError {
-    #[error("Failed to sign with ed25519: {0}")]
-    Ed25519(
-        #[from]
-        #[source]
-        ed25519_dalek::ed25519::Error,
-    ),
+    #[error("Failed to sign with ed25519")]
+    Ed25519(),
 }
 
 /// An error during verification of a message.
 #[derive(ThisError, Debug)]
 pub enum VerificationError {
-    #[error("Failed to verify signature {1} with {2} ed25519 public key: {0}")]
-    Ed25519(#[source] ed25519_dalek::ed25519::Error, String, String),
+    #[error("Failed to verify signature {0} with {1} ed25519 public key")]
+    Ed25519(String, String),
 }
