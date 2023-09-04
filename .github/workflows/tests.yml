@@ -21,6 +21,8 @@ jobs:
 
       - name: Setup marine
         uses: fluencelabs/setup-marine@v1
+        with:
+          artifact-name: marine
 
       - name: Build
         run: ./build.sh
