@@ -195,7 +195,7 @@ impl KeyPair {
     pub fn secret(&self) -> eyre::Result<Vec<u8>> {
         use KeyPair::*;
         match self {
-            Ed25519(pair) => Ok(pair.secret().0.to_bytes().to_vec()),
+            Ed25519(pair) => Ok(pair.secret().0.to_vec()),
             #[cfg(not(target_arch = "wasm32"))]
             Rsa(_) => Err(eyre::eyre!("secret key is not available for RSA")),
             Secp256k1(pair) => Ok(pair.secret().to_bytes().to_vec()),
@@ -284,7 +284,7 @@ impl From<KeyPair> for libp2p_identity::Keypair {
             match key {
                 KeyPair::Ed25519(kp) => {
                     // for some reason, libp2p takes SecretKey's 32 bytes here instead of Keypair's 64 bytes
-                    let secret_bytes = kp.secret().0.to_bytes();
+                    let secret_bytes = kp.secret().0;
                     let kp = libp2p_identity::Keypair::ed25519_from_bytes(secret_bytes)?;
                     Ok(kp)
                 }
