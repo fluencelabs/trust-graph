@@ -19,7 +19,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 //! Ed25519 keys.
-use crate::error::{DecodingError::InvalidLength, DecodingError, SigningError, VerificationError};
+use crate::error::{DecodingError, DecodingError::InvalidLength, SigningError, VerificationError};
 use core::fmt;
 use ed25519_dalek::{self as ed25519, Signer as _, Verifier as _};
 use serde::{Deserialize, Serialize};
