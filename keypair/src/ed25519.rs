@@ -19,7 +19,7 @@
 // DEALINGS IN THE SOFTWARE.
 
 //! Ed25519 keys.
-use crate::error::{DecodingError, SigningError, VerificationError};
+use crate::error::{DecodingError::InvalidLength, DecodingError, SigningError, VerificationError};
 use core::fmt;
 use ed25519_dalek::{self as ed25519, Signer as _, Verifier as _};
 use serde::{Deserialize, Serialize};
@@ -46,8 +46,7 @@ impl Keypair {
     /// Decode a keypair from the format produced by `encode`,
     /// zeroing the input on success.
     pub fn decode(kp: &mut [u8]) -> Result<Self, DecodingError> {
-        let bytes = <[u8; 64]>::try_from(&*kp)
-            .map_err(DecodingError::InvalidLength)?;
+        let bytes = <[u8; 64]>::try_from(&*kp).map_err(InvalidLength)?;
 
         ed25519::SigningKey::from_keypair_bytes(&bytes)
             .map(|k| {
@@ -130,8 +129,7 @@ impl PublicKey {
 
     /// Decode a public key from a byte array as produced by `encode`.
     pub fn decode(bytes: &[u8]) -> Result<Self, DecodingError> {
-        let bytes = <[u8; 32]>::try_from(bytes)
-            .map_err(DecodingError::InvalidLength)?;
+        let bytes = <[u8; 32]>::try_from(bytes).map_err(InvalidLength)?;
         ed25519::VerifyingKey::from_bytes(&bytes)
             .map_err(DecodingError::Ed25519)
             .map(PublicKey)
@@ -167,8 +165,7 @@ impl SecretKey {
     /// returned.
     pub fn from_bytes(mut sk_bytes: impl AsMut<[u8]>) -> Result<Self, DecodingError> {
         let sk_bytes = sk_bytes.as_mut();
-        let secret = <[u8; 32]>::try_from(&*sk_bytes)
-            .map_err(DecodingError::InvalidLength)?;
+        let secret = <[u8; 32]>::try_from(&*sk_bytes).map_err(InvalidLength)?;
         sk_bytes.zeroize();
         Ok(SecretKey(secret))
     }
