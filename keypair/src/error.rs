@@ -31,6 +31,8 @@ pub enum Error {
 /// An error during decoding of key material.
 #[derive(ThisError, Debug)]
 pub enum DecodingError {
+    #[error("Failed to decode, invalid length: {0}")]
+    InvalidLength(#[from] std::array::TryFromSliceError),
     #[error("Failed to decode with ed25519: {0}")]
     Ed25519(
         #[from]

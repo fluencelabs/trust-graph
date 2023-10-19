@@ -21,6 +21,8 @@ jobs:
 
       - name: Setup marine
         uses: fluencelabs/setup-marine@v1
+        with:
+          artifact-name: marine
 
       - name: Build
         run: ./build.sh
@@ -31,11 +33,8 @@ jobs:
           command: clippy
           args: -Z unstable-options --all
 
-      - name: Install cargo-nextest
-        uses: baptiste0928/cargo-install@v1.3.0
-        with:
-          crate: cargo-nextest
-          version: 0.9.22
+      - name: Setup nextest
+        uses: taiki-e/install-action@nextest
 
       - name: Run cargo nextest
         env:
