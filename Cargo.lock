@@ -1005,7 +1005,7 @@ dependencies = [
 
 [[package]]
 name = "fluence-keypair"
-version = "0.10.4"
+version = "0.10.3"
 dependencies = [
  "asn1_der 0.6.3",
  "bs58 0.5.0",
@@ -2948,7 +2948,7 @@ dependencies = [
 
 [[package]]
 name = "trust-graph"
-version = "0.10.4"
+version = "0.4.7"
 dependencies = [
  "bs58 0.4.0",
  "derivative",
@@ -2965,7 +2965,7 @@ dependencies = [
 
 [[package]]
 name = "trust-graph-distro"
-version = "0.10.4"
+version = "0.4.7"
 dependencies = [
  "built",
  "lazy_static",

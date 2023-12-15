@@ -12,8 +12,8 @@ name = "trust-graph"
 path = "src/main.rs"
 
 [dependencies]
-trust-graph = { version = "0.10.4-alpha.0", path = "../trust-graph" }
-fluence-keypair = { version = "0.10.4-alpha.0", path = "../keypair" }
+trust-graph = { version = "0.4.7", path = "../trust-graph" }
+fluence-keypair = { version = "0.10.3", path = "../keypair" }
 marine-rs-sdk = { version = "0.10.2", features = ["logger"] }
 marine-sqlite-connector = "0.9.0"
 
