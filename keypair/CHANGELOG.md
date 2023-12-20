@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.4](https://github.com/fluencelabs/trust-graph/compare/keypair-v0.10.3...keypair-v0.10.4) (2023-12-20)
+
+
+### Features
+
+* **fluence-keypair:** bump ed25519-dalek to 0.2.0 ([#127](https://github.com/fluencelabs/trust-graph/issues/127)) ([ed5bd2c](https://github.com/fluencelabs/trust-graph/commit/ed5bd2c0ec50bef5ac7a12deacb73da491666912))
+* update marine sdk's, configs and sqlite connector ([#129](https://github.com/fluencelabs/trust-graph/issues/129)) ([0b66f4e](https://github.com/fluencelabs/trust-graph/commit/0b66f4e0536633879de46f69ac8391c72ece7e77))
+
 ## [0.10.3](https://github.com/fluencelabs/trust-graph/compare/keypair-v0.10.2...keypair-v0.10.3) (2023-07-04)
 
 
