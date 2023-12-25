@@ -1,6 +1,6 @@
 [package]
 name = "fluence-keypair"
-version = "0.10.3"
+version = "0.10.4"
 authors = ["Fluence Labs"]
 edition = "2021"
 description = "unified keypair API based on libp2p-identity"

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.8](https://github.com/fluencelabs/trust-graph/compare/distro-v0.4.7...distro-v0.4.8) (2023-12-20)
+
+
+### Features
+
+* update marine sdk's, configs and sqlite connector ([#129](https://github.com/fluencelabs/trust-graph/issues/129)) ([0b66f4e](https://github.com/fluencelabs/trust-graph/commit/0b66f4e0536633879de46f69ac8391c72ece7e77))
+
 ## [0.4.7](https://github.com/fluencelabs/trust-graph/compare/distro-v0.4.6...distro-v0.4.7) (2023-07-04)
 
 

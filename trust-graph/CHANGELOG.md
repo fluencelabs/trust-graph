@@ -4,6 +4,20 @@
   * dependencies
     * fluence-keypair bumped from 0.10.0 to 0.10.1
 
+## [0.4.8](https://github.com/fluencelabs/trust-graph/compare/trust-graph-v0.4.7...trust-graph-v0.4.8) (2023-12-20)
+
+
+### Features
+
+* update marine sdk's, configs and sqlite connector ([#129](https://github.com/fluencelabs/trust-graph/issues/129)) ([0b66f4e](https://github.com/fluencelabs/trust-graph/commit/0b66f4e0536633879de46f69ac8391c72ece7e77))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * fluence-keypair bumped from 0.10.3 to 0.10.4
+
 ## [0.4.7](https://github.com/fluencelabs/trust-graph/compare/trust-graph-v0.4.6...trust-graph-v0.4.7) (2023-07-04)
 
 
