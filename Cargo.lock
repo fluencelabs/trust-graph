@@ -3036,7 +3036,7 @@ dependencies = [
 
 [[package]]
 name = "trust-graph-distro"
-version = "0.4.8"
+version = "0.4.9"
 dependencies = [
  "built",
  "lazy_static",
