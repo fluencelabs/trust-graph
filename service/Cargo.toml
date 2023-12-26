@@ -30,7 +30,7 @@ thiserror = "1.0.23"
 
 [dev-dependencies]
 marine-rs-sdk-test = "0.12.1"
-rusqlite = "0.28.0"
+rusqlite = "0.30.0"
 
 [build-dependencies]
 marine-rs-sdk-test = "0.12.1"
