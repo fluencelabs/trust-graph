@@ -15,7 +15,7 @@
   "dependencies": {
     "@fluencelabs/aqua-lib": "^0.6.0",
     "@fluencelabs/fluence": "^0.23.0",
-    "@fluencelabs/fluence-network-environment": "^1.0.10",
+    "@fluencelabs/fluence-network-environment": "^1.1.2",
     "@fluencelabs/trust-graph": "3.1.2",
     "bs58": "^5.0.0"
   },
