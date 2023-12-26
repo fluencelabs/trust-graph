@@ -1,13 +1,13 @@
 [package]
 name = "trust-graph-distro"
-version = "0.4.8"
+version = "0.4.9"
 edition = "2021"
 build = "build.rs"
 license = "Apache-2.0"
 include = [ "/src", "build.rs", "Cargo.toml", "trust-graph-service"]
 description = "Distribution package for the trust-graph service"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# See more keysand their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 maplit = "1.0.2"
 serde = "1.0.160"
