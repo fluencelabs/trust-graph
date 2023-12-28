@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.9](https://github.com/fluencelabs/trust-graph/compare/distro-v0.4.8...distro-v0.4.9) (2023-12-28)
+
+
+### Bug Fixes
+
+* **deps:** update sqlite wasm ([#135](https://github.com/fluencelabs/trust-graph/issues/135)) ([c59451d](https://github.com/fluencelabs/trust-graph/commit/c59451de04ba79152fa8d600a7b456ab24766dd0))
+
 ## [0.4.8](https://github.com/fluencelabs/trust-graph/compare/distro-v0.4.7...distro-v0.4.8) (2023-12-20)
 
 

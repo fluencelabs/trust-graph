@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * trust-graph bumped from 0.4.1 to 0.4.2
     * fluence-keypair bumped from 0.10.0 to 0.10.1
 
+## [0.4.9](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.4.8...trust-graph-wasm-v0.4.9) (2023-12-28)
+
+
+### Bug Fixes
+
+* **deps:** update sqlite wasm ([#135](https://github.com/fluencelabs/trust-graph/issues/135)) ([c59451d](https://github.com/fluencelabs/trust-graph/commit/c59451de04ba79152fa8d600a7b456ab24766dd0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * trust-graph bumped from 0.4.8 to 0.4.9
+
 ## [0.4.8](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.4.7...trust-graph-wasm-v0.4.8) (2023-12-20)
 
 
