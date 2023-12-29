@@ -30,7 +30,4 @@
     "url": "https://github.com/fluencelabs/trust-graph/issues"
   },
   "homepage": "https://github.com/fluencelabs/trust-graph#readme",
-  "devDependencies": {
-    "@fluencelabs/aqua": "^0.10.3"
-  }
 }
