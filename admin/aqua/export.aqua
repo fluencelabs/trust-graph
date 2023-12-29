@@ -1,19 +1,25 @@
-import "@fluencelabs/trust-graph/trust-graph.aqua"
+aqua Admin
+
+export timestamp_sec, get_trust_bytes, issue_trust
 export get_trust_bytes, issue_trust
 
+import "@fluencelabs/trust-graph/trust-graph.aqua"
 import "@fluencelabs/aqua-lib/builtin.aqua"
 
 func timestamp_sec(node: string) -> u64:
     on node:
         result <- Peer.timestamp_sec()
+
     <- result
 
 func get_trust_bytes(node: string, issued_for_peer_id: string, expires_at_sec: u64, issued_at_sec: u64) -> GetTrustBytesResult:
     on node:
         result <- TrustGraph.get_trust_bytes(issued_for_peer_id, expires_at_sec, issued_at_sec)
+    
     <- result
 
 func issue_trust(node: string, issued_for_peer_id: string, expires_at_sec: u64, issued_at_sec: u64, trust_bytes: []u8) ->IssueTrustResult:
     on node:
         result <- TrustGraph.issue_trust(issued_for_peer_id, expires_at_sec, issued_at_sec, trust_bytes)
+    
     <- result
