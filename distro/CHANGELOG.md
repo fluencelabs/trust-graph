@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.10](https://github.com/fluencelabs/trust-graph/compare/distro-v0.4.9...distro-v0.4.10) (2024-01-03)
+
+
+### Bug Fixes
+
+* **trust-graph:** Revert release 0.4.10 ([#153](https://github.com/fluencelabs/trust-graph/issues/153)) ([b263ce1](https://github.com/fluencelabs/trust-graph/commit/b263ce1fb13b937b629608ede35b6f436023dcac))
+
 ## [0.4.9](https://github.com/fluencelabs/trust-graph/compare/distro-v0.4.8...distro-v0.4.9) (2023-12-28)
 
 
