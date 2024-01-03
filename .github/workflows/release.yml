@@ -97,6 +97,12 @@ jobs:
       - run: npm i
         working-directory: aqua
 
+      - name: Setup fcli
+        uses: fluencelabs/setup-fluence@v1
+        with:
+          artifact: fcli
+          version: unstable
+
       - run: npm run build
         working-directory: aqua
 
