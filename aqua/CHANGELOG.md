@@ -1,12 +1,5 @@
 # Changelog
 
-## [0.4.10](https://github.com/fluencelabs/trust-graph/compare/trust-graph-api-v0.4.9...trust-graph-api-v0.4.10) (2023-12-29)
-
-
-### Features
-
-* **trust-graph:** Update aqua code ([#141](https://github.com/fluencelabs/trust-graph/issues/141)) ([175e51d](https://github.com/fluencelabs/trust-graph/commit/175e51d5db4d90dc6d884ce3113d68494da334a2))
-
 ## [0.4.9](https://github.com/fluencelabs/trust-graph/compare/trust-graph-api-v0.4.8...trust-graph-api-v0.4.9) (2023-12-28)
 
 
