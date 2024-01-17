@@ -10,7 +10,7 @@ description = "Distribution package for the trust-graph service"
 # See more keysand their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 maplit = "1.0.2"
-serde = "1.0.160"
+serde = "1.0.193"
 serde_json = "1.0.96"
 lazy_static = "1.4.0"
 
