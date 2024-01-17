@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * trust-graph bumped from 0.4.1 to 0.4.2
     * fluence-keypair bumped from 0.10.0 to 0.10.1
 
+## [0.4.11](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.4.10...trust-graph-wasm-v0.4.11) (2024-01-17)
+
+
+### Bug Fixes
+
+* **trust-graph:** Regenerate aqua bindings from wasm ([#155](https://github.com/fluencelabs/trust-graph/issues/155)) ([fd145c5](https://github.com/fluencelabs/trust-graph/commit/fd145c5fe1a115e87539ec5c9496d8b4c8bbc468))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * trust-graph bumped from 0.4.10 to 0.4.11
+
 ## [0.4.10](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.4.9...trust-graph-wasm-v0.4.10) (2024-01-03)
 
 

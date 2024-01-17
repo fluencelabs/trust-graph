@@ -3019,7 +3019,7 @@ dependencies = [
 
 [[package]]
 name = "trust-graph"
-version = "0.4.10"
+version = "0.4.11"
 dependencies = [
  "bs58 0.4.0",
  "derivative",
@@ -3036,7 +3036,7 @@ dependencies = [
 
 [[package]]
 name = "trust-graph-distro"
-version = "0.4.10"
+version = "0.4.11"
 dependencies = [
  "built",
  "lazy_static",
@@ -3047,7 +3047,7 @@ dependencies = [
 
 [[package]]
 name = "trust-graph-wasm"
-version = "0.4.10"
+version = "0.4.11"
 dependencies = [
  "anyhow",
  "bincode",
