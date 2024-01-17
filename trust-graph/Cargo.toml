@@ -14,7 +14,7 @@ fluence-keypair = { path = "../keypair", version = "0.10.4" }
 bs58 = "0.4.0"
 failure = "0.1.6"
 log = "0.4.11"
-ref-cast = "1.0.2"
+ref-cast = "1.0.16"
 derivative = "2.2.0"
 thiserror = "1.0.23"
 sha2 = "0.10.6"
