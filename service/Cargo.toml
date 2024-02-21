@@ -14,7 +14,7 @@ path = "src/main.rs"
 [dependencies]
 trust-graph = { version = "0.4.11", path = "../trust-graph" }
 fluence-keypair = { version = "0.10.4", path = "../keypair" }
-marine-rs-sdk = { version = "0.10.2", features = ["logger"] }
+marine-rs-sdk = { version = "0.14.0", features = ["logger"] }
 marine-sqlite-connector = "0.9.2"
 
 libp2p-identity = { workspace = true }
