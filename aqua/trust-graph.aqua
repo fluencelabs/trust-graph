@@ -1,4 +1,4 @@
-module TrustGraph declares *
+aqua TrustGraph declares *
 
 data AddTrustResult:
   success: bool

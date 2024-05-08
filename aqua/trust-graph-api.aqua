@@ -1,3 +1,12 @@
+aqua TrustGraphApi declares *
+
+export set_root, issue_trust, import_trust
+export add_trust, add_root_trust, verify_trust
+export get_weight, get_weight_from, issue_revocation
+export import_revocation, revoke, get_host_certs_from
+export get_all_certs, get_all_certs_from, get_host_certs
+export insert_cert
+
 import Sig, Peer, PeerId from "@fluencelabs/aqua-lib/builtin.aqua"
 import "misc.aqua"
 import "trust-graph.aqua"
@@ -24,7 +33,7 @@ func issue_trust(issuer: PeerId, issued_for: PeerId, expires_at_sec: u64) -> ?Tr
         issued_at_sec <- Peer.timestamp_sec()
         bytes <- TrustGraph.get_trust_bytes(issued_for, expires_at_sec, issued_at_sec)
 
-    result: ?Trust
+    result: *Trust
     error: *Error
     if bytes.success:
         Sig issuer
@@ -41,6 +50,7 @@ func issue_trust(issuer: PeerId, issued_for: PeerId, expires_at_sec: u64) -> ?Tr
             error <<- sig_res.error!
     else:
         error <<- bytes.error
+
     <- result, error
 
 -- Call context: any node with registered `trust-graph` service
@@ -51,8 +61,9 @@ func import_trust(trust: Trust, issuer: PeerId) -> ?Error:
     error: *Error
     timestamp_sec <- Peer.timestamp_sec()
     add_result <- TrustGraph.add_trust(trust, issuer, timestamp_sec)
-    if add_result.success != true:
+    if !add_result.success:
         error <<- add_result.error
+
     <- error
 
 -- Call context: %init_peer_id%
@@ -70,6 +81,7 @@ func add_trust(node: PeerId, issuer: PeerId, issued_for: PeerId, expires_at_sec:
         on node:
             import_error <- import_trust(trust!, issuer)
             append_error(error, import_error)
+
     <- error
 
 -- Call context: %init_peer_id%
@@ -99,6 +111,7 @@ func add_root_trust(node: PeerId, peer_id: PeerId, max_chain_len: u32, expires_a
 func verify_trust(trust: Trust, issuer: PeerId) -> VerifyTrustResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.verify_trust(trust, issuer, timestamp_sec)
+
     <- result
 
 -- Call context: any node with registered `trust-graph` service
@@ -107,6 +120,7 @@ func verify_trust(trust: Trust, issuer: PeerId) -> VerifyTrustResult:
 func get_weight(peer_id: PeerId) -> WeightResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.get_weight(peer_id, timestamp_sec)
+
     <- result
 
 -- Call context: any node with registered `trust-graph` service
@@ -114,6 +128,7 @@ func get_weight(peer_id: PeerId) -> WeightResult:
 func get_weight_from(peer_id: PeerId, issuer: PeerId) -> WeightResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.get_weight_from(peer_id, issuer, timestamp_sec)
+
     <- result
 
 -- Call context: %init_peer_id%
@@ -127,7 +142,7 @@ func issue_revocation(revoked_by: PeerId, revoked: PeerId) -> ?Revocation, ?Erro
         issued_at_sec <- Peer.timestamp_sec()
         bytes <- TrustGraph.get_revocation_bytes(revoked, issued_at_sec)
 
-    result: ?Revocation
+    result: *Revocation
     error: *Error
     if bytes.success:
         Sig revoked_by
@@ -145,6 +160,7 @@ func issue_revocation(revoked_by: PeerId, revoked: PeerId) -> ?Revocation, ?Erro
             error <<- sig_res.error!
     else:
         error <<- bytes.error
+
     <- result, error
 
 -- Call context: any node with registered `trust-graph` service
@@ -155,7 +171,7 @@ func import_revocation(revocation: Revocation) -> ?Error:
     error: *Error
     timestamp_sec <- Peer.timestamp_sec()
     add_result <- TrustGraph.revoke(revocation, timestamp_sec)
-    if add_result.success != true:
+    if !add_result.success:
         error <<- add_result.error
 
     <- error
@@ -176,6 +192,7 @@ func revoke(node: PeerId, revoked_by: PeerId, revoked: PeerId) -> ?Error:
         on node:
            import_error <- import_revocation(revocation!)
            append_error(error, import_error)
+
     <- error
 
 -- Call context: any node with registered `trust-graph` service
@@ -183,6 +200,7 @@ func revoke(node: PeerId, revoked_by: PeerId, revoked: PeerId) -> ?Error:
 func get_host_certs_from(issuer: PeerId) -> AllCertsResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.get_host_certs_from(issuer, timestamp_sec)
+
     <- result
 
 -- Call context: any node with registered `trust-graph` service
@@ -190,6 +208,7 @@ func get_host_certs_from(issuer: PeerId) -> AllCertsResult:
 func get_all_certs(issued_for: PeerId) -> AllCertsResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.get_all_certs(issued_for, timestamp_sec)
+
     <- result
 
 -- Call context: any node with registered `trust-graph` service
@@ -197,6 +216,7 @@ func get_all_certs(issued_for: PeerId) -> AllCertsResult:
 func get_all_certs_from(issued_for: PeerId, issuer: PeerId) -> AllCertsResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.get_all_certs_from(issued_for, issuer, timestamp_sec)
+
     <- result
 
 -- Call context: any node with registered `trust-graph` service
@@ -204,6 +224,7 @@ func get_all_certs_from(issued_for: PeerId, issuer: PeerId) -> AllCertsResult:
 func get_host_certs() -> AllCertsResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.get_host_certs(timestamp_sec)
+
     <- result
 
 -- Call context: any node with registered `trust-graph` service
@@ -211,4 +232,5 @@ func get_host_certs() -> AllCertsResult:
 func insert_cert(certificate: Certificate) -> InsertResult:
     timestamp_sec <- Peer.timestamp_sec()
     result <- TrustGraph.insert_cert(certificate, timestamp_sec)
+    
     <- result

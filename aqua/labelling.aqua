@@ -1,3 +1,7 @@
+aqua Labelling declares *
+
+export isFluencePeer
+
 import "misc.aqua"
 import get_host_certs_from from "trust-graph-api.aqua"
 
@@ -20,7 +24,7 @@ func isFluencePeer() -> ?bool, ?Error:
     fluence_root_peer_id = "12D3KooWNbZKaPWRZ8wgjGvrxdJFz9Fq5uVwkR6ERV1f74HhPdyB"
     label_peer_id = "12D3KooWM45u7AQxsb4MuQJNYT3NWHHMLU7JTbBV66RTfF3KSzdR"
 
-    result: ?bool
+    result: *bool
     error: *Error
     -- get all certs issued by `label_peer_id` to current host
     certs_result <- get_host_certs_from(label_peer_id)
@@ -32,8 +36,9 @@ func isFluencePeer() -> ?bool, ?Error:
                 if cert.chain!0.issued_for == fluence_root_peer_id:
                     if cert.chain!1.issued_for == label_peer_id:
                         result <<- true
-        if result == nil:
+        if result == []:
             result <<- false
     else:
         error <<- certs_result.error
+
     <- result, error

@@ -1,3 +1,5 @@
+aqua Misc declares *
+
 import "trust-graph.aqua"
 
 alias Error: string

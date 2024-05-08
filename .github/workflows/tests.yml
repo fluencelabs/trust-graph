@@ -2,6 +2,11 @@ name: Run tests with workflow_call
 
 on:
   workflow_call:
+    inputs:
+      fcli-version:
+        description: "@fluencelabs/cli version"
+        type: string
+        default: "main"
 
 jobs:
   trust-graph:
@@ -50,6 +55,12 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache-dependency-path: "aqua/package-lock.json"
           cache: "npm"
+
+      - name: Setup fcli
+        uses: fluencelabs/setup-fluence@v1
+        with:
+          artifact: fcli
+          version: ${{ inputs.fcli-version }}
 
       - run: npm i
         working-directory: aqua

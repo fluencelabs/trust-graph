@@ -9,6 +9,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * trust-graph bumped from 0.4.1 to 0.4.2
     * fluence-keypair bumped from 0.10.0 to 0.10.1
 
+## [0.4.11](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.4.10...trust-graph-wasm-v0.4.11) (2024-01-17)
+
+
+### Bug Fixes
+
+* **trust-graph:** Regenerate aqua bindings from wasm ([#155](https://github.com/fluencelabs/trust-graph/issues/155)) ([fd145c5](https://github.com/fluencelabs/trust-graph/commit/fd145c5fe1a115e87539ec5c9496d8b4c8bbc468))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * trust-graph bumped from 0.4.10 to 0.4.11
+
+## [0.4.10](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.4.9...trust-graph-wasm-v0.4.10) (2024-01-03)
+
+
+### Bug Fixes
+
+* **trust-graph:** Revert release 0.4.10 ([#153](https://github.com/fluencelabs/trust-graph/issues/153)) ([b263ce1](https://github.com/fluencelabs/trust-graph/commit/b263ce1fb13b937b629608ede35b6f436023dcac))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * trust-graph bumped from 0.4.9 to 0.4.10
+
+## [0.4.9](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.4.8...trust-graph-wasm-v0.4.9) (2023-12-28)
+
+
+### Bug Fixes
+
+* **deps:** update sqlite wasm ([#135](https://github.com/fluencelabs/trust-graph/issues/135)) ([c59451d](https://github.com/fluencelabs/trust-graph/commit/c59451de04ba79152fa8d600a7b456ab24766dd0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * trust-graph bumped from 0.4.8 to 0.4.9
+
+## [0.4.8](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.4.7...trust-graph-wasm-v0.4.8) (2023-12-20)
+
+
+### Features
+
+* update marine sdk's, configs and sqlite connector ([#129](https://github.com/fluencelabs/trust-graph/issues/129)) ([0b66f4e](https://github.com/fluencelabs/trust-graph/commit/0b66f4e0536633879de46f69ac8391c72ece7e77))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * trust-graph bumped from 0.4.7 to 0.4.8
+    * fluence-keypair bumped from 0.10.3 to 0.10.4
+
 ## [0.4.7](https://github.com/fluencelabs/trust-graph/compare/trust-graph-wasm-v0.4.6...trust-graph-wasm-v0.4.7) (2023-07-04)
 
 

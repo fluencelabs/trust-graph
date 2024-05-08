@@ -37,7 +37,7 @@ pub(crate) fn check_timestamp_tetraplets(
         .get(arg_number)
         .ok_or_else(|| InvalidTimestampTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
     let tetraplet = tetraplets
-        .get(0)
+        .first()
         .ok_or_else(|| InvalidTimestampTetraplet(format!("{:?}", call_parameters.tetraplets)))?;
     (TRUSTED_TIMESTAMP.eq(&(&tetraplet.service_id, &tetraplet.function_name))
         && tetraplet.peer_pk == call_parameters.host_id)

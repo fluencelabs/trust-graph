@@ -1,11 +1,14 @@
-module Export
+aqua  Export
+
 import add_root_trust, add_trust, revoke from "@fluencelabs/trust-graph/trust-graph-api.aqua"
-export add_root_trust, add_trust, revoke, timestamp_sec
 import Peer from "@fluencelabs/aqua-lib/builtin.aqua"
+
+export add_root_trust, add_trust, revoke, timestamp_sec
 
 alias PeerId: string
 
 func timestamp_sec() -> u64:
     on HOST_PEER_ID:
         result <- Peer.timestamp_sec()
+
     <- result

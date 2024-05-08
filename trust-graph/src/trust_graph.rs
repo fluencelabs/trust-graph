@@ -154,7 +154,7 @@ where
         C: Borrow<Certificate>,
     {
         let chain = &cert.borrow().chain;
-        let mut issued_by = chain.get(0).ok_or(EmptyChain)?.issued_for.clone();
+        let mut issued_by = chain.first().ok_or(EmptyChain)?.issued_for.clone();
 
         // TODO: optimize to check only root weight
         for trust in chain {
